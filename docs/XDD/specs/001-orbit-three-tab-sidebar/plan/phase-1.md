@@ -1,6 +1,6 @@
 ---
 title: "Phase 1: Foundation — settings, view shell, tab bar"
-status: in_progress
+status: completed
 version: "1.0"
 phase: 1
 ---
@@ -70,7 +70,7 @@ Establishes the plugin skeleton: real settings model, an exclusion utility share
     - [x] Pane shows a working three-tab switcher; active tab persists across reload `[ref: PRD/Feature 1]`
     - [x] Tablist is keyboard-operable and ARIA-correct `[ref: SDD/Accessibility]`
 
-- [ ] **T1.4 View/command registration + settings tab + styles** `[activity: frontend-ui]` `[ref: SDD/Solution Strategy; PRD/Feature 6]`
+- [x] **T1.4 View/command registration + settings tab + styles** `[activity: frontend-ui]` `[ref: SDD/Solution Strategy; PRD/Feature 6]`
 
   1. Prime: Review thin-main rule, `onLayoutReady` auto-open pattern, leaf-reuse (`getLeavesOfType ?? getRightLeaf`), `onExternalSettingsChange`.
   2. Test: `onload` registers the view type and an "Open Orbit" command without throwing (mock); ribbon/command reveals/reuses a single right-leaf (no duplicate leaves); `onunload` does NOT detach leaves; `SettingsTab` renders controls for every `OrbitSettings` field and persists on change; `onExternalSettingsChange` re-reads settings.
@@ -80,6 +80,6 @@ Establishes the plugin skeleton: real settings model, an exclusion utility share
     - [ ] Opening the command reveals exactly one Orbit pane; settings round-trip and react live `[ref: PRD/Feature 6]`
     - [ ] No leaf detach on unload; Sync settings change picked up `[ref: SDD/Persistence]`
 
-- [ ] **T1.5 Phase Validation** `[activity: validate]`
+- [x] **T1.5 Phase Validation** `[activity: validate]`
 
   Run all Phase 1 tests, `npm run lint`, `npm run typecheck`, `npm run build`. Verify the pane opens with a keyboard-accessible tab switcher and a working settings tab. Confirm cleanup via mock `_runCleanup()`. No `innerHTML`, no `console.log`.
