@@ -143,6 +143,21 @@ export class OrbitView extends ItemView {
 	}
 
 	// -------------------------------------------------------------------------
+	// Public — refresh
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Re-render the currently active panel.
+	 * Called by the plugin's debounced active-leaf-change handler and by
+	 * the immediate post-'changed' repaint. No-op if the view is not open.
+	 */
+	refreshActivePanel(): void {
+		if (this.panelContainer) {
+			this.renderPanel(this.state.activeTab);
+		}
+	}
+
+	// -------------------------------------------------------------------------
 	// Private — panel rendering
 	// -------------------------------------------------------------------------
 

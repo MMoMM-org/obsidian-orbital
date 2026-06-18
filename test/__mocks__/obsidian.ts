@@ -55,7 +55,13 @@ export class Component {
 		},
 	);
 	registerInterval = vi.fn();
-	registerEvent = vi.fn();
+	/**
+	 * registerEvent — mirrors Obsidian's Component.registerEvent.
+	 * In production this stores an EventRef for auto-cleanup; in tests it is a
+	 * vi.fn() so call count and arguments can be asserted. No-op for cleanup
+	 * simulation (the mock App's on() returns a plain object EventRef stub).
+	 */
+	registerEvent = vi.fn((_eventRef: unknown) => {});
 	private _cleanupFns: Array<() => unknown> = [];
 
 	register = vi.fn((fn: () => unknown) => {
@@ -99,18 +105,28 @@ export class App {
 			remove: vi.fn(),
 		},
 		configDir: ".obsidian",
+		/** vault.on / vault.off — mirror Obsidian's EventRef event system. */
+		on: vi.fn((_event: string, _handler: (...args: unknown[]) => unknown) => ({})),
+		off: vi.fn((_event: string, _handler: (...args: unknown[]) => unknown) => {}),
 	};
 	fileManager = {
 		processFrontMatter: vi.fn(),
 	};
 	workspace = {
 		getActiveViewOfType: vi.fn(),
-		on: vi.fn(),
-		off: vi.fn(),
+		on: vi.fn((_event: string, _handler: (...args: unknown[]) => unknown) => ({})),
+		off: vi.fn((_event: string, _handler: (...args: unknown[]) => unknown) => {}),
 		getLeavesOfType: vi.fn(() => [] as WorkspaceLeaf[]),
 		getRightLeaf: vi.fn((_split: boolean) => new WorkspaceLeaf()),
 		setActiveLeaf: vi.fn((_leaf: WorkspaceLeaf, _params?: { focus?: boolean }) => {}),
 		openLinkText: vi.fn(async () => {}),
+		/** getActiveFile — returns the currently active TFile, or null. */
+		getActiveFile: vi.fn((): TFile | null => null),
+		/**
+		 * onLayoutReady — mirrors Obsidian's workspace.onLayoutReady.
+		 * Fires the callback synchronously in tests (layout is always ready).
+		 */
+		onLayoutReady: vi.fn((cb: () => void) => { cb(); }),
 		/**
 		 * getLeaf — mirrors Obsidian's workspace.getLeaf(newLeaf?: boolean | PaneType).
 		 * Returns a WorkspaceLeaf with an openLinkText stub so panel tests can assert
@@ -130,7 +146,8 @@ export class App {
 	};
 	metadataCache = {
 		getFileCache: vi.fn((_file: TFile): CachedMetadata | null => null),
-		on: vi.fn(),
+		on: vi.fn((_event: string, _handler: (...args: unknown[]) => unknown) => ({})),
+		off: vi.fn((_event: string, _handler: (...args: unknown[]) => unknown) => {}),
 		/** resolvedLinks[sourcePath][destPath] = link count. */
 		resolvedLinks: {} as Record<string, Record<string, number>>,
 		/** unresolvedLinks[sourcePath][targetText] = link count. */
@@ -651,3 +668,68 @@ export function createMockCachedMetadata(overrides?: Partial<{
 export const Keymap = {
 	isModEvent: vi.fn((_evt: MouseEvent | KeyboardEvent): boolean | "tab" | "split" | "window" => false),
 };
+
+// --- debounce ---
+
+/**
+ * Debouncer interface — mirrors the real Obsidian Debouncer type.
+ * The function itself is callable and carries `.cancel()` and `.run()` methods.
+ */
+export interface Debouncer<T extends unknown[], V> {
+	(...args: T): V | undefined;
+	cancel(): void;
+	run(): V | undefined;
+}
+
+/**
+ * debounce — mirrors Obsidian's `debounce(fn, timeout?, resetTimer?)`.
+ *
+ * Implementation uses real setTimeout so tests can drive it with
+ * vi.useFakeTimers() / vi.advanceTimersByTime(). Trailing edge only when
+ * resetTimer=false (matches Obsidian default of trailing).
+ *
+ * The returned function accumulates the last args; after `timeout` ms of
+ * inactivity it calls the original function once (trailing). `.cancel()`
+ * clears a pending timer. `.run()` fires immediately.
+ *
+ * Tests should use `vi.useFakeTimers()` to control the timer.
+ */
+export function debounce<T extends unknown[], V>(
+	fn: (...args: T) => V,
+	timeout = 0,
+	_resetTimer = false,
+): Debouncer<T, V> {
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	let lastArgs: T | undefined;
+
+	const debounced = (...args: T): V | undefined => {
+		lastArgs = args;
+		if (timer !== undefined) {
+			clearTimeout(timer);
+		}
+		timer = setTimeout(() => {
+			timer = undefined;
+			if (lastArgs !== undefined) {
+				fn(...lastArgs);
+			}
+		}, timeout);
+		return undefined;
+	};
+
+	debounced.cancel = (): void => {
+		if (timer !== undefined) {
+			clearTimeout(timer);
+			timer = undefined;
+		}
+	};
+
+	debounced.run = (): V | undefined => {
+		debounced.cancel();
+		if (lastArgs !== undefined) {
+			return fn(...lastArgs);
+		}
+		return undefined;
+	};
+
+	return debounced as Debouncer<T, V>;
+}

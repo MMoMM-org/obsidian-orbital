@@ -52,7 +52,9 @@ Delivers the reverse-index link graph and a working Relations tab: outgoing, bac
     - [x] 2nd-hop deduped, capped, excludes self+1st-hop with "showing N of M" signal `[ref: PRD/Feature 2]`
     - [x] No crash when active note missing from link map `[ref: SDD/Risks — relation-pane bug]`
 
-- [ ] **T2.3 RelationsPanel (render, navigate, hover, Missing→Manage)** `[activity: frontend-ui]` `[ref: SDD/User Interface & UX; PRD/Feature 2]`
+> **Deviation (T2.2, 2026-06-18):** the SDD "Implementation Examples — 2nd-hop computation" snippet sets `truncated` via `--budget <= 0`, which is a false-positive when candidate count exactly equals the cap (reports "showing N of M" when all N were shown). The implementation corrects this: `truncated` is true only when an eligible candidate remained unadded after the cap was reached (verified by cap-1 / cap-exactly / cap+1 / cross-group tests). SDD example is illustrative; no SDD edit required.
+
+- [x] **T2.3 RelationsPanel (render, navigate, hover, Missing→Manage)** `[activity: frontend-ui]` `[ref: SDD/User Interface & UX; PRD/Feature 2]`
 
   1. Prime: Read UI section (collapsible `tree-item` sections, counts, `is-active`, `hover-link`, click/cmd-click), `collapsedSections` persistence.
   2. Test (mock): renders four collapsible sections with counts; click opens in current leaf, `Keymap.isModEvent` opens new leaf; hover triggers `workspace.trigger('hover-link', …)`; "Missing" section shows a "Manage →" control that requests a tab switch to Dangling filtered to the target; empty state when no active markdown note; collapse state persists via view state; counts honor `showCounts`.
