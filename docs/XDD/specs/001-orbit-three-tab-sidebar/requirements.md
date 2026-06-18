@@ -202,6 +202,8 @@ Orbit consolidates relations, dangling-link management, and recent files into **
 - Scenario: Some files fail to update mid-batch → Expected: continue the batch, then report "Updated N of M files; K failed" rather than aborting silently.
 - Scenario: Empty or invalid new name (illegal path characters) → Expected: block confirmation with inline validation.
 - Scenario: Very large match set (thousands of occurrences) → Expected: show progress feedback and keep the UI responsive.
+**note:**
+we should probably add an additional confirm if the user wants to do this for more then X files (x = 20 by default configurable in the settings, 0 = off)
 
 ## Success Metrics
 
@@ -251,9 +253,9 @@ Orbit consolidates relations, dangling-link management, and recent files into **
 
 ## Open Questions
 - [x] ~~What license will Orbit ship under?~~ **Resolved 2026-06-18: MIT.** GPL source must be reimplemented from patterns; MIT source reusable with attribution.
-- [ ] Default grouping for the Dangling Links tab — by target (more actionable) or by source file (matches the brief's "grouped by source file")? Leaning by-target for actionability; confirm in SDD.
-- [ ] Should "Change to alias" require picking an existing note (per brief), or also allow aliasing to an arbitrary string? (Brief specifies existing-note picker.)
-- [ ] Is the standalone recent-files plugin removal a hard launch gate, or acceptable as a fast-follow once parity is verified?
+- [x] ~~Default grouping for the Dangling Links tab~~ **Resolved 2026-06-18 (SDD ADR-4): by target, with a toggle to by-source.**
+- [x] ~~Should "Change to alias" allow an arbitrary string?~~ **Resolved 2026-06-18 (SDD ADR-6): existing note only, via picker → `[[note|originalText]]`.**
+- [x] ~~Is recent-files plugin removal a hard launch gate?~~ **Resolved 2026-06-18 (SDD ADR-7): hard gate — full parity at v1.**
 
 ---
 
@@ -281,8 +283,8 @@ The three categories each have established community plugins with active user ba
 | title | Orbit — Three-Tab Link & Navigation Sidebar |
 | status | IN_REVIEW |
 | clarificationsRemaining | 0 |
-| acceptanceCriteria | 34 |
-| openQuestions | License choice; Dangling default grouping; alias-to-arbitrary-string; recent-plugin removal as launch gate |
+| acceptanceCriteria | 33 |
+| openQuestions | All resolved (license=MIT; grouping=by-target; alias=existing-note-only; recent=v1 gate) |
 
 ### Section Status
 | Section | Status | Detail |

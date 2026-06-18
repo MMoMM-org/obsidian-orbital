@@ -5,16 +5,16 @@
 | Field | Value |
 |-------|-------|
 | **Created** | 2026-06-18 |
-| **Current Phase** | PRD |
+| **Current Phase** | Ready |
 | **Last Updated** | 2026-06-18 |
 
 ## Documents
 
 | Document | Status | Notes |
 |----------|--------|-------|
-| requirements.md | completed | 6 Must-have features, 34 acceptance criteria — finalized |
-| solution.md | pending | SDD deferred by user |
-| plan/ | pending | |
+| requirements.md | completed | 6 Must-have features, 34 acceptance criteria |
+| solution.md | completed | Modular layered plugin; ADR-1..8 confirmed; EARS acceptance criteria |
+| plan/ | completed | 5 phases, 22 tasks, TDD; README manifest + phase-1..5.md |
 
 **Status values**: `pending` | `in_progress` | `completed` | `skipped`
 
@@ -27,7 +27,17 @@
 | 2026-06-18 | Dangling Links default scope = vault-wide with folder toggle | User decision |
 | 2026-06-18 | PRD authored (Standard research mode) | 6 Must features; flagship = vault-wide rename/merge; preview+confirm gating; no telemetry |
 | 2026-06-18 | License = MIT | GPL source (recent-files-obsidian, broken-links) must be reimplemented from patterns; MIT source (relation-pane, dangling-links) reusable with attribution |
-| 2026-06-18 | PRD finalized; SDD/PLAN deferred | User chose to finalize PRD only for now |
+| 2026-06-18 | PRD finalized | User chose to finalize PRD; later opted to continue to SDD |
+| 2026-06-18 | SDD ADR-1 single tabbed ItemView | One pane value-prop; shared index; standard pattern |
+| 2026-06-18 | SDD ADR-2 incremental reverse-index graph | O(degree) lookups vs relation-pane O(N·M); 10k–50k vault perf |
+| 2026-06-18 | SDD ADR-3 vanilla DOM rendering (no Svelte) | No framework dep; XSS-safe; matches scaffold; reimplementing anyway |
+| 2026-06-18 | SDD ADR-4 Dangling grouped by-target (toggle to source) | Rename/merge/create act on target → more actionable; resolves open question |
+| 2026-06-18 | SDD ADR-5 hybrid bulk-rewrite (renameFile + offset-splice vault.process) | Native link-update where possible; precise dangling rewrites |
+| 2026-06-18 | SDD ADR-6 alias target = existing note only | Per brief; guarantees alias resolves; resolves open question |
+| 2026-06-18 | SDD ADR-7 Recent Files parity is v1 launch gate | Users can uninstall recent-files-obsidian at v1; resolves open question |
+| 2026-06-18 | SDD ADR-8 persistence split (saveData vs view getState/setState) | Settings global+Sync; tab/scope per-leaf |
+| 2026-06-18 | PLAN authored — 5 phases, 22 tasks (TDD) | P1 foundation → P2 graph+Relations → P3 Dangling+rewrite → P4 Recent (∥) → P5 integration+submission; Recent parallel to P2–3 |
+| 2026-06-18 | Spec validation PASS; spec marked Ready | Consistency + AC coverage PASS; fixed AC count (34→33); added T1.0 (extend obsidian test mock + vitest aliases) + per-phase mock-extension notes from drift findings |
 
 ## Context
 
