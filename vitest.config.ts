@@ -10,6 +10,11 @@ export default defineConfig({
 				find: "obsidian",
 				replacement: path.resolve(__dirname, "test/__mocks__/obsidian.ts"),
 			},
+			// main.ts sits at the src/ root — resolve it directly.
+			{
+				find: "main",
+				replacement: path.resolve(__dirname, "src/main.ts"),
+			},
 			// Mirror tsconfig baseUrl: "src" for the top-level src/ directories.
 			// Each entry maps the directory name to its absolute path so that
 			// bare module paths (e.g. `types`, `types/index`, `settings/SettingsTab`)

@@ -60,3 +60,73 @@
 	color: var(--text-muted);
 	font-size: var(--font-small);
 }
+
+/* ── Tab bar ────────────────────────────────────────────────────────────────
+   .orbit-tab-bar wraps the three role="tab" buttons inside OrbitView.
+   Uses the Obsidian nav-buttons-container class for baseline spacing and
+   adds prefixed overrides for layout, active state, and focus rings.
+   All colors come from Obsidian CSS variables — no hardcoded values.
+   ─────────────────────────────────────────────────────────────────────────*/
+
+.orbit-tab-bar {
+	display: flex;
+	align-items: stretch;
+	border-bottom: 1px solid var(--background-modifier-border);
+	padding: 0 4px;
+	gap: 2px;
+}
+
+.orbit-tab-bar [role="tab"] {
+	flex: 1 1 0;
+	padding: 4px 6px;
+	font-size: var(--font-small);
+	color: var(--text-muted);
+	background: transparent;
+	border: none;
+	border-bottom: 2px solid transparent;
+	border-radius: var(--radius-s) var(--radius-s) 0 0;
+	cursor: pointer;
+	outline: none;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	transition: color 80ms ease, background 80ms ease;
+}
+
+.orbit-tab-bar [role="tab"]:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.orbit-tab-bar [role="tab"].is-active,
+.orbit-tab-bar [role="tab"][aria-selected="true"] {
+	color: var(--text-accent);
+	border-bottom-color: var(--text-accent);
+	background: transparent;
+}
+
+.orbit-tab-bar [role="tab"]:focus-visible {
+	box-shadow: 0 0 0 2px var(--color-accent);
+	border-radius: var(--radius-s);
+}
+
+/* ── Panel container ────────────────────────────────────────────────────────*/
+
+.orbit-panel-container {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	padding: 8px 0;
+}
+
+.orbit-panel-container [role="tabpanel"] {
+	padding: 4px 8px;
+}
+
+/* ── Placeholder / empty state ──────────────────────────────────────────────*/
+
+.orbit-panel-placeholder {
+	padding: 16px 8px;
+	color: var(--text-faint);
+	font-size: var(--font-small);
+	text-align: center;
+}

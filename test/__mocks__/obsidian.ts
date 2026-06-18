@@ -93,7 +93,10 @@ export class App {
 		getActiveViewOfType: vi.fn(),
 		on: vi.fn(),
 		off: vi.fn(),
-		getLeavesOfType: vi.fn(() => []),
+		getLeavesOfType: vi.fn(() => [] as WorkspaceLeaf[]),
+		getRightLeaf: vi.fn((_split: boolean) => new WorkspaceLeaf()),
+		revealLeaf: vi.fn(async (_leaf: WorkspaceLeaf) => {}),
+		setActiveLeaf: vi.fn((_leaf: WorkspaceLeaf, _params?: { focus?: boolean }) => {}),
 		openLinkText: vi.fn(async () => {}),
 	};
 	metadataCache = {
@@ -119,6 +122,16 @@ export class Plugin extends Component {
 	addStatusBarItem = vi.fn(() => ({ setText: vi.fn() }));
 	addCommand = vi.fn();
 	addSettingTab = vi.fn();
+	/** registerView records the factory so tests can assert registration. */
+	registerView = vi.fn(
+		(_type: string, _factory: (leaf: WorkspaceLeaf) => unknown) => {},
+	);
+	/** onLayoutReady runs the callback synchronously in tests. */
+	onLayoutReady = vi.fn((cb: () => void) => {
+		cb();
+	});
+	/** onExternalSettingsChange: called by Obsidian when settings change on disk. */
+	onExternalSettingsChange?: () => void | Promise<void>;
 }
 
 // --- UI Components ---
@@ -201,6 +214,12 @@ export class Setting {
 		const button = new ButtonComponent();
 		this.settingEl.appendChild(button.buttonEl);
 		cb(button);
+		return this;
+	});
+	addTextArea = vi.fn((cb: (textarea: TextAreaComponent) => void) => {
+		const ta = new TextAreaComponent();
+		this.settingEl.appendChild(ta.inputEl);
+		cb(ta);
 		return this;
 	});
 }
@@ -381,6 +400,30 @@ class ButtonComponent {
 	});
 }
 
+/** TextAreaComponent — exposes `inputEl` (textarea) so tests can set value and fire events. */
+class TextAreaComponent {
+	inputEl: HTMLTextAreaElement;
+	_onChange?: (value: string) => void;
+
+	constructor() {
+		this.inputEl = document.createElement("textarea");
+	}
+
+	setValue = vi.fn((v: string) => {
+		this.inputEl.value = v;
+		return this;
+	});
+	setPlaceholder = vi.fn((p: string) => {
+		this.inputEl.placeholder = p;
+		return this;
+	});
+	onChange = vi.fn((cb: (value: string) => void) => {
+		this._onChange = cb;
+		this.inputEl.addEventListener("input", () => cb(this.inputEl.value));
+		return this;
+	});
+}
+
 /**
  * DropdownComponent — exposes `selectEl` (an HTMLSelectElement) so tests can
  * set the value and dispatch a change event.
@@ -421,6 +464,7 @@ export class WorkspaceLeaf {
 		getViewType: vi.fn(() => "markdown"),
 		file: null as TFile | null,
 	};
+	setViewState = vi.fn(async (_state: { type: string; active?: boolean }) => {});
 }
 
 /**
