@@ -32,7 +32,7 @@ Establishes the plugin skeleton: real settings model, an exclusion utility share
 
 > **Test-infrastructure prerequisite (from spec validation, 2026-06-18):** the current `test/__mocks__/obsidian.ts` lacks several APIs the TDD tests rely on. T1.0 below establishes the foundation-level additions; each later phase extends the mock for its own needs (Phase 2: `metadataCache.resolvedLinks`/`unresolvedLinks`/`getFirstLinkpathDest`, `workspace.trigger`, `Keymap.isModEvent`, `debounce`; Phase 3: `fileManager.renameFile`/`generateMarkdownLink`/`getNewFileParent`, `FuzzySuggestModal`; Phase 4: `Platform.isMobile`, `app.dragManager`). Also add the same path aliases as `tsconfig` to `vitest.config.ts` so new modules import by alias in tests.
 
-- [ ] **T1.0 Extend obsidian test mock + vitest aliases** `[activity: test-infra]` `[ref: SDD/Implementation Context — test/__mocks__/obsidian.ts; validation findings]`
+- [x] **T1.0 Extend obsidian test mock + vitest aliases** `[activity: test-infra]` `[ref: SDD/Implementation Context — test/__mocks__/obsidian.ts; validation findings]`
 
   1. Prime: Read `test/__mocks__/obsidian.ts` and `vitest.config.ts`; list the APIs each phase's tests need (see prerequisite note above).
   2. Test: a smoke test imports `ItemView` from the mock and instantiates a trivial subclass; a module imported via path alias (e.g. `types/index`) resolves in a test.
@@ -41,7 +41,7 @@ Establishes the plugin skeleton: real settings model, an exclusion utility share
   - Success:
     - [ ] `ItemView` and alias imports work in tests; no regression `[ref: SDD/Implementation Context]`
 
-- [ ] **T1.1 Orbit settings model & defaults** `[activity: domain-modeling]` `[ref: SDD/Application Data Models]`
+- [x] **T1.1 Orbit settings model & defaults** `[activity: domain-modeling]` `[ref: SDD/Application Data Models]`
 
   1. Prime: Read the `OrbitSettings`/`DEFAULT_SETTINGS`/`TabId`/`DanglingScope`/`DanglingGrouping` definitions in SDD.
   2. Test: defaults match SDD (recentListLength 20, secondHopCap 50, debounce 300, scope "vault", grouping "target", defaultTab "relations"); `loadSettings` merges partial stored data over defaults; unknown keys ignored; `recentFiles` defaults to `[]`.
@@ -51,7 +51,7 @@ Establishes the plugin skeleton: real settings model, an exclusion utility share
     - [ ] Settings load/save round-trips with defaults applied `[ref: PRD/Feature 6]`
     - [ ] Type model matches SDD `[ref: SDD/Application Data Models]`
 
-- [ ] **T1.2 ExclusionMatcher utility** `[activity: domain-modeling]` `[parallel: true]` `[ref: SDD/Building Block View; PRD/Feature 4]`
+- [x] **T1.2 ExclusionMatcher utility** `[activity: domain-modeling]` `[parallel: true]` `[ref: SDD/Building Block View; PRD/Feature 4]`
 
   1. Prime: Review exclusion requirements (path regex + frontmatter-tag regex) and the relation-pane research note about over-broad `.toString()` tag matching.
   2. Test: path pattern matches via regex against `file.path`; tag pattern matches frontmatter tags (string or array); invalid regex is caught and treated as no-match (no throw); empty patterns exclude nothing; matcher is pure/stateless given the cache lookup.
@@ -60,15 +60,15 @@ Establishes the plugin skeleton: real settings model, an exclusion utility share
   - Success:
     - [ ] Files matching path/tag patterns are excluded; invalid regex never crashes `[ref: PRD/Feature 4 — exclusions]`
 
-- [ ] **T1.3 OrbitView shell + accessible TabBar** `[activity: frontend-ui]` `[ref: SDD/User Interface & UX; ADR-1, ADR-8]`
+- [x] **T1.3 OrbitView shell + accessible TabBar** `[activity: frontend-ui]` `[ref: SDD/User Interface & UX; ADR-1, ADR-8]`
 
   1. Prime: Read SDD UI section (tablist roles, `nav-buttons-container`/`is-active` classes), `getState/setState` persistence, mobile icon-collapse.
   2. Test (against obsidian mock): view returns `VIEW_TYPE="orbit"`, display text "Orbit", an icon; `TabBar` renders three `role="tab"` buttons in a `role="tablist"`, one `aria-selected="true"`; clicking/activating a tab swaps the rendered panel and updates `aria-selected`; arrow keys move selection, Enter/Space activate; `getState`/`setState` round-trips `{activeTab, danglingScope, collapsedSections}`; switching tab renders only the active panel (others removed); `onunload`/`onClose` runs registered cleanup (`_runCleanup()`).
   3. Implement: `src/view/OrbitView.ts` (extends `ItemView`, panel routing, getState/setState) and `src/view/TabBar.ts` (vanilla DOM, roving tabindex). Panels are injected as placeholder render fns for now.
   4. Validate: unit tests pass; no `innerHTML`; typecheck; lint.
   - Success:
-    - [ ] Pane shows a working three-tab switcher; active tab persists across reload `[ref: PRD/Feature 1]`
-    - [ ] Tablist is keyboard-operable and ARIA-correct `[ref: SDD/Accessibility]`
+    - [x] Pane shows a working three-tab switcher; active tab persists across reload `[ref: PRD/Feature 1]`
+    - [x] Tablist is keyboard-operable and ARIA-correct `[ref: SDD/Accessibility]`
 
 - [ ] **T1.4 View/command registration + settings tab + styles** `[activity: frontend-ui]` `[ref: SDD/Solution Strategy; PRD/Feature 6]`
 
