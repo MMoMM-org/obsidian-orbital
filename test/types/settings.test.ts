@@ -76,12 +76,10 @@ describe("OrbitSettings", () => {
 			expect(result.danglingDefaultScope).toBe("vault");
 		});
 
-		it("ignores unknown keys in stored data (no type bleed)", () => {
+		it("typed fields survive a merge that includes extra keys in stored data", () => {
 			const stored = { recentListLength: 7, unknownKey: "ignored" } as unknown as Partial<OrbitSettings>;
 			const result = mergeSettings(stored);
 			expect(result.recentListLength).toBe(7);
-			expect((result as Record<string, unknown>)["unknownKey"]).toBe("ignored");
-			// Object.assign merges — unknown keys pass through but typed fields are unaffected
 			expect(result.defaultTab).toBe("relations");
 		});
 

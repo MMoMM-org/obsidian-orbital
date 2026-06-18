@@ -1,13 +1,13 @@
-import type MyPlugin from "main";
+import type OrbitPlugin from "main";
 import { type App, PluginSettingTab, Setting } from "obsidian";
 
 import { HeaderSection } from "./HeaderSection";
 
 export class SettingsTab extends PluginSettingTab {
-	plugin: MyPlugin;
+	plugin: OrbitPlugin;
 	private readonly header: HeaderSection;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: OrbitPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 		this.header = new HeaderSection({ plugin });
