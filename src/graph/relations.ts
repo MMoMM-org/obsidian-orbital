@@ -28,10 +28,31 @@ export interface RelationsMetadataCache {
 
 /** Convert a vault path to a display name (basename without extension). */
 function toItem(path: string): RelationItem {
-	const name = path.split("/").pop() ?? path;
+	const name = path.split("/").at(-1) ?? path;
 	const dot = name.lastIndexOf(".");
 	const display = dot > 0 ? name.slice(0, dot) : name;
 	return { path, display };
+}
+
+/**
+ * Returns true when at least one unseen, non-excluded candidate exists among
+ * viaNodes[startIdx..] — used to decide truncated after budget is exhausted.
+ */
+function hasEligibleCandidates(
+	index: LinkGraphIndex,
+	viaNodes: string[],
+	startIdx: number,
+	seen: Set<string>,
+	isExcluded: (path: string) => boolean,
+): boolean {
+	for (let i = startIdx; i < viaNodes.length; i++) {
+		const via = viaNodes[i]!;
+		if (isExcluded(via)) continue;
+		for (const path of [...index.backlinksOf(via), ...index.outgoingOf(via)]) {
+			if (!seen.has(path) && !isExcluded(path)) return true;
+		}
+	}
+	return false;
 }
 
 /**
@@ -57,9 +78,17 @@ function computeSecondHop(
 	const groups: SecondHopGroup[] = [];
 	const seen = new Set<string>([active, ...firstHop]);
 	let budget = cap;
+	const viaNodes = [...firstHop];
 
-	for (const via of firstHop) {
-		if (budget <= 0) break;
+	for (let viaIdx = 0; viaIdx < viaNodes.length; viaIdx++) {
+		const via = viaNodes[viaIdx]!;
+		if (budget <= 0) {
+			// Budget is exhausted; truncated only if there are eligible candidates left.
+			return {
+				groups,
+				truncated: hasEligibleCandidates(index, viaNodes, viaIdx, seen, isExcluded),
+			};
+		}
 		if (isExcluded(via)) continue;
 
 		const candidates = [
@@ -74,20 +103,24 @@ function computeSecondHop(
 				seen.add(path); // prevent re-evaluation from another via
 				continue;
 			}
+			if (budget === 0) {
+				// At least one more eligible candidate remains — we cannot add it.
+				if (items.length > 0) {
+					groups.push({ via: toItem(via), items });
+				}
+				return { groups, truncated: true };
+			}
 			seen.add(path);
 			items.push(toItem(path));
-			if (--budget <= 0) break;
+			budget--;
 		}
 
 		if (items.length > 0) {
 			groups.push({ via: toItem(via), items });
 		}
-
-		if (budget <= 0) break;
 	}
 
-	const truncated = budget <= 0;
-	return { groups, truncated };
+	return { groups, truncated: false };
 }
 
 /**

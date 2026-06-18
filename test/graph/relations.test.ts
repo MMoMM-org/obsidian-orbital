@@ -13,6 +13,7 @@ import { App } from "obsidian";
 import { LinkGraphIndex } from "graph/LinkGraphIndex";
 import type { MetadataCache as IndexMetadataCache } from "graph/LinkGraphIndex";
 import { computeRelations } from "graph/relations";
+import type { RelationsMetadataCache } from "graph/relations";
 import type { OrbitSettings } from "types/index";
 import { DEFAULT_SETTINGS } from "types/index";
 
@@ -28,11 +29,6 @@ function makeMockCache(
 	app.metadataCache.resolvedLinks = resolved;
 	app.metadataCache.unresolvedLinks = unresolved;
 	return app.metadataCache as unknown as IndexMetadataCache;
-}
-
-/** A minimal MetadataCache subset for getFirstLinkpathDest + unresolvedLinks access. */
-interface RelationsMetadataCache {
-	unresolvedLinks: Record<string, Record<string, number>>;
 }
 
 function makeRelationsCache(
@@ -369,6 +365,45 @@ describe("computeRelations — secondHop cap enforcement", () => {
 			"active.md": { "via1.md": 1, "via2.md": 1 },
 			"via1.md": { "s1.md": 1, "s2.md": 1, "s3.md": 1 },
 			"via2.md": { "s4.md": 1, "s5.md": 1 },
+		});
+		const result = computeRelations(
+			idx,
+			"active.md",
+			makeSettings({ secondHopEnabled: true, secondHopCap: 3 }),
+			noExclusion,
+			makeRelationsCache(),
+		);
+
+		const totalItems = result.secondHop.reduce((sum, g) => sum + g.items.length, 0);
+		expect(totalItems).toBe(3);
+		expect(result.truncated).toBe(true);
+	});
+
+	it("truncated is false when candidates exactly equal the cap (cap=3, exactly 3 eligible)", () => {
+		// One via, exactly cap eligible 2nd-hop candidates — should NOT truncate.
+		const idx = buildIndex({
+			"active.md": { "via1.md": 1 },
+			"via1.md": { "s1.md": 1, "s2.md": 1, "s3.md": 1 },
+		});
+		const result = computeRelations(
+			idx,
+			"active.md",
+			makeSettings({ secondHopEnabled: true, secondHopCap: 3 }),
+			noExclusion,
+			makeRelationsCache(),
+		);
+
+		const totalItems = result.secondHop.reduce((sum, g) => sum + g.items.length, 0);
+		expect(totalItems).toBe(3);
+		expect(result.truncated).toBe(false);
+	});
+
+	it("truncated is true when 4th eligible candidate is in a second via group (cross-group overflow)", () => {
+		// via1 → [s1, s2]; via2 → [s3, s4]; cap = 3 → s4 is the overflow candidate
+		const idx = buildIndex({
+			"active.md": { "via1.md": 1, "via2.md": 1 },
+			"via1.md": { "s1.md": 1, "s2.md": 1 },
+			"via2.md": { "s3.md": 1, "s4.md": 1 },
 		});
 		const result = computeRelations(
 			idx,
