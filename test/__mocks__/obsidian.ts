@@ -109,7 +109,6 @@ export class App {
 		off: vi.fn(),
 		getLeavesOfType: vi.fn(() => [] as WorkspaceLeaf[]),
 		getRightLeaf: vi.fn((_split: boolean) => new WorkspaceLeaf()),
-		revealLeaf: vi.fn(async (_leaf: WorkspaceLeaf) => {}),
 		setActiveLeaf: vi.fn((_leaf: WorkspaceLeaf, _params?: { focus?: boolean }) => {}),
 		openLinkText: vi.fn(async () => {}),
 	};

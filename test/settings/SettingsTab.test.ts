@@ -15,9 +15,9 @@
  * - Section headings exist for grouping
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { App, Plugin, augmentEl } from "../__mocks__/obsidian";
-import { DEFAULT_SETTINGS, type OrbitSettings } from "types/index";
+import { describe, it, expect, vi } from "vitest";
+import { App, Plugin } from "../__mocks__/obsidian";
+import { DEFAULT_SETTINGS } from "types/index";
 import { SettingsTab } from "settings/SettingsTab";
 import type OrbitPlugin from "main";
 

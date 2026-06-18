@@ -12,7 +12,7 @@
  * - onExternalSettingsChange: re-reads settings from disk (calls loadData again)
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { App, WorkspaceLeaf } from "./__mocks__/obsidian";
 import { VIEW_TYPE } from "view/OrbitView";
 
@@ -149,6 +149,29 @@ describe("OrbitPlugin activateView — leaf reuse", () => {
 			active: true,
 		});
 		expect(app.workspace.setActiveLeaf).toHaveBeenCalledWith(newLeaf, { focus: true });
+	});
+
+	it("does nothing when getRightLeaf returns null (null-leaf guard)", async () => {
+		const app = makeApp();
+		// No existing leaves, and getRightLeaf returns null
+		vi.mocked(app.workspace.getLeavesOfType).mockReturnValue([]);
+		vi.mocked(app.workspace.getRightLeaf).mockReturnValue(null as unknown as ReturnType<typeof app.workspace.getRightLeaf>);
+
+		const plugin = await makePlugin(app);
+		await plugin.onload();
+
+		const calls = vi.mocked(plugin.addCommand).mock.calls;
+		const cmd = calls.find((c) => c[0]?.id === "open")?.[0];
+
+		// Should not throw, and setViewState must not be called
+		await expect(
+			(cmd?.callback as () => Promise<void>)?.(),
+		).resolves.toBeUndefined();
+		await flush();
+
+		// No leaf was available, so setViewState could not have been called
+		// (only assertable via getRightLeaf returning null — no leaf to call it on)
+		expect(app.workspace.setActiveLeaf).not.toHaveBeenCalled();
 	});
 
 	it("does not open a second leaf when one already exists", async () => {
