@@ -31,7 +31,7 @@ export interface RelationsPanelApp {
 		getLeaf(newLeaf: boolean | string): {
 			openLinkText(path: string, sourcePath: string, newLeaf: boolean | string): void | Promise<void>;
 		};
-		trigger(name: string, data: Record<string, unknown>): void;
+		trigger(name: string, ...data: unknown[]): void;
 	};
 	metadataCache: RelationsMetadataCache;
 }
@@ -111,16 +111,6 @@ interface AugmentedEl {
 	classList: { toggle(cls: string, force?: boolean): void };
 }
 
-/** Widen an HTMLElement to AugmentedEl to access Obsidian's runtime helpers. */
-function aug(el: HTMLElement): AugmentedEl {
-	// The cast suppresses TS errors on createEl/createDiv/createSpan/empty — methods
-	// injected by Obsidian at runtime. The double cast is intentional: HTMLElement
-	// is not structurally assignable to AugmentedEl (extra methods missing from
-	// lib.dom.d.ts types), so `as unknown` is required to cross the type gap.
-	// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-	return el as unknown as AugmentedEl;
-}
-
 // ---------------------------------------------------------------------------
 // RelationsPanel
 // ---------------------------------------------------------------------------
@@ -137,7 +127,7 @@ export class RelationsPanel {
 	 * Always rebuilds from scratch — call whenever the active path changes.
 	 */
 	render(container: HTMLElement, activePath: string | null): void {
-		aug(container).empty();
+		(container as unknown as AugmentedEl).empty();
 
 		if (!activePath) {
 			this.renderEmptyState(container);
@@ -209,26 +199,26 @@ export class RelationsPanel {
 		const isCollapsed = collapsed.includes(key);
 		const settings = this.deps.getSettings();
 
-		const section = aug(container).createEl("div", {
+		const section = (container as unknown as AugmentedEl).createEl("div", {
 			cls: `orbit-relations-section${isCollapsed ? " is-collapsed" : ""}`,
 			attr: { "data-section": key },
 		});
 
-		const header = aug(section).createEl("div", {
+		const header = (section as unknown as AugmentedEl).createEl("div", {
 			cls: "orbit-relations-section-header tree-item-self is-clickable",
 		});
 
 		const label = SECTIONS.find((s) => s.key === key)?.label ?? key;
-		aug(header).createSpan({ cls: "orbit-relations-section-label", text: label });
+		(header as unknown as AugmentedEl).createSpan({ cls: "orbit-relations-section-label", text: label });
 
 		if (settings.showCounts) {
-			aug(header).createSpan({
+			(header as unknown as AugmentedEl).createSpan({
 				cls: "orbit-relations-count",
 				text: String(count),
 			});
 		}
 
-		const children = aug(section).createEl("div", {
+		const children = (section as unknown as AugmentedEl).createEl("div", {
 			cls: "orbit-relations-section-children tree-item-children",
 		});
 
@@ -250,11 +240,11 @@ export class RelationsPanel {
 		activePath: string,
 		_settings: OrbitSettings,
 	): void {
-		const row = aug(container).createEl("div", {
+		const row = (container as unknown as AugmentedEl).createEl("div", {
 			cls: "orbit-relations-item tree-item nav-file-title is-clickable",
 			attr: { "data-path": item.path },
 		});
-		aug(row).createSpan({ cls: "orbit-relations-item-label", text: item.display });
+		(row as unknown as AugmentedEl).createSpan({ cls: "orbit-relations-item-label", text: item.display });
 
 		this.deps.registerDomEvent(row, "click", (evt) => {
 			const newLeaf = Keymap.isModEvent(evt);
@@ -280,28 +270,28 @@ export class RelationsPanel {
 		activePath: string,
 		settings: OrbitSettings,
 	): void {
-		const groupEl = aug(container).createEl("div", {
+		const groupEl = (container as unknown as AugmentedEl).createEl("div", {
 			cls: "orbit-relations-via-group",
 		});
-		aug(groupEl).createEl("div", {
+		(groupEl as unknown as AugmentedEl).createEl("div", {
 			cls: "orbit-relations-via-label",
 			text: group.via.display,
 		});
-		const itemsEl = aug(groupEl).createEl("div", { cls: "orbit-relations-via-items" });
+		const itemsEl = (groupEl as unknown as AugmentedEl).createEl("div", { cls: "orbit-relations-via-items" });
 		for (const item of group.items) {
 			this.renderResolvedItem(itemsEl, item, activePath, settings);
 		}
 	}
 
 	private renderMissingItem(container: HTMLElement, item: MissingItem): void {
-		const row = aug(container).createEl("div", {
+		const row = (container as unknown as AugmentedEl).createEl("div", {
 			cls: "orbit-relations-missing-row",
 		});
-		aug(row).createSpan({
+		(row as unknown as AugmentedEl).createSpan({
 			cls: "orbit-relations-missing-target",
 			text: item.target,
 		});
-		const btn = aug(row).createEl("button", {
+		const btn = (row as unknown as AugmentedEl).createEl("button", {
 			cls: "orbit-relations-manage-btn",
 			attr: { "aria-label": "Manage missing link" },
 		});
@@ -313,14 +303,14 @@ export class RelationsPanel {
 	}
 
 	private renderTruncationHint(container: HTMLElement): void {
-		aug(container).createEl("div", {
+		(container as unknown as AugmentedEl).createEl("div", {
 			cls: "orbit-relations-truncated",
 			text: "Showing partial results — lower the 2nd-hop cap to see all.",
 		});
 	}
 
 	private renderEmptyState(container: HTMLElement): void {
-		aug(container).createEl("div", {
+		(container as unknown as AugmentedEl).createEl("div", {
 			cls: "orbit-relations-empty",
 			text: "No file open. Open a note to see its relations.",
 		});
