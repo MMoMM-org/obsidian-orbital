@@ -688,8 +688,10 @@ export interface Debouncer<T extends unknown[], V> {
  * debounce — mirrors Obsidian's `debounce(fn, timeout?, resetTimer?)`.
  *
  * Implementation uses real setTimeout so tests can drive it with
- * vi.useFakeTimers() / vi.advanceTimersByTime(). Trailing edge only when
- * resetTimer=false (matches Obsidian default of trailing).
+ * vi.useFakeTimers() / vi.advanceTimersByTime(). Always trailing edge.
+ * resetTimer controls whether repeated calls reset the countdown: when true
+ * (Obsidian default) each new call restarts the timer; when false the timer
+ * runs to completion from the first call. This mock is trailing in both cases.
  *
  * The returned function accumulates the last args; after `timeout` ms of
  * inactivity it calls the original function once (trailing). `.cancel()`

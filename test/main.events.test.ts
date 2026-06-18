@@ -156,37 +156,28 @@ describe("T2.4 — metadataCache 'changed' event", () => {
 		expect(updateSpy).toHaveBeenCalledTimes(1);
 	});
 
-	it("schedules a repaint (calls OrbitView refresh) after 'changed'", async () => {
+	it("schedules a repaint (calls _repaintActivePanel) after 'changed'", async () => {
 		const app = makeApp();
 		const plugin = await makePlugin(app);
 		await plugin.onload();
 		await flush();
 
-		// Wire up a spy on the view's refresh if a view exists, or test via
-		// the plugin's internal repaint scheduler being invoked.
-		// We test this by checking that the plugin has a repaint scheduling mechanism.
 		const changedHandler = getRegisteredHandler(
 			app.metadataCache.on as ReturnType<typeof vi.fn>,
 			"changed",
 		);
+		expect(changedHandler).toBeDefined();
 
-		// The plugin must expose a repaintView method or similar for testability
-		const pluginAny = plugin as unknown as Record<string, unknown>;
-		const repaintSpy = vi.fn();
-		// If the plugin has a _repaintActivePanel method, spy on it
-		if (typeof pluginAny["_repaintActivePanel"] === "function") {
-			vi.spyOn(plugin as unknown as { _repaintActivePanel: () => void }, "_repaintActivePanel")
-				.mockImplementation(repaintSpy);
-		}
+		const repaintSpy = vi.spyOn(
+			plugin as unknown as { _repaintActivePanel: () => void },
+			"_repaintActivePanel",
+		);
 
 		const mockFile = { path: "notes/bar.md" };
 		changedHandler?.(mockFile);
 
-		// Repaint is scheduled (may be synchronous or after microtask for 'changed')
 		await flush();
-		// We assert the handler was invoked (index update is sufficient as primary check)
-		// The repaint assertion is secondary via view tests
-		expect(changedHandler).toBeDefined();
+		expect(repaintSpy).toHaveBeenCalledTimes(1);
 	});
 });
 
@@ -202,7 +193,7 @@ describe("T2.4 — vault rename and delete events", () => {
 		vi.useRealTimers();
 	});
 
-	it("vault 'rename' calls index.renameFile(oldPath, newPath)", async () => {
+	it("vault 'rename' calls index.renameFile(oldPath, newPath) and schedules a repaint", async () => {
 		const app = makeApp();
 		const plugin = await makePlugin(app);
 		await plugin.onload();
@@ -217,14 +208,19 @@ describe("T2.4 — vault rename and delete events", () => {
 
 		const index = (plugin as unknown as { _index: { renameFile: (o: string, n: string) => void } })._index;
 		const renameSpy = vi.spyOn(index, "renameFile");
+		const repaintSpy = vi.spyOn(
+			plugin as unknown as { _repaintActivePanel: () => void },
+			"_repaintActivePanel",
+		);
 
 		const newFile = { path: "notes/new.md" };
 		renameHandler?.(newFile, "notes/old.md");
 
 		expect(renameSpy).toHaveBeenCalledWith("notes/old.md", "notes/new.md");
+		expect(repaintSpy).toHaveBeenCalledTimes(1);
 	});
 
-	it("vault 'delete' calls index.removeFile(path)", async () => {
+	it("vault 'delete' calls index.removeFile(path) and schedules a repaint", async () => {
 		const app = makeApp();
 		const plugin = await makePlugin(app);
 		await plugin.onload();
@@ -238,11 +234,16 @@ describe("T2.4 — vault rename and delete events", () => {
 
 		const index = (plugin as unknown as { _index: { removeFile: (p: string) => void } })._index;
 		const removeSpy = vi.spyOn(index, "removeFile");
+		const repaintSpy = vi.spyOn(
+			plugin as unknown as { _repaintActivePanel: () => void },
+			"_repaintActivePanel",
+		);
 
 		const file = { path: "notes/deleted.md" };
 		deleteHandler?.(file);
 
 		expect(removeSpy).toHaveBeenCalledWith("notes/deleted.md");
+		expect(repaintSpy).toHaveBeenCalledTimes(1);
 	});
 });
 
