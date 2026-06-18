@@ -1,0 +1,14 @@
+{
+	"id": "orbit",
+	"name": "Orbit",
+	"version": "0.0.0",
+	"minAppVersion": "1.5.7",
+	"description": "Orbit plugin.",
+	"author": "Marcus Breiden",
+	"authorUrl": "https://www.mmomm.org",
+	"fundingUrl": {
+		"Buy Me a Coffee": "https://buymeacoffee.com/mmomm",
+		"GitHub Sponsor": "https://github.com/sponsors/MMoMM-org"
+	},
+	"isDesktopOnly": false
+}

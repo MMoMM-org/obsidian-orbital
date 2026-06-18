@@ -1,0 +1,62 @@
+/* Plugin styles — replace `orbit-` prefix with your plugin's short prefix
+ * (e.g. `kado-`, `hashi-`). Structural rules only — every color must come
+ * from Obsidian theme tokens (`--text-normal`, `--text-muted`, `--text-faint`,
+ * `--text-accent`, `--font-small`, `--font-semibold`).
+ */
+
+.orbit-settings {
+	padding: 0 16px;
+}
+
+.orbit-settings-header {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 12px 0 14px 0;
+}
+
+.orbit-header-text {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.orbit-header-identity {
+	font-size: var(--font-small);
+	color: var(--text-muted);
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0 6px;
+}
+
+.orbit-header-identity a {
+	color: var(--text-accent);
+}
+
+.orbit-plugin-name {
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
+}
+
+.orbit-header-sep {
+	color: var(--text-faint);
+}
+
+.orbit-tagline {
+	margin: 4px 0 0 0;
+	font-size: var(--font-small);
+	color: var(--text-muted);
+}
+
+.orbit-header-hanko {
+	flex: 0 0 auto;
+	display: block;
+	margin-left: auto;
+	width: 72px;
+	height: 72px;
+}
+
+.orbit-settings .setting-item-description {
+	color: var(--text-muted);
+	font-size: var(--font-small);
+}
