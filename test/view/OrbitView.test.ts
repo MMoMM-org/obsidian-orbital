@@ -13,7 +13,7 @@
  * - onClose empties the container; _runCleanup runs registered teardown
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { WorkspaceLeaf, ViewStateResult } from "../__mocks__/obsidian";
 import { OrbitView, VIEW_TYPE } from "view/OrbitView";
 import type { OrbitViewState, TabId } from "types/index";
@@ -348,6 +348,39 @@ describe("OrbitView getState/setState", () => {
 		const selected = view.contentEl.querySelectorAll("[role='tab'][aria-selected='true']");
 		expect(selected.length).toBe(1);
 	});
+
+	it("setState called before onOpen defers correctly: tab is active after onOpen", async () => {
+		const view = new OrbitView(makeLeaf());
+
+		// Call setState before onOpen — tabBar is still null at this point
+		await view.setState(makeInitialState({ activeTab: "dangling" }), makeResult());
+
+		// Now open the view — it should use the pre-set state
+		await view.onOpen();
+
+		const selected = view.contentEl.querySelector("[role='tab'][aria-selected='true']");
+		expect(selected?.getAttribute("data-tab-id")).toBe("dangling");
+	});
+});
+
+describe("OrbitView aria-controls linkage", () => {
+	it("active tab button's aria-controls references an existing panel element", async () => {
+		const view = new OrbitView(makeLeaf());
+		await view.onOpen();
+
+		for (const tabId of ["relations", "dangling", "recent"] as TabId[]) {
+			// Switch to each tab
+			const tabBtn = view.contentEl.querySelector(`[data-tab-id='${tabId}']`) as HTMLElement;
+			tabBtn.click();
+			await flush();
+
+			const activeBtn = view.contentEl.querySelector("[role='tab'][aria-selected='true']") as HTMLElement;
+			const ariaControls = activeBtn.getAttribute("aria-controls");
+			expect(ariaControls).not.toBeNull();
+			const panel = view.contentEl.querySelector(`#${ariaControls}`);
+			expect(panel).not.toBeNull();
+		}
+	});
 });
 
 describe("OrbitView cleanup", () => {
@@ -407,7 +440,6 @@ describe("OrbitView cleanup", () => {
 		);
 
 		await view.onOpen();
-		const onSelectSpy = vi.fn();
 		// Replace internals: we only want to test that _runCleanup prevents
 		// the handlers from being re-registered, not that they call onSelect.
 		// Instead, verify click on a detached button (after cleanup) no longer

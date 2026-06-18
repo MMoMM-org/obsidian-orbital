@@ -92,7 +92,7 @@ export class TabBar {
 
 	private buildTablist(): void {
 		// Use Obsidian-augmented createEl for popout-window-safe element creation.
-		const tablist = (this.container as AugmentedEl).createEl("div", {
+		const tablist = (this.container as unknown as AugmentedEl).createEl("div", {
 			attr: {
 				role: "tablist",
 				class: "orbit-tab-bar nav-buttons-container",
@@ -107,7 +107,7 @@ export class TabBar {
 	}
 
 	private buildTabButton(tablist: HTMLElement, def: TabDefinition): void {
-		const btn = (tablist as AugmentedEl).createEl("button", {
+		const btn = (tablist as unknown as AugmentedEl).createEl("button", {
 			attr: {
 				role: "tab",
 				"data-tab-id": def.id,

@@ -6,8 +6,8 @@
  * TabId, keeping this module decoupled from Relations/Dangling/Recent logic.
  *
  * State persistence: getState/setState (ephemeral per-leaf, not saveData).
- * Cleanup: all DOM listeners are registered via this.register so
- * _runCleanup() tears them down correctly on unload.
+ * Cleanup: DOM listeners use this.registerDomEvent (delegated to TabBar);
+ * internal refs are cleared via this.register.
  */
 
 import { ItemView, WorkspaceLeaf } from "obsidian";
