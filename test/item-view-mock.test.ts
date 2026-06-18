@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { ItemView, WorkspaceLeaf } from "./__mocks__/obsidian";
+import { ItemView, ViewStateResult, WorkspaceLeaf } from "./__mocks__/obsidian";
 import { DEFAULT_SETTINGS } from "types/index";
 
 // --- ItemView subclass smoke test ---
@@ -45,6 +45,13 @@ describe("ItemView mock", () => {
 		expect(view.containerEl).toBeInstanceOf(HTMLElement);
 	});
 
+	it("exposes a contentEl HTMLElement nested inside containerEl", () => {
+		const leaf = new WorkspaceLeaf();
+		const view = new TestView(leaf);
+		expect(view.contentEl).toBeInstanceOf(HTMLElement);
+		expect(view.containerEl.contains(view.contentEl)).toBe(true);
+	});
+
 	it("getIcon returns empty string by default", () => {
 		const leaf = new WorkspaceLeaf();
 		const view = new TestView(leaf);
@@ -57,10 +64,11 @@ describe("ItemView mock", () => {
 		expect(view.getState()).toEqual({});
 	});
 
-	it("setState accepts a state object without throwing", () => {
+	it("setState resolves with the correct async signature", async () => {
 		const leaf = new WorkspaceLeaf();
 		const view = new TestView(leaf);
-		expect(() => view.setState({ tab: "notes" })).not.toThrow();
+		const result: ViewStateResult = { history: false };
+		await expect(view.setState({ tab: "notes" }, result)).resolves.toBeUndefined();
 	});
 
 	it("onOpen and onClose can be called without throwing", async () => {

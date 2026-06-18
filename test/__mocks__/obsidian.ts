@@ -30,6 +30,12 @@ export interface CachedMetadata {
 	frontmatter?: Record<string, unknown>;
 }
 
+/** Mirrors Obsidian's ViewStateResult — passed to setState so views can signal
+ *  history behaviour. */
+export interface ViewStateResult {
+	history: boolean;
+}
+
 // --- App & Workspace ---
 
 export class Component {
@@ -423,12 +429,16 @@ export class WorkspaceLeaf {
  */
 export class ItemView extends Component {
 	containerEl: HTMLElement;
+	/** Content area that subclasses render into — mirrors real Obsidian nesting. */
+	contentEl: HTMLElement;
 	leaf: WorkspaceLeaf;
 
 	constructor(leaf: WorkspaceLeaf) {
 		super();
 		this.leaf = leaf;
 		this.containerEl = augmentEl(document.createElement("div"));
+		this.contentEl = augmentEl(document.createElement("div"));
+		this.containerEl.appendChild(this.contentEl);
 	}
 
 	getViewType(): string {
@@ -447,7 +457,9 @@ export class ItemView extends Component {
 		return {};
 	}
 
-	setState(_state: Record<string, unknown>): void {}
+	setState(_state: unknown, _result: ViewStateResult): Promise<void> {
+		return Promise.resolve();
+	}
 
 	async onOpen(): Promise<void> {}
 
