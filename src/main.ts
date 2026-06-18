@@ -1,9 +1,9 @@
 import { Plugin } from "obsidian";
 import { SettingsTab } from "settings/SettingsTab";
-import { DEFAULT_SETTINGS, type PluginSettings } from "types/index";
+import { DEFAULT_SETTINGS, type OrbitSettings } from "types/index";
 
 export default class OrbitPlugin extends Plugin {
-	settings: PluginSettings = DEFAULT_SETTINGS;
+	settings: OrbitSettings = DEFAULT_SETTINGS;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -17,7 +17,7 @@ export default class OrbitPlugin extends Plugin {
 	}
 
 	async loadSettings(): Promise<void> {
-		const stored = (await this.loadData()) as Partial<PluginSettings> | null;
+		const stored = (await this.loadData()) as Partial<OrbitSettings> | null;
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, stored);
 	}
 

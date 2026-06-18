@@ -22,14 +22,14 @@ export class SettingsTab extends PluginSettingTab {
 		this.header.render(headerEl);
 
 		new Setting(containerEl)
-			.setName("Example setting")
-			.setDesc("A placeholder setting to demonstrate the pattern.")
+			.setName("New note folder")
+			.setDesc("Folder for new notes created from dangling links. Leave empty to use Obsidian's default.")
 			.addText((text) =>
 				text
-					.setPlaceholder("Enter a value")
-					.setValue(this.plugin.settings.exampleSetting)
+					.setPlaceholder("E.g. Notes/")
+					.setValue(this.plugin.settings.newNoteFolder)
 					.onChange(async (value) => {
-						this.plugin.settings.exampleSetting = value;
+						this.plugin.settings.newNoteFolder = value;
 						await this.plugin.saveSettings();
 					}),
 			);

@@ -84,6 +84,6 @@ describe("ItemView mock", () => {
 describe("path alias (types/index)", () => {
 	it("resolves DEFAULT_SETTINGS via alias", () => {
 		expect(DEFAULT_SETTINGS).toBeDefined();
-		expect(DEFAULT_SETTINGS.exampleSetting).toBe("default");
+		expect(DEFAULT_SETTINGS.defaultTab).toBe("relations");
 	});
 });
