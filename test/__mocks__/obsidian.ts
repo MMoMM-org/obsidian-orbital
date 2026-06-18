@@ -111,6 +111,22 @@ export class App {
 		getRightLeaf: vi.fn((_split: boolean) => new WorkspaceLeaf()),
 		setActiveLeaf: vi.fn((_leaf: WorkspaceLeaf, _params?: { focus?: boolean }) => {}),
 		openLinkText: vi.fn(async () => {}),
+		/**
+		 * getLeaf — mirrors Obsidian's workspace.getLeaf(newLeaf?: boolean | PaneType).
+		 * Returns a WorkspaceLeaf with an openLinkText stub so panel tests can assert
+		 * navigation calls.
+		 */
+		getLeaf: vi.fn((_newLeaf?: boolean | string) => {
+			const leaf = new WorkspaceLeaf();
+			(leaf as WorkspaceLeaf & { openLinkText: ReturnType<typeof vi.fn> }).openLinkText =
+				vi.fn(async () => {});
+			return leaf;
+		}),
+		/**
+		 * trigger — mirrors Obsidian's workspace.trigger(name, ...data).
+		 * Used by panels to fire hover-link events; tests assert calls via vi.fn().
+		 */
+		trigger: vi.fn((_name: string, ..._data: unknown[]) => {}),
 	};
 	metadataCache = {
 		getFileCache: vi.fn((_file: TFile): CachedMetadata | null => null),
@@ -621,3 +637,17 @@ export function createMockCachedMetadata(overrides?: Partial<{
 		frontmatter: overrides?.frontmatter ?? {},
 	};
 }
+
+// --- Keymap ---
+
+/**
+ * Keymap — mirrors the real Obsidian Keymap namespace.
+ *
+ * isModEvent(evt) → boolean | "tab" | "split" | "window"
+ *   In the real API, returns false when neither Cmd/Ctrl nor modifier is held,
+ *   or a PaneType string when the user intends to open in a new pane.
+ *   Tests set the return value via `vi.mocked(Keymap.isModEvent).mockReturnValue(...)`.
+ */
+export const Keymap = {
+	isModEvent: vi.fn((_evt: MouseEvent | KeyboardEvent): boolean | "tab" | "split" | "window" => false),
+};
