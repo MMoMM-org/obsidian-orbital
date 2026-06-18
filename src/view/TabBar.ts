@@ -30,6 +30,18 @@ export interface TabBarOptions {
 	initialTab?: TabId;
 	/** DOM id prefix for tab buttons — used by aria-controls. */
 	idPrefix?: string;
+	/**
+	 * DOM event registration delegate. Supply `this.registerDomEvent` from
+	 * the owning ItemView/Component so that tab-button listeners are tracked
+	 * in Obsidian's cleanup chain and torn down on view unload.
+	 * Falls back to raw addEventListener when omitted (e.g. in unit tests
+	 * that don't need lifecycle tracking).
+	 */
+	registerDomEvent?: <K extends keyof HTMLElementEventMap>(
+		el: HTMLElement,
+		type: K,
+		handler: (ev: HTMLElementEventMap[K]) => void,
+	) => void;
 }
 
 /**
@@ -41,6 +53,11 @@ export class TabBar {
 	private focusedTabId: TabId;
 	private readonly onSelect: (tabId: TabId) => void;
 	private readonly idPrefix: string;
+	private readonly addListener: <K extends keyof HTMLElementEventMap>(
+		el: HTMLElement,
+		type: K,
+		handler: (ev: HTMLElementEventMap[K]) => void,
+	) => void;
 
 	constructor(
 		private readonly container: HTMLElement,
@@ -49,6 +66,9 @@ export class TabBar {
 		this.onSelect = options.onSelect;
 		this.idPrefix = options.idPrefix ?? "orbit-tab";
 		this.focusedTabId = options.initialTab ?? "relations";
+		this.addListener = options.registerDomEvent ?? ((el, type, handler) => {
+			el.addEventListener(type, handler);
+		});
 
 		this.buildTablist();
 	}
@@ -99,12 +119,12 @@ export class TabBar {
 
 		this.buttons.set(def.id, btn);
 
-		btn.addEventListener("click", () => {
+		this.addListener(btn, "click", () => {
 			this.activateTab(def.id);
 		});
 
-		btn.addEventListener("keydown", (e: Event) => {
-			this.handleKeydown(e as KeyboardEvent, def.id);
+		this.addListener(btn, "keydown", (e) => {
+			this.handleKeydown(e, def.id);
 		});
 	}
 

@@ -87,6 +87,9 @@ export class OrbitView extends ItemView {
 				this.state = { ...this.state, activeTab: tabId };
 				this.renderPanel(tabId);
 			},
+			registerDomEvent: (el, type, handler) => {
+				this.registerDomEvent(el, type, handler);
+			},
 		});
 
 		this.panelContainer = this.contentEl.createDiv({ cls: "orbit-panel-container" });

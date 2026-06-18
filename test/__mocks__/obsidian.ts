@@ -39,7 +39,21 @@ export interface ViewStateResult {
 // --- App & Workspace ---
 
 export class Component {
-	registerDomEvent = vi.fn();
+	/**
+	 * Mirrors Obsidian's Component.registerDomEvent: adds the listener to the
+	 * element AND tracks it for cleanup. Using vi.fn wrapping so tests can spy
+	 * on call count / arguments, while real DOM events still fire.
+	 */
+	registerDomEvent = vi.fn(
+		<K extends keyof HTMLElementEventMap>(
+			el: HTMLElement,
+			type: K,
+			handler: (ev: HTMLElementEventMap[K]) => void,
+		) => {
+			el.addEventListener(type, handler as EventListener);
+			this._cleanupFns.push(() => el.removeEventListener(type, handler as EventListener));
+		},
+	);
 	registerInterval = vi.fn();
 	registerEvent = vi.fn();
 	private _cleanupFns: Array<() => unknown> = [];
