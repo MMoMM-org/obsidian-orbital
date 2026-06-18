@@ -115,6 +115,14 @@ export class App {
 	metadataCache = {
 		getFileCache: vi.fn((_file: TFile): CachedMetadata | null => null),
 		on: vi.fn(),
+		/** resolvedLinks[sourcePath][destPath] = link count. */
+		resolvedLinks: {} as Record<string, Record<string, number>>,
+		/** unresolvedLinks[sourcePath][targetText] = link count. */
+		unresolvedLinks: {} as Record<string, Record<string, number>>,
+		/** Returns the TFile for a given link-path, or null if not found. */
+		getFirstLinkpathDest: vi.fn(
+			(_linkpath: string, _sourcePath: string): TFile | null => null,
+		),
 	};
 }
 
