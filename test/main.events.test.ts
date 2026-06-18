@@ -258,7 +258,7 @@ describe("T2.4 — active-leaf-change debounce coalescing", () => {
 		vi.useRealTimers();
 	});
 
-	it("three rapid active-leaf-change events produce exactly ONE refresh after the debounce window", async () => {
+	it("three rapid active-leaf-change events produce exactly ONE refresh after the debounce window (trailing)", async () => {
 		const app = makeApp();
 		const plugin = await makePlugin(app);
 		await plugin.onload();
@@ -270,32 +270,28 @@ describe("T2.4 — active-leaf-change debounce coalescing", () => {
 		);
 		expect(leafChangeHandler).toBeDefined();
 
-		// Track refreshActivePanel calls on the view (if open) or plugin internal
-		const pluginAny = plugin as unknown as Record<string, unknown>;
-		let refreshCount = 0;
-		if (typeof pluginAny["_refreshView"] === "function") {
-			const orig = pluginAny["_refreshView"] as () => void;
-			pluginAny["_refreshView"] = () => {
-				refreshCount++;
-				orig.call(plugin);
-			};
-		}
+		// Spy on the plugin's internal repaint method to count actual refresh calls
+		const repaintSpy = vi.spyOn(
+			plugin as unknown as { _repaintActivePanel: () => void },
+			"_repaintActivePanel",
+		);
 
 		// Fire three rapid events within the debounce window (default 300ms)
 		leafChangeHandler?.();
 		leafChangeHandler?.();
 		leafChangeHandler?.();
 
-		// None should have fired yet (trailing debounce)
-		// (refreshCount is 0 or we haven't passed the window)
+		// None should fire before the window elapses (trailing debounce resets timer)
+		expect(repaintSpy).not.toHaveBeenCalled();
 
 		// Advance past the debounce window
 		vi.advanceTimersByTime(400);
 		await flush();
 
-		// Exactly one refresh should have been scheduled
-		// We verify indirectly: the debouncer coalesces and fires once
-		// The plugin must expose its debouncer for cancel assertion
+		// Exactly one refresh fires after the burst settles (trailing debounce)
+		expect(repaintSpy).toHaveBeenCalledTimes(1);
+
+		// Debouncer must still be accessible for cancel assertion
 		const debouncer = (plugin as unknown as { _refreshDebouncer?: { cancel: () => void } })._refreshDebouncer;
 		expect(debouncer).toBeDefined();
 	});

@@ -1,9 +1,11 @@
-import { Plugin, debounce } from "obsidian";
+import { Plugin, debounce, TFile } from "obsidian";
 import type { Debouncer } from "obsidian";
 import { SettingsTab } from "settings/SettingsTab";
 import { DEFAULT_SETTINGS, type OrbitSettings } from "types/index";
 import { OrbitView, VIEW_TYPE } from "view/OrbitView";
+import type { RelationsDeps } from "view/OrbitView";
 import { LinkGraphIndex } from "graph/LinkGraphIndex";
+import { ExclusionMatcher } from "shared/ExclusionMatcher";
 
 export default class OrbitPlugin extends Plugin {
 	settings: OrbitSettings = DEFAULT_SETTINGS;
@@ -24,7 +26,11 @@ export default class OrbitPlugin extends Plugin {
 
 		this._index = new LinkGraphIndex(this.app.metadataCache);
 
-		this.registerView(VIEW_TYPE, (leaf) => new OrbitView(leaf));
+		this.registerView(VIEW_TYPE, (leaf) => new OrbitView(
+			leaf,
+			undefined,
+			this._buildRelationsDeps(),
+		));
 
 		this.addCommand({
 			id: "open",
@@ -58,6 +64,57 @@ export default class OrbitPlugin extends Plugin {
 	}
 
 	// ---------------------------------------------------------------------------
+	// Private — Relations deps factory
+	// ---------------------------------------------------------------------------
+
+	/**
+	 * Build the RelationsDeps bundle the relations panel needs.
+	 *
+	 * isExcluded: path → boolean
+	 *   Resolves the path to a TFile via vault (for tag exclusion); falls back to
+	 *   path-only exclusion for unresolved paths. A fresh ExclusionMatcher is
+	 *   constructed per-call so settings changes propagate without restart.
+	 *
+	 * onManage: (target) → void
+	 *   Switches the active OrbitView to the 'dangling' tab and stashes the
+	 *   target for T5.1 deep-link wiring. Uses dynamic view lookup so it works
+	 *   regardless of how many leaves are open.
+	 */
+	private _buildRelationsDeps(): RelationsDeps {
+		return {
+			index: this._index,
+			getSettings: () => this.settings,
+			// Cast: RelationsPanelApp is a structural subset of Obsidian App; the
+			// overloaded getLeaf signatures are compatible at runtime but not
+			// assignable without this cast.
+			app: this.app as unknown as RelationsDeps["app"],
+			isExcluded: (path: string): boolean => {
+				const s = this.settings;
+				const matcher = new ExclusionMatcher(s.excludePathPatterns, s.excludeTagPatterns);
+				const abstract = this.app.vault.getAbstractFileByPath(path);
+				if (abstract instanceof TFile) {
+					return matcher.isExcluded(abstract, this.app.metadataCache);
+				}
+				// Unresolved path — path-only exclusion (no TFile to check tags against)
+				return matcher.isPathExcluded(path);
+			},
+			onManage: (target: string): void => {
+				const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE);
+				for (const leaf of leaves) {
+					const view = leaf.view;
+					if (view instanceof OrbitView) {
+						view.pendingManageTarget = target;
+						void view.setState(
+							{ ...view.getState(), activeTab: "dangling" },
+							{ history: false },
+						);
+					}
+				}
+			},
+		};
+	}
+
+	// ---------------------------------------------------------------------------
 	// Private — event wiring
 	// ---------------------------------------------------------------------------
 
@@ -72,7 +129,7 @@ export default class OrbitPlugin extends Plugin {
 			this._repaintActivePanel();
 		};
 
-		const debounced = debounce(refreshFn, this.settings.refreshDebounceMs, false);
+		const debounced = debounce(refreshFn, this.settings.refreshDebounceMs, true);
 		this._refreshDebouncer = debounced;
 
 		// Register cleanup so _runCleanup() cancels the timer.

@@ -531,10 +531,13 @@ export class ItemView extends Component {
 	/** Content area that subclasses render into — mirrors real Obsidian nesting. */
 	contentEl: HTMLElement;
 	leaf: WorkspaceLeaf;
+	/** App instance — mirrors Obsidian's ItemView.app (set by the framework). */
+	app: App;
 
 	constructor(leaf: WorkspaceLeaf) {
 		super();
 		this.leaf = leaf;
+		this.app = new App();
 		this.containerEl = augmentEl(document.createElement("div"));
 		this.contentEl = augmentEl(document.createElement("div"));
 		this.containerEl.appendChild(this.contentEl);

@@ -1,5 +1,5 @@
 /**
- * T1.3 — OrbitView shell + accessible TabBar
+ * T1.3 / T2.4 — OrbitView shell + accessible TabBar + Relations wiring
  *
  * Tests cover:
  * - VIEW_TYPE constant, display text, icon
@@ -11,12 +11,20 @@
  * - setState switches active tab and re-renders
  * - Only the active panel is mounted; others removed on switch
  * - onClose empties the container; _runCleanup runs registered teardown
+ * - T2.4: RelationsPanel renders real section labels when relationsDeps provided
+ * - T2.4: refreshActivePanel re-renders with updated activePath
+ * - T2.4: onManage callback switches activeTab to 'dangling'
  */
 
 import { describe, it, expect, vi } from "vitest";
-import { WorkspaceLeaf, ViewStateResult } from "../__mocks__/obsidian";
+import { App, WorkspaceLeaf, ViewStateResult, augmentEl } from "../__mocks__/obsidian";
 import { OrbitView, VIEW_TYPE } from "view/OrbitView";
+import type { RelationsDeps } from "view/OrbitView";
+import type { RelationsPanelApp } from "view/panels/RelationsPanel";
+import { LinkGraphIndex } from "graph/LinkGraphIndex";
+import type { MetadataCache as IndexMetadataCache } from "graph/LinkGraphIndex";
 import type { OrbitViewState, TabId } from "types/index";
+import { DEFAULT_SETTINGS } from "types/index";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -463,5 +471,182 @@ describe("OrbitView cleanup", () => {
 				handler.call(el, new MouseEvent("click"));
 			}
 		}).not.toThrow();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// T2.4 — RelationsPanel wiring via relationsDeps
+// ---------------------------------------------------------------------------
+
+type RelationsDepsOptions = {
+	resolved?: Record<string, Record<string, number>>;
+	unresolved?: Record<string, Record<string, number>>;
+	onManage?: (target: string) => void;
+};
+
+/**
+ * Build a minimal RelationsDeps with a configured index and a configurable onManage.
+ * The same App instance is used for both the metadata cache and workspace, so that
+ * unresolvedLinks set on the app are visible to computeRelations inside RelationsPanel.
+ */
+function makeRelationsDeps(opts: RelationsDepsOptions = {}): RelationsDeps & { depsApp: App } {
+	const resolved = opts.resolved ?? {};
+	const unresolved = opts.unresolved ?? {};
+	const onManage = opts.onManage ?? (() => {});
+
+	const app = new App();
+	app.metadataCache.resolvedLinks = resolved;
+	app.metadataCache.unresolvedLinks = unresolved;
+
+	const indexCache = {
+		resolvedLinks: resolved,
+		unresolvedLinks: unresolved,
+		getFirstLinkpathDest: vi.fn(() => null),
+	};
+	const index = new LinkGraphIndex(indexCache as unknown as IndexMetadataCache);
+	index.buildFull();
+
+	return {
+		index,
+		getSettings: () => ({ ...DEFAULT_SETTINGS }),
+		app: app as unknown as RelationsDeps["app"],
+		isExcluded: () => false,
+		onManage,
+		depsApp: app,
+	};
+}
+
+describe("OrbitView T2.4 — Relations panel wiring", () => {
+	it("renders RelationsPanel section labels (not placeholder) when relationsDeps provided", async () => {
+		const deps = makeRelationsDeps();
+		const view = new OrbitView(makeLeaf(), undefined, deps);
+
+		// Set an active file via the view's own app (used for getActiveFile())
+		const viewApp = (view as unknown as { app: App }).app;
+		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(
+			{ path: "notes/active.md" },
+		);
+
+		await view.onOpen();
+
+		// Placeholder div must not be present
+		const placeholder = view.contentEl.querySelector(".orbit-panel-placeholder");
+		expect(placeholder).toBeNull();
+
+		// Real RelationsPanel renders 4 section label spans
+		const sectionLabels = Array.from(
+			view.contentEl.querySelectorAll(".orbit-relations-section-label"),
+		).map((el) => el.textContent?.trim() ?? "");
+
+		expect(sectionLabels).toContain("Outgoing");
+		expect(sectionLabels).toContain("Backlinks");
+		expect(sectionLabels.some((l) => l.includes("2nd hop"))).toBe(true);
+		expect(sectionLabels).toContain("Missing");
+	});
+
+	it("shows relations empty-state (not placeholder) when no active file", async () => {
+		const deps = makeRelationsDeps();
+		const view = new OrbitView(makeLeaf(), undefined, deps);
+		const viewApp = (view as unknown as { app: App }).app;
+		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(null);
+
+		await view.onOpen();
+
+		const placeholder = view.contentEl.querySelector(".orbit-panel-placeholder");
+		expect(placeholder).toBeNull();
+
+		const emptyState = view.contentEl.querySelector(".orbit-relations-empty");
+		expect(emptyState).not.toBeNull();
+	});
+
+	it("refreshActivePanel re-renders relations with updated activePath", async () => {
+		// deps.app has the resolved links; viewApp is separate (controls getActiveFile)
+		const deps = makeRelationsDeps({
+			resolved: { "notes/active.md": { "notes/target.md": 1 } },
+		});
+
+		const view = new OrbitView(makeLeaf(), undefined, deps);
+		const viewApp = (view as unknown as { app: App }).app;
+
+		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(
+			{ path: "notes/active.md" },
+		);
+		await view.onOpen();
+
+		// active.md has 1 outgoing item
+		const itemsBefore = view.contentEl.querySelectorAll(".orbit-relations-item").length;
+		expect(itemsBefore).toBeGreaterThan(0);
+
+		// Switch active file to one with no links
+		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(
+			{ path: "notes/empty.md" },
+		);
+		view.refreshActivePanel();
+
+		// Panel re-renders for empty.md — no outgoing items
+		const itemsAfter = view.contentEl.querySelectorAll(".orbit-relations-item").length;
+		expect(itemsAfter).toBe(0);
+	});
+
+	it("onManage callback switches activeTab to 'dangling' and stashes the target", async () => {
+		// deps.app has the unresolved link so the Manage button renders
+		let view!: OrbitView;
+		const deps = makeRelationsDeps({
+			unresolved: { "notes/active.md": { "MissingNote": 1 } },
+			onManage: (target: string) => {
+				view.pendingManageTarget = target;
+				void view.setState({ ...view.getState(), activeTab: "dangling" }, { history: false });
+			},
+		});
+
+		view = new OrbitView(makeLeaf(), undefined, deps);
+		const viewApp = (view as unknown as { app: App }).app;
+		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(
+			{ path: "notes/active.md" },
+		);
+
+		await view.onOpen();
+
+		const manageBtn = view.contentEl.querySelector(
+			"[aria-label='Manage missing link']",
+		) as HTMLElement;
+		expect(manageBtn).not.toBeNull();
+		manageBtn.click();
+
+		await flush();
+
+		const selectedTab = view.contentEl.querySelector("[role='tab'][aria-selected='true']");
+		expect(selectedTab?.getAttribute("data-tab-id")).toBe("dangling");
+		expect(view.pendingManageTarget).toBe("MissingNote");
+	});
+
+	it("collapse state persists through refreshActivePanel (backed by OrbitViewState)", async () => {
+		const deps = makeRelationsDeps();
+		const view = new OrbitView(makeLeaf(), undefined, deps);
+		const viewApp = (view as unknown as { app: App }).app;
+		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(
+			{ path: "notes/active.md" },
+		);
+
+		await view.onOpen();
+
+		// Click the outgoing section header to collapse it
+		const outgoingHeader = view.contentEl.querySelector(
+			".orbit-relations-section[data-section='outgoing'] .orbit-relations-section-header",
+		) as HTMLElement;
+		expect(outgoingHeader).not.toBeNull();
+		outgoingHeader.click();
+
+		// Confirm collapse is reflected in getState()
+		const stateAfter = view.getState() as OrbitViewState;
+		expect(stateAfter.collapsedSections).toContain("outgoing");
+
+		// Re-render — collapse must survive
+		view.refreshActivePanel();
+
+		const outgoingSection = view.contentEl.querySelector(
+			".orbit-relations-section[data-section='outgoing']",
+		);
+		expect(outgoingSection?.classList.contains("is-collapsed")).toBe(true);
 	});
 });

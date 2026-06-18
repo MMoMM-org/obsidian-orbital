@@ -27,6 +27,15 @@ export class ExclusionMatcher {
 		return this.matchesPath(file.path) || this.matchesTags(file, cache);
 	}
 
+	/**
+	 * Path-only exclusion check — no tag lookup needed.
+	 * Use when you only have a path string (e.g. for unresolved link targets
+	 * that have no corresponding TFile in the vault).
+	 */
+	isPathExcluded(filePath: string): boolean {
+		return this.matchesPath(filePath);
+	}
+
 	private matchesPath(filePath: string): boolean {
 		return this.pathRegexes.some((re) => re.test(filePath));
 	}

@@ -8,12 +8,20 @@
  * State persistence: getState/setState (ephemeral per-leaf, not saveData).
  * Cleanup: DOM listeners use this.registerDomEvent (delegated to TabBar);
  * internal refs are cleared via this.register.
+ *
+ * Relations wiring (T2.4):
+ *   Pass `relationsDeps` to the constructor and OrbitView will build the
+ *   real RelationsPanel for the 'relations' tab, backed by the plugin's
+ *   shared index and settings. The other two tabs stay as placeholders until
+ *   their respective phases land.
  */
 
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import type { ViewStateResult } from "obsidian";
 import type { OrbitViewState, TabId } from "types/index";
 import { TabBar, TAB_DEFINITIONS } from "view/TabBar";
+import { RelationsPanel } from "view/panels/RelationsPanel";
+import type { RelationsPanelDeps } from "view/panels/RelationsPanel";
 
 export const VIEW_TYPE = "orbit";
 
@@ -21,8 +29,18 @@ const VALID_TABS: ReadonlySet<string> = new Set(
 	TAB_DEFINITIONS.map((t) => t.id),
 );
 
-/** Minimal type for a panel renderer — receives the container to render into. */
-export type PanelRenderer = (container: HTMLElement) => void;
+/**
+ * Panel renderer — receives the container to render into and the path of the
+ * currently active markdown file (null when no file is open).
+ */
+export type PanelRenderer = (container: HTMLElement, activePath: string | null) => void;
+
+/**
+ * Dependencies the plugin supplies for building the Relations panel.
+ * Everything except `getCollapsed`, `setCollapsed`, and `registerDomEvent`
+ * (those are owned by OrbitView itself).
+ */
+export type RelationsDeps = Omit<RelationsPanelDeps, "getCollapsed" | "setCollapsed" | "registerDomEvent">;
 
 const DEFAULT_PANEL_RENDERERS: Record<TabId, PanelRenderer> = {
 	relations: (el) => {
@@ -47,15 +65,39 @@ export class OrbitView extends ItemView {
 	private panelContainer: HTMLElement | null = null;
 	private readonly panelRenderers: Record<TabId, PanelRenderer>;
 
+	/**
+	 * Optional ephemeral stash for a missing-link target that triggered a
+	 * tab switch via onManage. Read by the Dangling tab once it lands (T5.1).
+	 */
+	pendingManageTarget: string | null = null;
+
 	constructor(
 		leaf: WorkspaceLeaf,
+		/**
+		 * Optional panel renderers override (test seam and future tabs).
+		 * If `relationsDeps` is also supplied, the relations renderer built from
+		 * deps takes precedence over any `relations` key here.
+		 */
 		panelRenderers?: Partial<Record<TabId, PanelRenderer>>,
+		/**
+		 * When supplied, OrbitView constructs the real RelationsPanel backed
+		 * by the plugin's index + settings. When absent, the default placeholder
+		 * is used (tests that don't need the real panel can omit this).
+		 */
+		relationsDeps?: RelationsDeps,
 	) {
 		super(leaf);
-		this.panelRenderers = {
+
+		const merged: Record<TabId, PanelRenderer> = {
 			...DEFAULT_PANEL_RENDERERS,
 			...panelRenderers,
 		};
+
+		if (relationsDeps !== undefined) {
+			merged.relations = this._buildRelationsRenderer(relationsDeps);
+		}
+
+		this.panelRenderers = merged;
 	}
 
 	// -------------------------------------------------------------------------
@@ -158,6 +200,32 @@ export class OrbitView extends ItemView {
 	}
 
 	// -------------------------------------------------------------------------
+	// Private — relations panel factory
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Build the PanelRenderer closure for the 'relations' tab.
+	 * Constructs a new RelationsPanel on each render call so the panel
+	 * always reflects the latest deps state (settings, index) without
+	 * stale closures.
+	 */
+	private _buildRelationsRenderer(deps: RelationsDeps): PanelRenderer {
+		return (container: HTMLElement, activePath: string | null): void => {
+			const panel = new RelationsPanel({
+				...deps,
+				getCollapsed: () => [...this.state.collapsedSections],
+				setCollapsed: (keys: string[]) => {
+					this.state = { ...this.state, collapsedSections: keys };
+				},
+				registerDomEvent: (el, type, handler) => {
+					this.registerDomEvent(el, type, handler);
+				},
+			});
+			panel.render(container, activePath);
+		};
+	}
+
+	// -------------------------------------------------------------------------
 	// Private — panel rendering
 	// -------------------------------------------------------------------------
 
@@ -176,7 +244,8 @@ export class OrbitView extends ItemView {
 			},
 		});
 
+		const activePath = this.app.workspace.getActiveFile()?.path ?? null;
 		const renderer = this.panelRenderers[tabId];
-		renderer(panelEl);
+		renderer(panelEl, activePath);
 	}
 }
