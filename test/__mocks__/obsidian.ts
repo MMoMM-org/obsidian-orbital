@@ -416,6 +416,44 @@ export class WorkspaceLeaf {
 	};
 }
 
+/**
+ * ItemView base class — the foundation for custom sidebar/panel views.
+ * Subclasses must implement getViewType() and getDisplayText().
+ * onOpen/onClose return Promises to match Obsidian's async lifecycle.
+ */
+export class ItemView extends Component {
+	containerEl: HTMLElement;
+	leaf: WorkspaceLeaf;
+
+	constructor(leaf: WorkspaceLeaf) {
+		super();
+		this.leaf = leaf;
+		this.containerEl = augmentEl(document.createElement("div"));
+	}
+
+	getViewType(): string {
+		return "";
+	}
+
+	getDisplayText(): string {
+		return "";
+	}
+
+	getIcon(): string {
+		return "";
+	}
+
+	getState(): Record<string, unknown> {
+		return {};
+	}
+
+	setState(_state: Record<string, unknown>): void {}
+
+	async onOpen(): Promise<void> {}
+
+	async onClose(): Promise<void> {}
+}
+
 export class MarkdownView {
 	editor = {
 		replaceSelection: vi.fn(),
