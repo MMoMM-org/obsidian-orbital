@@ -32,7 +32,7 @@ Delivers the reverse-index link graph and a working Relations tab: outgoing, bac
 
 > **Mock extension (do first):** add to `test/__mocks__/obsidian.ts` — `metadataCache.resolvedLinks`/`unresolvedLinks` maps + `getFirstLinkpathDest`, `workspace.trigger`, `Keymap.isModEvent`, and `debounce`. Part of T2.1/T2.3/T2.4 setup.
 
-- [ ] **T2.1 LinkGraphIndex (reverse index + incremental updates)** `[activity: domain-modeling]` `[ref: SDD/Internal Module Contracts; Complex Logic; ADR-2]`
+- [x] **T2.1 LinkGraphIndex (reverse index + incremental updates)** `[activity: domain-modeling]` `[ref: SDD/Internal Module Contracts; Complex Logic; ADR-2]`
 
   1. Prime: Read the index contract and the `updateFile` algorithm in SDD; review `resolvedLinks`/`unresolvedLinks` map shapes.
   2. Test: `buildFull` populates forward + reverse (`dest→sources`) + unresolved indexes from mock `metadataCache`; `backlinksOf`/`outgoingOf` return O(degree) results and `[]` for unknown paths (no throw); `updateFile` removes stale reverse edges then adds new ones (no full rescan); `removeFile` drops all edges; `renameFile` retargets dest keys; `danglingTargets({folder})` aggregates `unresolvedLinks` with counts and scope filter; `danglingFor(target)` returns occurrences.
@@ -42,15 +42,15 @@ Delivers the reverse-index link graph and a working Relations tab: outgoing, bac
     - [ ] Backlink/outgoing lookups are correct and crash-free for missing notes `[ref: SDD/Error Handling]`
     - [ ] Incremental update equals full rebuild for the same vault state `[ref: SDD/ADR-2]`
 
-- [ ] **T2.2 Relations pure functions (outgoing/backlinks/2nd-hop/missing)** `[activity: domain-modeling]` `[parallel: true]` `[ref: SDD/Implementation Examples — 2nd-hop; PRD/Feature 2]`
+- [x] **T2.2 Relations pure functions (outgoing/backlinks/2nd-hop/missing)** `[activity: domain-modeling]` `[parallel: true]` `[ref: SDD/Implementation Examples — 2nd-hop; PRD/Feature 2]`
 
   1. Prime: Read the `secondHop` example (deduped, capped, both-direction, self+1st-hop excluded) and `RelationsResult` shape.
   2. Test: outgoing/backlinks derived from index; 2nd-hop excludes active note + all 1st-hop, deduplicates globally across groups, respects `secondHopCap` and sets `truncated`; `secondHopEnabled=false` yields none; missing = unresolved targets of the active note; active note absent from cache → all-empty result, no throw; exclusions applied to results.
   3. Implement: `src/graph/relations.ts` (pure; takes index + settings + active path).
   4. Validate: unit tests cover hub-note cap, dedup, empty/new-note edge cases; typecheck; lint.
   - Success:
-    - [ ] 2nd-hop deduped, capped, excludes self+1st-hop with "showing N of M" signal `[ref: PRD/Feature 2]`
-    - [ ] No crash when active note missing from link map `[ref: SDD/Risks — relation-pane bug]`
+    - [x] 2nd-hop deduped, capped, excludes self+1st-hop with "showing N of M" signal `[ref: PRD/Feature 2]`
+    - [x] No crash when active note missing from link map `[ref: SDD/Risks — relation-pane bug]`
 
 - [ ] **T2.3 RelationsPanel (render, navigate, hover, Missing→Manage)** `[activity: frontend-ui]` `[ref: SDD/User Interface & UX; PRD/Feature 2]`
 
