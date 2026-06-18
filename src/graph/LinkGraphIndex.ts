@@ -6,7 +6,9 @@
  *   reverseIndex   Map<dest, Set<source>>      — reverse (backlink) lookup
  *   unresolvedIndex Map<source, Map<targetText, count>> — broken links
  *
- * All public methods are O(degree of the affected file), never O(vault size).
+ * All public methods are O(degree of the affected file), never O(vault size),
+ * with the exception of danglingFor() and danglingTargets(), which are
+ * O(total unresolved links across the vault).
  *
  * The MetadataCache shape used here is a structural subset of Obsidian's
  * MetadataCache so that tests can supply a plain mock without importing
@@ -164,6 +166,7 @@ export class LinkGraphIndex {
 
 	/** Set forward edges for source and add reverse edges for each dest. */
 	private setForwardEdges(source: string, dests: string[]): void {
+		if (dests.length === 0) return;
 		const destSet = new Set<string>(dests);
 		this.forwardIndex.set(source, destSet);
 		for (const dest of destSet) {

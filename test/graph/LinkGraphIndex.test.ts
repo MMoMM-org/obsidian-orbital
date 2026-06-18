@@ -8,7 +8,7 @@
  * TDD: these tests were written BEFORE the implementation.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { App } from "obsidian";
 import { LinkGraphIndex } from "graph/LinkGraphIndex";
 import type { MetadataCache } from "graph/LinkGraphIndex";
@@ -191,6 +191,34 @@ describe("LinkGraphIndex.updateFile", () => {
 		cache.resolvedLinks["new.md"] = { "b.md": 1 };
 		expect(() => idx.updateFile("new.md")).not.toThrow();
 		expect(idx.backlinksOf("b.md")).toEqual(expect.arrayContaining(["a.md", "new.md"]));
+	});
+
+	it("removes forwardIndex entry when all links are cleared", () => {
+		const cache = makeMockCache({
+			"a.md": { "b.md": 1 },
+			"c.md": { "b.md": 1 },
+		});
+		const idx = new LinkGraphIndex(cache);
+		idx.buildFull();
+
+		// Clear all outgoing links from a.md
+		cache.resolvedLinks["a.md"] = {};
+		idx.updateFile("a.md");
+
+		// a.md should have no outgoing links
+		expect(idx.outgoingOf("a.md")).toEqual([]);
+
+		// b.md's backlinks should no longer include a.md
+		expect(idx.backlinksOf("b.md")).toEqual(["c.md"]);
+
+		// State should match a fresh buildFull on the same final cache
+		const fresh = new LinkGraphIndex(cache);
+		fresh.buildFull();
+
+		expect(idx.outgoingOf("a.md").sort()).toEqual(fresh.outgoingOf("a.md").sort());
+		expect(idx.outgoingOf("c.md").sort()).toEqual(fresh.outgoingOf("c.md").sort());
+		expect(idx.backlinksOf("b.md").sort()).toEqual(fresh.backlinksOf("b.md").sort());
+		expect(idx.backlinksOf("a.md").sort()).toEqual(fresh.backlinksOf("a.md").sort());
 	});
 });
 
