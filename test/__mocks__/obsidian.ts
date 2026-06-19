@@ -680,6 +680,16 @@ export function normalizePath(path: string): string {
 	return path.replace(/\\/g, "/").replace(/\/+/g, "/");
 }
 
+/**
+ * Platform — mirrors Obsidian's Platform namespace.
+ *
+ * Tests can mutate `Platform.isMobile` to simulate mobile context.
+ * Reset after the test if needed (use `beforeEach` / `afterEach`).
+ */
+export const Platform = {
+	isMobile: false,
+};
+
 export const setIcon = vi.fn((_el: HTMLElement, _iconId: string): void => {});
 
 export const getAllTags = vi.fn(
