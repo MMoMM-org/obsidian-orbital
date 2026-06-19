@@ -561,18 +561,21 @@ export class DanglingPanel {
 		scope: RewriteScope,
 		liveRegion: HTMLElement,
 	): Promise<void> {
-		const preview = await this.deps.service.previewRename(target, scope);
-		const modal = new this.deps.ConfirmRewriteModal(this.deps.app, {
-			preview,
-			kind: "rename",
-			onConfirm: (newName: string) => {
-				void this.deps.service.applyRename(target, newName, scope).then((result) => {
-					this.surfaceResult(result, liveRegion);
-				});
-			},
-		});
-
-		modal.open();
+		try {
+			const preview = await this.deps.service.previewRename(target, scope);
+			const modal = new this.deps.ConfirmRewriteModal(this.deps.app, {
+				preview,
+				kind: "rename",
+				onConfirm: (newName: string) => {
+					void this.deps.service.applyRename(target, newName, scope)
+						.then((result) => { this.surfaceResult(result, liveRegion); })
+						.catch((err) => { this.notifyError("Rename", err); });
+				},
+			});
+			modal.open();
+		} catch (err) {
+			this.notifyError("Rename", err);
+		}
 	}
 
 	private async handleAlias(
@@ -580,48 +583,65 @@ export class DanglingPanel {
 		scope: RewriteScope,
 		liveRegion: HTMLElement,
 	): Promise<void> {
-		// Pick an existing note via NoteFilePicker (ADR-6: alias target must be
-		// an existing note, not a folder, so the wikilink resolves correctly).
-		const picker = new this.deps.notePicker(this.deps.app);
-		const note = await picker.pickNote();
-		if (note === null) return;
+		try {
+			// Pick an existing note via NoteFilePicker (ADR-6: alias target must be
+			// an existing note, not a folder, so the wikilink resolves correctly).
+			const picker = new this.deps.notePicker(this.deps.app);
+			const note = await picker.pickNote();
+			if (note === null) return;
 
-		const notePath = note.path;
-		const preview = await this.deps.service.previewRename(target, scope);
-		const modal = new this.deps.ConfirmRewriteModal(this.deps.app, {
-			preview,
-			kind: "alias",
-			onConfirm: (_name: string) => {
-				void this.deps.service.applyAlias(target, notePath, scope).then((result) => {
-					this.surfaceResult(result, liveRegion);
-				});
-			},
-		});
+			const notePath = note.path;
+			const preview = await this.deps.service.previewRename(target, scope);
+			const modal = new this.deps.ConfirmRewriteModal(this.deps.app, {
+				preview,
+				kind: "alias",
+				onConfirm: (_name: string) => {
+					void this.deps.service.applyAlias(target, notePath, scope)
+						.then((result) => { this.surfaceResult(result, liveRegion); })
+						.catch((err) => { this.notifyError("Alias", err); });
+				},
+			});
 
-		modal.open();
+			// Defer to a fresh macrotask so the just-closed note picker is fully
+			// torn down before this dialog opens — otherwise Obsidian can swallow
+			// a modal opened during another modal's close cycle.
+			window.setTimeout(() => {
+				try {
+					modal.open();
+				} catch (err) {
+					this.notifyError("Alias", err);
+				}
+			}, 0);
+		} catch (err) {
+			this.notifyError("Alias", err);
+		}
 	}
 
 	private async handleCreate(
 		target: string,
 		liveRegion: HTMLElement,
 	): Promise<void> {
-		const picker = new this.deps.folderPicker(this.deps.app);
-		const folder = await picker.pickFolder();
-		const settings = this.deps.getSettings();
+		try {
+			const picker = new this.deps.folderPicker(this.deps.app);
+			const folder = await picker.pickFolder();
+			const settings = this.deps.getSettings();
 
-		const result = await this.deps.createNote(
-			target,
-			this.deps.app,
-			settings,
-			folder,
-		);
+			const result = await this.deps.createNote(
+				target,
+				this.deps.app,
+				settings,
+				folder,
+			);
 
-		const msg = result.existed
-			? `Note "${result.file.path}" already exists.`
-			: `Created "${result.file.path}".`;
+			const msg = result.existed
+				? `Note "${result.file.path}" already exists.`
+				: `Created "${result.file.path}".`;
 
-		new Notice(msg);
-		this.updateLiveRegion(liveRegion, msg);
+			new Notice(msg);
+			this.updateLiveRegion(liveRegion, msg);
+		} catch (err) {
+			this.notifyError("Create note", err);
+		}
 	}
 
 	private async handleDelete(
@@ -629,25 +649,36 @@ export class DanglingPanel {
 		scope: RewriteScope,
 		liveRegion: HTMLElement,
 	): Promise<void> {
-		const preview = await this.deps.service.previewRename(target, scope);
+		try {
+			const preview = await this.deps.service.previewRename(target, scope);
 
-		// modalRef holds the instance so onConfirm can read modal.onlyInThisNote,
-		// which is updated by the "Only in this note" checkbox in renderDeleteConfirm.
-		const modalRef: { instance: InstanceType<ConfirmRewriteModalConstructor> | null } = { instance: null };
+			// modalRef holds the instance so onConfirm can read modal.onlyInThisNote,
+			// which is updated by the "Only in this note" checkbox in renderDeleteConfirm.
+			const modalRef: { instance: InstanceType<ConfirmRewriteModalConstructor> | null } = { instance: null };
 
-		const modal = new this.deps.ConfirmRewriteModal(this.deps.app, {
-			preview,
-			kind: "delete",
-			onConfirm: (_name: string) => {
-				const onlyInNote = modalRef.instance?.onlyInThisNote ?? false;
-				void this.deps.service.applyDelete(target, scope, onlyInNote).then((result) => {
-					this.surfaceResult(result, liveRegion);
-				});
-			},
-		});
+			const modal = new this.deps.ConfirmRewriteModal(this.deps.app, {
+				preview,
+				kind: "delete",
+				onConfirm: (_name: string) => {
+					const onlyInNote = modalRef.instance?.onlyInThisNote ?? false;
+					void this.deps.service.applyDelete(target, scope, onlyInNote)
+						.then((result) => { this.surfaceResult(result, liveRegion); })
+						.catch((err) => { this.notifyError("Delete", err); });
+				},
+			});
 
-		modalRef.instance = modal;
-		modal.open();
+			modalRef.instance = modal;
+			modal.open();
+		} catch (err) {
+			this.notifyError("Delete", err);
+		}
+	}
+
+	/** Surface an otherwise-silent handler error as a Notice (and to the console). */
+	private notifyError(action: string, err: unknown): void {
+		const msg = err instanceof Error ? err.message : String(err);
+		console.error(`[Orbit] ${action} failed:`, err);
+		new Notice(`${action} failed: ${msg}`);
 	}
 
 	// -------------------------------------------------------------------------

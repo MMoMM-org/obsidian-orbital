@@ -637,6 +637,7 @@ describe("DanglingPanel inline actions", () => {
 		const aliasBtn = container.querySelector("[aria-label='Alias to existing note']") as HTMLElement;
 		aliasBtn.click();
 		await new Promise((r) => setTimeout(r, 0));
+		await new Promise((r) => setTimeout(r, 0)); // deferred modal.open() (handleAlias setTimeout)
 
 		expect(deps.ConfirmRewriteModal).toHaveBeenCalledWith(
 			expect.anything(),
@@ -656,6 +657,7 @@ describe("DanglingPanel inline actions", () => {
 		const aliasBtn = container.querySelector("[aria-label='Alias to existing note']") as HTMLElement;
 		aliasBtn.click();
 		await new Promise((r) => setTimeout(r, 0));
+		await new Promise((r) => setTimeout(r, 0)); // deferred modal.open() (handleAlias setTimeout)
 
 		// applyAlias called with the .md note path from NoteFilePicker (not a folder)
 		expect(deps.service.applyAlias).toHaveBeenCalledWith("MissingTarget", "Notes/SomeNote.md", expect.any(Object));

@@ -168,7 +168,6 @@ describe("NoteFilePicker", () => {
 
 		const promise = picker.pickNote();
 		picker.onChooseItem(note);
-		picker.onClose(); // real flow: choosing an item closes the modal
 
 		const result = await promise;
 		expect(result?.path).toBe("notes/Chosen.md");
@@ -194,8 +193,7 @@ describe("NoteFilePicker", () => {
 
 		const promise = picker.pickNote();
 		picker.onChooseItem(note1);
-		picker.onChooseItem(note2); // second call — should be ignored (first wins)
-		picker.onClose(); // real flow: choosing closes the modal → resolves here
+		picker.onChooseItem(note2); // second call — should be ignored
 
 		const result = await promise;
 		expect(result?.path).toBe("notes/First.md");
