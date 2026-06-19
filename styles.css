@@ -271,3 +271,53 @@
 	background: var(--background-modifier-hover);
 	border-left: 2px solid var(--text-accent);
 }
+
+/* ── ConfirmRewriteModal ────────────────────────────────────────────────────
+   Confirmation gate for destructive vault operations (rename, delete, alias,
+   merge). All layout uses flex. No style.display — visibility via is-hidden.
+   ─────────────────────────────────────────────────────────────────────────*/
+
+.orbit-confirm-preview {
+	color: var(--text-muted);
+	font-size: var(--font-small);
+	margin-bottom: 8px;
+}
+
+.orbit-confirm-warning {
+	color: var(--text-error);
+	font-size: var(--font-small);
+	margin-bottom: 12px;
+}
+
+.orbit-confirm-label {
+	display: block;
+	font-size: var(--font-small);
+	margin-bottom: 4px;
+}
+
+.orbit-confirm-input {
+	width: 100%;
+	margin-bottom: 8px;
+}
+
+.orbit-confirm-merge-notice {
+	color: var(--text-accent);
+	font-size: var(--font-small);
+	margin-bottom: 8px;
+}
+
+.orbit-confirm-delete-label {
+	font-size: var(--font-small);
+	margin-bottom: 8px;
+}
+
+.orbit-confirm-checkbox-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.orbit-confirm-btn {
+	margin-top: 8px;
+}

@@ -63,6 +63,13 @@ interface AugmentedEl {
 export class ConfirmRewriteModal extends Modal {
 	private readonly opts: ConfirmRewriteModalOptions;
 
+	/**
+	 * For the delete kind only: tracks whether the "Only in this note" checkbox
+	 * is checked at the time the user confirms. Callers read this value inside
+	 * their onConfirm callback. Defaults to false (vault-wide delete).
+	 */
+	public onlyInThisNote = false;
+
 	constructor(app: App, opts: ConfirmRewriteModalOptions) {
 		super(app);
 		this.opts = opts;
@@ -179,6 +186,21 @@ export class ConfirmRewriteModal extends Modal {
 			attr: { for: "orbit-confirm-delete-checkbox" },
 		});
 
+		// "Only in this note" option — limits delete to the active note only
+		const onlyInNoteRow = el.createDiv({ cls: "orbit-confirm-checkbox-row" });
+		const onlyInNoteCheckbox = (onlyInNoteRow as unknown as AugmentedEl).createEl("input", {
+			attr: {
+				type: "checkbox",
+				id: "orbit-confirm-delete-only-note",
+				"aria-label": "Only delete links in this note",
+			},
+		}) as HTMLInputElement;
+
+		(onlyInNoteRow as unknown as AugmentedEl).createEl("label", {
+			text: "Only in this note",
+			attr: { for: "orbit-confirm-delete-only-note" },
+		});
+
 		const confirmBtn = el.createEl("button", {
 			text: "Confirm",
 			cls: "orbit-confirm-btn mod-warning",
@@ -188,6 +210,10 @@ export class ConfirmRewriteModal extends Modal {
 
 		checkboxEl.addEventListener("change", () => {
 			confirmBtn.disabled = !checkboxEl.checked;
+		});
+
+		onlyInNoteCheckbox.addEventListener("change", () => {
+			this.onlyInThisNote = onlyInNoteCheckbox.checked;
 		});
 
 		confirmBtn.addEventListener("click", () => {

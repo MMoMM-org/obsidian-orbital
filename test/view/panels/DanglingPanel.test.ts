@@ -71,6 +71,7 @@ function makeMockConfirmRewriteModal() {
 function makeMockNotePickerModal() {
 	return vi.fn().mockImplementation(() => ({
 		pickFolder: vi.fn(async () => ({ path: "Notes" })),
+		pickNote: vi.fn(async () => ({ path: "Notes/SomeNote.md" })),
 	}));
 }
 
@@ -463,11 +464,13 @@ describe("DanglingPanel inline actions", () => {
 		);
 	});
 
-	it("delete action: onConfirm calls applyDelete", async () => {
+	it("delete action: onConfirm calls applyDelete with false when 'only in this note' is unchecked (default)", async () => {
 		const deps = makeDeps({
 			unresolved: { "notes/a.md": { "MissingTarget": 1 } },
 			grouping: "target",
 		});
+		// Default ConfirmRewriteModal mock calls onConfirm("NewName") immediately on open,
+		// simulating the user confirming without checking "only in this note".
 		const panel = new DanglingPanel(deps);
 		const container = makeContainer();
 		panel.render(container);
@@ -476,7 +479,33 @@ describe("DanglingPanel inline actions", () => {
 		deleteBtn.click();
 		await new Promise((r) => setTimeout(r, 0));
 
+		// onlyInThisNote defaults to false (vault-wide delete)
 		expect(deps.service.applyDelete).toHaveBeenCalledWith("MissingTarget", expect.any(Object), false);
+	});
+
+	it("delete action: applyDelete receives true when 'only in this note' is checked", async () => {
+		const deps = makeDeps({
+			unresolved: { "notes/a.md": { "MissingTarget": 1 } },
+			grouping: "target",
+		});
+
+		// Override the ConfirmRewriteModal mock to set onlyInThisNote = true before calling onConfirm
+		deps.ConfirmRewriteModal = vi.fn().mockImplementation((_app: unknown, opts: { onConfirm: (name: string) => void }) => ({
+			onlyInThisNote: true,
+			open: vi.fn(function (this: { onlyInThisNote: boolean }) {
+				opts.onConfirm("NewName");
+			}),
+		})) as ReturnType<typeof makeMockConfirmRewriteModal>;
+
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const deleteBtn = container.querySelector("[aria-label='Delete links']") as HTMLElement;
+		deleteBtn.click();
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(deps.service.applyDelete).toHaveBeenCalledWith("MissingTarget", expect.any(Object), true);
 	});
 
 	it("alias action calls previewRename and opens ConfirmRewriteModal with 'alias' kind", async () => {
@@ -498,7 +527,7 @@ describe("DanglingPanel inline actions", () => {
 		);
 	});
 
-	it("alias action: onConfirm calls applyAlias with picked folder path as note path", async () => {
+	it("alias action: onConfirm calls applyAlias with the picked note .md path (ADR-6)", async () => {
 		const deps = makeDeps({
 			unresolved: { "notes/a.md": { "MissingTarget": 1 } },
 			grouping: "target",
@@ -511,8 +540,8 @@ describe("DanglingPanel inline actions", () => {
 		aliasBtn.click();
 		await new Promise((r) => setTimeout(r, 0));
 
-		// applyAlias called with the folder path from NotePickerModal
-		expect(deps.service.applyAlias).toHaveBeenCalledWith("MissingTarget", "Notes", expect.any(Object));
+		// applyAlias called with the .md note path from NoteFilePicker (not a folder)
+		expect(deps.service.applyAlias).toHaveBeenCalledWith("MissingTarget", "Notes/SomeNote.md", expect.any(Object));
 	});
 
 	it("create action calls createNote with target and app", async () => {

@@ -239,6 +239,94 @@ describe("ConfirmRewriteModal", () => {
 			const input = modal.contentEl.querySelector<HTMLInputElement>("input[type='text']");
 			expect(input).toBeNull();
 		});
+
+		it("renders an 'Only in this note' checkbox for delete op", () => {
+			const app = makeApp();
+			const modal = new ConfirmRewriteModal(app, {
+				preview: makePreview(),
+				kind: "delete",
+				onConfirm: vi.fn(),
+			});
+			modal.onOpen();
+
+			const checkbox = modal.contentEl.querySelector<HTMLInputElement>(
+				"input[id='orbit-confirm-delete-only-note']",
+			);
+			expect(checkbox).not.toBeNull();
+			expect(checkbox?.type).toBe("checkbox");
+		});
+
+		it("'Only in this note' checkbox defaults to unchecked (onlyInThisNote = false)", () => {
+			const app = makeApp();
+			const modal = new ConfirmRewriteModal(app, {
+				preview: makePreview(),
+				kind: "delete",
+				onConfirm: vi.fn(),
+			});
+			modal.onOpen();
+
+			expect(modal.onlyInThisNote).toBe(false);
+
+			const checkbox = modal.contentEl.querySelector<HTMLInputElement>(
+				"input[id='orbit-confirm-delete-only-note']",
+			);
+			expect(checkbox?.checked).toBe(false);
+		});
+
+		it("checking 'Only in this note' sets onlyInThisNote to true", () => {
+			const app = makeApp();
+			const modal = new ConfirmRewriteModal(app, {
+				preview: makePreview(),
+				kind: "delete",
+				onConfirm: vi.fn(),
+			});
+			modal.onOpen();
+
+			const checkbox = modal.contentEl.querySelector<HTMLInputElement>(
+				"input[id='orbit-confirm-delete-only-note']",
+			);
+			checkbox!.checked = true;
+			checkbox!.dispatchEvent(new Event("change"));
+
+			expect(modal.onlyInThisNote).toBe(true);
+		});
+
+		it("unchecking 'Only in this note' after checking sets onlyInThisNote back to false", () => {
+			const app = makeApp();
+			const modal = new ConfirmRewriteModal(app, {
+				preview: makePreview(),
+				kind: "delete",
+				onConfirm: vi.fn(),
+			});
+			modal.onOpen();
+
+			const checkbox = modal.contentEl.querySelector<HTMLInputElement>(
+				"input[id='orbit-confirm-delete-only-note']",
+			);
+			// Check then uncheck
+			checkbox!.checked = true;
+			checkbox!.dispatchEvent(new Event("change"));
+			checkbox!.checked = false;
+			checkbox!.dispatchEvent(new Event("change"));
+
+			expect(modal.onlyInThisNote).toBe(false);
+		});
+
+		it("'Only in this note' label has sentence-case text", () => {
+			const app = makeApp();
+			const modal = new ConfirmRewriteModal(app, {
+				preview: makePreview(),
+				kind: "delete",
+				onConfirm: vi.fn(),
+			});
+			modal.onOpen();
+
+			const label = modal.contentEl.querySelector<HTMLLabelElement>(
+				"label[for='orbit-confirm-delete-only-note']",
+			);
+			expect(label).not.toBeNull();
+			expect(label?.textContent).toBe("Only in this note");
+		});
 	});
 
 	describe("non-rename ops (merge, alias)", () => {

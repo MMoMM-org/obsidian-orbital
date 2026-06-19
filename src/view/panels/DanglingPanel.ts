@@ -27,7 +27,7 @@ import type {
 } from "types/index";
 import type { RewritePreview, BulkResult, RewriteScope } from "links/LinkRewriteService";
 import type { RewriteKind } from "modals/ConfirmRewriteModal";
-import type { TFolder } from "obsidian";
+import type { TFile, TFolder } from "obsidian";
 
 // ---------------------------------------------------------------------------
 // Structural types — injected so tests can swap with mocks
@@ -63,7 +63,7 @@ interface ConfirmRewriteModalConstructor {
 }
 
 interface NotePickerModalConstructor {
-	new (app: DanglingPanelApp): { pickFolder(): Promise<TFolder | null> };
+	new (app: DanglingPanelApp): { pickFolder(): Promise<TFolder | null>; pickNote(): Promise<TFile | null> };
 }
 
 type CreateNoteFn = (
@@ -486,15 +486,13 @@ export class DanglingPanel {
 		scope: RewriteScope,
 		liveRegion: HTMLElement,
 	): Promise<void> {
-		// Pick a note path via NotePickerModal.
-		// NotePickerModal.pickFolder() returns a TFolder; we use its path as the
-		// real-note path passed to applyAlias (ADR-6 compromise: no note-picker
-		// variant shipped in T3.3 — folder path serves as proxy note path).
+		// Pick an existing note via NotePickerModal (ADR-6: alias target must be
+		// an existing note, not a folder, so the wikilink resolves correctly).
 		const picker = new this.deps.NotePickerModal(this.deps.app);
-		const folder = await picker.pickFolder();
-		if (folder === null) return;
+		const note = await picker.pickNote();
+		if (note === null) return;
 
-		const notePath = folder.path;
+		const notePath = note.path;
 		const preview = await this.deps.service.previewRename(target, scope);
 		const modal = new this.deps.ConfirmRewriteModal(this.deps.app, {
 			preview,
@@ -538,16 +536,23 @@ export class DanglingPanel {
 		liveRegion: HTMLElement,
 	): Promise<void> {
 		const preview = await this.deps.service.previewRename(target, scope);
+
+		// modalRef holds the instance so onConfirm can read modal.onlyInThisNote,
+		// which is updated by the "Only in this note" checkbox in renderDeleteConfirm.
+		const modalRef: { instance: { open(): void; onlyInThisNote?: boolean } | null } = { instance: null };
+
 		const modal = new this.deps.ConfirmRewriteModal(this.deps.app, {
 			preview,
 			kind: "delete",
 			onConfirm: (_name: string) => {
-				void this.deps.service.applyDelete(target, scope, false).then((result) => {
+				const onlyInNote = modalRef.instance?.onlyInThisNote ?? false;
+				void this.deps.service.applyDelete(target, scope, onlyInNote).then((result) => {
 					this.surfaceResult(result, liveRegion);
 				});
 			},
 		});
 
+		modalRef.instance = modal;
 		modal.open();
 	}
 
