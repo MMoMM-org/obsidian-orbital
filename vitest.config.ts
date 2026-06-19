@@ -97,6 +97,16 @@ export default defineConfig({
 					return fs.existsSync(`${updatedId}.ts`) ? `${updatedId}.ts` : updatedId;
 				},
 			},
+			{
+				find: /^recent(\/.*)?$/,
+				replacement: path.resolve(__dirname, "src/recent$1"),
+				customResolver(updatedId: string) {
+					if (fs.statSync(updatedId, { throwIfNoEntry: false })?.isDirectory()) {
+						return `${updatedId}/index.ts`;
+					}
+					return fs.existsSync(`${updatedId}.ts`) ? `${updatedId}.ts` : updatedId;
+				},
+			},
 		],
 	},
 	test: {
