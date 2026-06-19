@@ -123,7 +123,7 @@ describe("OrbitPlugin onload — view registration", () => {
 
 		const emptyState = view.contentEl.querySelector(".orbit-recent-empty");
 		expect(emptyState).not.toBeNull();
-		expect(emptyState?.textContent).toBe("No recent files yet.");
+		expect(emptyState?.textContent).toBe("No recent notes yet.");
 	});
 });
 

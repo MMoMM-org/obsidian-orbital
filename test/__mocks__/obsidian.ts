@@ -692,6 +692,9 @@ export const Platform = {
 
 export const setIcon = vi.fn((_el: HTMLElement, _iconId: string): void => {});
 
+/** addIcon — registers a custom icon by id. No-op stub in tests. */
+export const addIcon = vi.fn((_iconId: string, _svgContent: string): void => {});
+
 export const getAllTags = vi.fn(
 	(_cache: CachedMetadata): string[] | null => null,
 );

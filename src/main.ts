@@ -1,4 +1,4 @@
-import { Plugin, debounce, TFile, TAbstractFile, MarkdownView } from "obsidian";
+import { Plugin, addIcon, debounce, TFile, TAbstractFile, MarkdownView } from "obsidian";
 import type { Debouncer } from "obsidian";
 import { SettingsTab } from "settings/SettingsTab";
 import { DEFAULT_SETTINGS, type OrbitSettings } from "types/index";
@@ -12,6 +12,17 @@ import { ConfirmRewriteModal } from "modals/ConfirmRewriteModal";
 import { createNote } from "links/createNote";
 import { RecentFilesStore } from "recent/RecentFilesStore";
 import { DragInsertHelper } from "recent/DragInsertHelper";
+
+/**
+ * Custom "orbit" icon — a central body, a tilted orbit ring, and a satellite.
+ * Inner SVG markup for a 0 0 100 100 viewBox; uses currentColor so it adopts
+ * Obsidian's icon theming. Registered via addIcon() and used as the view icon.
+ */
+const ORBIT_ICON_ID = "orbit";
+const ORBIT_ICON_SVG =
+	'<circle cx="50" cy="50" r="12" fill="currentColor"/>' +
+	'<ellipse cx="50" cy="50" rx="42" ry="20" fill="none" stroke="currentColor" stroke-width="7" transform="rotate(-25 50 50)"/>' +
+	'<circle cx="84" cy="33" r="8" fill="currentColor"/>';
 
 export default class OrbitPlugin extends Plugin {
 	settings: OrbitSettings = DEFAULT_SETTINGS;
@@ -31,11 +42,16 @@ export default class OrbitPlugin extends Plugin {
 	/** Debounced handler for active-leaf-change events (trailing). */
 	_refreshDebouncer: Debouncer<[], void> | null = null;
 
-	/** Guards single-build semantics for metadataCache 'resolved'. */
+	/** True once the index has been built (at layout-ready). */
 	private _indexBuilt = false;
+
+	/** Guards the one-shot 'resolved' safety-net rebuild. */
+	private _resolvedRebuilt = false;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
+
+		addIcon(ORBIT_ICON_ID, ORBIT_ICON_SVG);
 
 		this._index = new LinkGraphIndex(this.app.metadataCache);
 
@@ -265,15 +281,29 @@ export default class OrbitPlugin extends Plugin {
 			}),
 		);
 
-		// Register 'resolved' inside onLayoutReady so we build once after layout
-		// is ready (cache is fully populated at that point).
+		// Build the index at layout-ready. The metadata cache is already populated
+		// at this point, and 'resolved' may have ALREADY fired (e.g. the plugin was
+		// enabled while the vault was open) — so we must not wait for it, or the
+		// index would stay empty and Relations/Dangling would show 0.
 		this.app.workspace.onLayoutReady(() => {
+			if (!this._indexBuilt) {
+				this._index.buildFull();
+				this._indexBuilt = true;
+				// An Orbit pane opened before this point rendered against an empty
+				// index; repaint so its counts update from 0 to the real values.
+				this._repaintActivePanel();
+			}
+
+			// Safety net for very large vaults still resolving at layout-ready:
+			// rebuild once when resolution completes. Guarded so ongoing 'resolved'
+			// events (fired after edits) don't trigger repeated full rebuilds —
+			// incremental updates are handled by the 'changed' handler above.
 			this.registerEvent(
 				this.app.metadataCache.on("resolved", () => {
-					if (!this._indexBuilt) {
-						this._index.buildFull();
-						this._indexBuilt = true;
-					}
+					if (this._resolvedRebuilt) return;
+					this._resolvedRebuilt = true;
+					this._index.buildFull();
+					this._repaintActivePanel();
 				}),
 			);
 		});

@@ -136,7 +136,7 @@ describe("RecentPanel empty state", () => {
 
 		const empty = container.querySelector(".orbit-recent-empty");
 		expect(empty).not.toBeNull();
-		expect(empty?.textContent).toMatch(/no recent files/i);
+		expect(empty?.textContent).toMatch(/no recent notes/i);
 	});
 
 	it("does not render any rows when list is empty", () => {

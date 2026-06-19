@@ -958,7 +958,7 @@ describe("OrbitView T4.3b — Recent panel wiring", () => {
 		// Real RecentPanel renders the empty state for an empty store
 		const emptyState = view.contentEl.querySelector(".orbit-recent-empty");
 		expect(emptyState).not.toBeNull();
-		expect(emptyState?.textContent).toBe("No recent files yet.");
+		expect(emptyState?.textContent).toBe("No recent notes yet.");
 	});
 
 	it("does not replace the recent placeholder when recentDeps is absent", async () => {
@@ -972,7 +972,7 @@ describe("OrbitView T4.3b — Recent panel wiring", () => {
 
 		const placeholder = view.contentEl.querySelector(".orbit-panel-placeholder");
 		expect(placeholder).not.toBeNull();
-		expect(placeholder?.textContent).toBe("Recent files");
+		expect(placeholder?.textContent).toBe("Recent notes");
 	});
 
 	it("calls store.list() when recent tab is rendered", async () => {

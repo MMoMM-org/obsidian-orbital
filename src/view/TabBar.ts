@@ -20,7 +20,7 @@ export interface TabDefinition {
 export const TAB_DEFINITIONS: TabDefinition[] = [
 	{ id: "relations", label: "Relations" },
 	{ id: "dangling", label: "Dangling links" },
-	{ id: "recent", label: "Recent files" },
+	{ id: "recent", label: "Recent notes" },
 ];
 
 export interface TabBarOptions {

@@ -36,8 +36,8 @@ export class SettingsTab extends PluginSettingTab {
 		new Setting(containerEl).setName("Behaviour").setHeading();
 
 		new Setting(containerEl)
-			.setName("Recent files list length")
-			.setDesc("Number of recently visited files to show.")
+			.setName("Recent notes list length")
+			.setDesc("Number of recently visited notes to show.")
 			.addText((text) =>
 				text
 					.setPlaceholder("20")
@@ -71,7 +71,7 @@ export class SettingsTab extends PluginSettingTab {
 				dropdown
 					.addOption("relations", "Relations")
 					.addOption("dangling", "Dangling links")
-					.addOption("recent", "Recent files")
+					.addOption("recent", "Recent notes")
 					.setValue(this.plugin.settings.defaultTab)
 					.onChange(async (value) => {
 						this.plugin.settings.defaultTab = value as TabId;

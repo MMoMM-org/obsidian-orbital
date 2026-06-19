@@ -74,6 +74,23 @@ describe("T2.4 — index lifecycle: metadataCache 'resolved'", () => {
 		vi.useRealTimers();
 	});
 
+	it("builds the index at onLayoutReady, without waiting for a 'resolved' event", async () => {
+		// Repro of the already-resolved-vault bug: when the plugin is enabled while
+		// the vault is open, 'resolved' has already fired, so the index must be
+		// built at layout-ready instead. The mock fires onLayoutReady synchronously.
+		const app = makeApp();
+		const { LinkGraphIndex } = await import("graph/LinkGraphIndex");
+		const buildFullSpy = vi.spyOn(LinkGraphIndex.prototype, "buildFull");
+
+		const plugin = await makePlugin(app);
+		await plugin.onload();
+		await flush();
+
+		// Built during onload (layout-ready) — no 'resolved' was ever fired here.
+		expect(buildFullSpy).toHaveBeenCalled();
+		buildFullSpy.mockRestore();
+	});
+
 	it("calls buildFull exactly once on the first 'resolved' event after onLayoutReady", async () => {
 		const app = makeApp();
 		const plugin = await makePlugin(app);

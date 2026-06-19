@@ -1,7 +1,7 @@
 /**
  * RecentPanel — T4.3
  *
- * Renders the Recent Files tab: a flat MRU list with click navigation,
+ * Renders the Recent Notes tab: a flat MRU list with click navigation,
  * per-row remove, clear-list, drag-to-link, and mobile insert.
  *
  * Design decisions:
@@ -352,7 +352,7 @@ export class RecentPanel {
 	private renderEmptyState(container: HTMLElement): void {
 		(container as unknown as AugmentedEl).createEl("div", {
 			cls: "orbit-recent-empty",
-			text: "No recent files yet.",
+			text: "No recent notes yet.",
 		});
 	}
 

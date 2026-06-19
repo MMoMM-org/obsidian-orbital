@@ -88,7 +88,7 @@ const DEFAULT_PANEL_RENDERERS: Record<TabId, PanelRenderer> = {
 		el.createDiv({ cls: "orbit-panel-placeholder", text: "Dangling links" });
 	},
 	recent: (el) => {
-		el.createDiv({ cls: "orbit-panel-placeholder", text: "Recent files" });
+		el.createDiv({ cls: "orbit-panel-placeholder", text: "Recent notes" });
 	},
 };
 
@@ -173,7 +173,7 @@ export class OrbitView extends ItemView {
 	}
 
 	getIcon(): string {
-		return "git-fork";
+		return "orbit";
 	}
 
 	// -------------------------------------------------------------------------

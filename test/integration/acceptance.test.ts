@@ -1501,7 +1501,7 @@ describe("AC6 — Settings", () => {
 		);
 
 		// Check all required setting names are present
-		expect(settingNames).toContain("Recent files list length");
+		expect(settingNames).toContain("Recent notes list length");
 		expect(settingNames).toContain("Exclude path patterns");
 		expect(settingNames).toContain("Exclude tag patterns");
 		expect(settingNames).toContain("Second-hop cap");
@@ -1532,8 +1532,8 @@ describe("AC6 — Settings", () => {
 		(tab as unknown as { containerEl: HTMLElement }).containerEl = containerEl;
 		tab.display();
 
-		// Find the "Recent files list length" text input and simulate a value change
-		const settingEl = containerEl.querySelector("[data-setting-name='Recent files list length']") as HTMLElement;
+		// Find the "Recent notes list length" text input and simulate a value change
+		const settingEl = containerEl.querySelector("[data-setting-name='Recent notes list length']") as HTMLElement;
 		expect(settingEl).not.toBeNull();
 		const input = settingEl.querySelector("input") as HTMLInputElement;
 		expect(input).not.toBeNull();
