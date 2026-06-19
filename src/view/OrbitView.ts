@@ -18,6 +18,12 @@
  *   Pass `danglingDeps` to the constructor and OrbitView will build the
  *   real DanglingPanel for the 'dangling' tab, backed by the plugin's
  *   shared index, settings, and link-rewrite service.
+ *
+ * Cross-tab filter (T5.1):
+ *   RelationsPanel calls onManage(target) → main.ts calls setState with
+ *   { activeTab: "dangling", activeDanglingFilter: target }, which the
+ *   DanglingPanel reads directly via getActiveFilter(). No separate
+ *   pendingManageTarget field is needed.
  */
 
 import { ItemView, WorkspaceLeaf } from "obsidian";
@@ -53,8 +59,7 @@ export type RelationsDeps = Omit<RelationsPanelDeps, "getCollapsed" | "setCollap
 /**
  * Dependencies the plugin supplies for building the Dangling panel.
  * OrbitView fills the view-owned deps: getGrouping/setGrouping, getScope/setScope,
- * getFolderPath, getPendingTarget/clearPendingTarget,
- * getActiveFilter/setActiveFilter/clearActiveFilter, and registerDomEvent.
+ * getFolderPath, getActiveFilter/setActiveFilter/clearActiveFilter, and registerDomEvent.
  */
 export type DanglingDeps = Omit<
 	DanglingPanelDeps,
@@ -63,8 +68,6 @@ export type DanglingDeps = Omit<
 	| "getScope"
 	| "setScope"
 	| "getFolderPath"
-	| "getPendingTarget"
-	| "clearPendingTarget"
 	| "getActiveFilter"
 	| "setActiveFilter"
 	| "clearActiveFilter"
@@ -101,13 +104,6 @@ export class OrbitView extends ItemView {
 	private tabBar: TabBar | null = null;
 	private panelContainer: HTMLElement | null = null;
 	private readonly panelRenderers: Record<TabId, PanelRenderer>;
-
-	/**
-	 * Optional ephemeral stash for a missing-link target that triggered a
-	 * tab switch via onManage (set by RelationsPanel). Consumed by the
-	 * Dangling tab renderer on each render via getPendingTarget/clearPendingTarget.
-	 */
-	pendingManageTarget: string | null = null;
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -303,7 +299,7 @@ export class OrbitView extends ItemView {
 	 * Build the PanelRenderer closure for the 'dangling' tab.
 	 * Constructs a new DanglingPanel on each render call so the panel always
 	 * reflects the latest deps state (settings, index) without stale closures.
-	 * View-owned deps (grouping, scope, folderPath, pendingTarget, activeFilter) are
+	 * View-owned deps (grouping, scope, folderPath, activeFilter) are
 	 * read from OrbitView's own state at render time.
 	 */
 	private _buildDanglingRenderer(deps: DanglingDeps): PanelRenderer {
@@ -322,10 +318,6 @@ export class OrbitView extends ItemView {
 					this.renderPanel("dangling");
 				},
 				getFolderPath: () => this.app.workspace.getActiveFile()?.parent?.path ?? "",
-				getPendingTarget: () => this.pendingManageTarget,
-				clearPendingTarget: () => {
-					this.pendingManageTarget = null;
-				},
 				getActiveFilter: () => this.state.activeDanglingFilter,
 				setActiveFilter: (target: string) => {
 					this.state = { ...this.state, activeDanglingFilter: target };

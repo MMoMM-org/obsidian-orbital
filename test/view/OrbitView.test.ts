@@ -18,7 +18,8 @@
  * - T3.4b: getScope/setScope round-trip for dangling tab
  * - T3.4b: getGrouping/setGrouping round-trip for dangling tab
  * - T3.4b: getFolderPath returns active file's parent folder
- * - T3.4b: getPendingTarget/clearPendingTarget bridge pendingManageTarget
+ * - T5.1: setState({ activeDanglingFilter }) persists non-null filter
+ * - T5.1: setState({ activeDanglingFilter: null }) correctly clears filter (not swallowed by ??)
  */
 
 import { describe, it, expect, vi } from "vitest";
@@ -319,6 +320,8 @@ describe("OrbitView getState/setState", () => {
 		expect(state.danglingScope).toBe("vault");
 		expect(state.danglingGrouping).toBe("target");
 		expect(state.collapsedSections).toEqual([]);
+		// S1: activeDanglingFilter starts null
+		expect(state.activeDanglingFilter).toBeNull();
 	});
 
 	it("setState round-trips activeTab, danglingScope, danglingGrouping, collapsedSections, activeDanglingFilter", async () => {
@@ -336,6 +339,26 @@ describe("OrbitView getState/setState", () => {
 
 		const state = view.getState() as OrbitViewState;
 		expect(state).toEqual(newState);
+	});
+
+	// W1: exercise the non-null branch of activeDanglingFilter merge logic
+	it("setState({ activeDanglingFilter: 'TargetA' }) persists a non-null filter", async () => {
+		const view = new OrbitView(makeLeaf());
+		await view.onOpen();
+
+		await view.setState({ activeDanglingFilter: "TargetA" }, makeResult());
+
+		expect((view.getState() as OrbitViewState).activeDanglingFilter).toBe("TargetA");
+	});
+
+	it("setState({ activeDanglingFilter: 'TargetA' }) then setState({ activeDanglingFilter: null }) sets it to null (null is not swallowed)", async () => {
+		const view = new OrbitView(makeLeaf());
+		await view.onOpen();
+
+		await view.setState({ activeDanglingFilter: "TargetA" }, makeResult());
+		await view.setState({ activeDanglingFilter: null }, makeResult());
+
+		expect((view.getState() as OrbitViewState).activeDanglingFilter).toBeNull();
 	});
 
 	it("setState switches the active tab in the DOM", async () => {
@@ -597,14 +620,16 @@ describe("OrbitView T2.4 — Relations panel wiring", () => {
 		expect(itemsAfter).toBe(0);
 	});
 
-	it("onManage callback switches activeTab to 'dangling' and stashes the target", async () => {
+	it("onManage callback switches activeTab to 'dangling' and sets activeDanglingFilter", async () => {
 		// deps.app has the unresolved link so the Manage button renders
 		let view!: OrbitView;
 		const deps = makeRelationsDeps({
 			unresolved: { "notes/active.md": { "MissingNote": 1 } },
 			onManage: (target: string) => {
-				view.pendingManageTarget = target;
-				void view.setState({ ...view.getState(), activeTab: "dangling" }, { history: false });
+				void view.setState(
+					{ ...view.getState(), activeTab: "dangling", activeDanglingFilter: target },
+					{ history: false },
+				);
 			},
 		});
 
@@ -626,7 +651,7 @@ describe("OrbitView T2.4 — Relations panel wiring", () => {
 
 		const selectedTab = view.contentEl.querySelector("[role='tab'][aria-selected='true']");
 		expect(selectedTab?.getAttribute("data-tab-id")).toBe("dangling");
-		expect(view.pendingManageTarget).toBe("MissingNote");
+		expect((view.getState() as OrbitViewState).activeDanglingFilter).toBe("MissingNote");
 	});
 
 	it("collapse state persists through refreshActivePanel (backed by OrbitViewState)", async () => {
@@ -848,9 +873,9 @@ describe("OrbitView T3.4b — Dangling panel wiring", () => {
 		expect(targetGroup).not.toBeNull();
 	});
 
-	it("getPendingTarget bridges pendingManageTarget and clearPendingTarget nulls it", async () => {
+	it("activeDanglingFilter set via setState is read by DanglingPanel as active filter", async () => {
 		const deps = makeDanglingDeps({
-			"notes/active.md": { "PendingTarget": 1 },
+			"notes/active.md": { "TargetA": 1, "TargetB": 1 },
 		});
 		const view = new OrbitView(makeLeaf(), undefined, undefined, deps);
 
@@ -859,16 +884,18 @@ describe("OrbitView T3.4b — Dangling panel wiring", () => {
 
 		await view.onOpen();
 
-		// Stash a pending target
-		view.pendingManageTarget = "PendingTarget";
-
-		// Navigate to dangling tab — render should consume the pending target
-		const danglingTab = view.contentEl.querySelector("[data-tab-id='dangling']") as HTMLElement;
-		danglingTab.click();
+		// Simulate the "Manage →" deep-link: set activeDanglingFilter and switch tab
+		await view.setState(
+			{ ...view.getState(), activeTab: "dangling", activeDanglingFilter: "TargetA" },
+			{ history: false },
+		);
 		await flush();
 
-		// After render, pendingManageTarget should be cleared
-		expect(view.pendingManageTarget).toBeNull();
+		// Only TargetA should be visible; TargetB is filtered out
+		const targetARow = view.contentEl.querySelector("[data-target='TargetA']");
+		const targetBRow = view.contentEl.querySelector("[data-target='TargetB']");
+		expect(targetARow).not.toBeNull();
+		expect(targetBRow).toBeNull();
 	});
 
 	it("does not replace the dangling placeholder when danglingDeps is absent", async () => {

@@ -13,8 +13,8 @@
  * - Actions use mobile-reachable clickable-icon buttons (not hover-only).
  * - DOM listeners routed through injected registerDomEvent for lifecycle safety.
  * - Bulk results surfaced via Notice + aria-live="polite" region.
- * - "Manage →" deep-link: receives pendingTarget via getPendingTarget(), scrolls
- *   to and highlights the matching group row, then calls clearPendingTarget().
+ * - "Manage →" deep-link: reads activeDanglingFilter (set by OrbitView.setState),
+ *   scrolls to and highlights the matching group row.
  */
 
 import { Notice, setIcon } from "obsidian";
@@ -98,14 +98,10 @@ export interface DanglingPanelDeps {
 	setScope: (s: DanglingScope) => void;
 	/** Returns the current active folder path (for folder scope). */
 	getFolderPath: () => string;
-	/** Returns the one-shot pending "Manage →" target from Relations, or null. */
-	getPendingTarget: () => string | null;
-	/** Clears the one-shot pending target after it has been applied. */
-	clearPendingTarget: () => void;
 	/**
 	 * Returns the persistent active dangling filter target, or null (show all).
-	 * Set by setActiveFilter when a pendingTarget arrives; persists across re-renders
-	 * until clearActiveFilter is called (e.g. user clicks "Show all").
+	 * Set by setActiveFilter when the "Manage →" deep-link arrives; persists
+	 * across re-renders until clearActiveFilter is called (e.g. user clicks "Show all").
 	 */
 	getActiveFilter: () => string | null;
 	/** Persists the active filter target in OrbitView state. */
@@ -174,16 +170,9 @@ export class DanglingPanel {
 		const scope = this.buildScope();
 		const allTargets = this.deps.index.danglingTargets(scope);
 		const grouping = this.deps.getGrouping();
-		const pendingTarget = this.deps.getPendingTarget();
 
-		// Consume the one-shot pending target: persist as active filter, then clear it.
-		if (pendingTarget !== null) {
-			this.deps.setActiveFilter(pendingTarget);
-			this.deps.clearPendingTarget();
-		}
-
-		// Read the persistent active filter (may have been set by the line above
-		// or from a previous render cycle).
+		// Read the persistent active filter (set via OrbitView.setState by the
+		// "Manage →" deep-link in RelationsPanel, or by a previous render cycle).
 		const activeFilter = this.deps.getActiveFilter();
 
 		// Toolbar: grouping + scope toggles, plus "Show all" when filter active

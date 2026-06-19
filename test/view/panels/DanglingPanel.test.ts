@@ -10,7 +10,7 @@
  * - count badges shown/hidden based on showCounts setting
  * - four inline actions (rename, alias, create, delete) per target row
  * - each action opens the correct modal/flow and calls the correct service method
- * - "Manage →" deep-link: receives pendingTarget, scrolls/highlights, clears it
+ * - "Manage →" deep-link: activeFilter set by caller drives scroll/highlight
  * - positive empty state when no dangling targets in scope
  * - bulk result surfaced via Notice + aria-live region
  */
@@ -90,7 +90,6 @@ type DepsOverrides = {
 	grouping?: DanglingGrouping;
 	scope?: DanglingScope;
 	folderPath?: string;
-	pendingTarget?: string | null;
 	activeFilter?: string | null;
 };
 
@@ -117,7 +116,6 @@ function makeDeps(overrides: DepsOverrides = {}): DanglingPanelDeps & {
 
 	let grouping: DanglingGrouping = overrides.grouping ?? settings.danglingGrouping;
 	let scope: DanglingScope = overrides.scope ?? settings.danglingDefaultScope;
-	let pendingTarget: string | null = overrides.pendingTarget ?? null;
 	let activeFilter: string | null = overrides.activeFilter ?? null;
 
 	const registerDomEvent = vi.fn(
@@ -139,8 +137,6 @@ function makeDeps(overrides: DepsOverrides = {}): DanglingPanelDeps & {
 		getScope: () => scope,
 		setScope: (s) => { scope = s; },
 		getFolderPath: () => overrides.folderPath ?? "Notes",
-		getPendingTarget: () => pendingTarget,
-		clearPendingTarget: () => { pendingTarget = null; },
 		getActiveFilter: () => activeFilter,
 		setActiveFilter: (t) => { activeFilter = t; },
 		clearActiveFilter: () => { activeFilter = null; },
@@ -678,17 +674,17 @@ describe("DanglingPanel aria-live region", () => {
 });
 
 // ---------------------------------------------------------------------------
-// "Manage →" deep-link: pendingTarget + activeFilter (T5.1)
+// "Manage →" deep-link: activeFilter drives filter + highlight (T5.1)
 // ---------------------------------------------------------------------------
 
-describe("DanglingPanel pendingTarget deep-link", () => {
-	it("renders only the pending target group when pendingTarget is set (filtered view)", () => {
+describe("DanglingPanel deep-link via activeFilter", () => {
+	it("renders only the active filter target group when activeFilter is set (filtered view)", () => {
 		const deps = makeDeps({
 			unresolved: {
 				"notes/a.md": { "TargetA": 1, "TargetB": 1 },
 			},
 			grouping: "target",
-			pendingTarget: "TargetA",
+			activeFilter: "TargetA",
 		});
 		const panel = new DanglingPanel(deps);
 		const container = makeContainer();
@@ -707,7 +703,7 @@ describe("DanglingPanel pendingTarget deep-link", () => {
 				"notes/a.md": { "TargetA": 1, "TargetB": 1 },
 			},
 			grouping: "target",
-			pendingTarget: "TargetA",
+			activeFilter: "TargetA",
 		});
 		const panel = new DanglingPanel(deps);
 		const container = makeContainer();
@@ -723,7 +719,7 @@ describe("DanglingPanel pendingTarget deep-link", () => {
 				"notes/a.md": { "TargetA": 1, "TargetB": 1 },
 			},
 			grouping: "target",
-			pendingTarget: "TargetA",
+			activeFilter: "TargetA",
 		});
 		const panel = new DanglingPanel(deps);
 		const container = makeContainer();
@@ -733,70 +729,22 @@ describe("DanglingPanel pendingTarget deep-link", () => {
 		expect(showAllBtn).not.toBeNull();
 	});
 
-	it("calls setActiveFilter with the pending target before clearing it", () => {
-		const setActiveFilterSpy = vi.fn();
-		const deps = makeDeps({
-			unresolved: { "notes/a.md": { "TargetA": 1 } },
-			grouping: "target",
-			pendingTarget: "TargetA",
-		});
-		deps.setActiveFilter = setActiveFilterSpy;
-
-		const panel = new DanglingPanel(deps);
-		const container = makeContainer();
-		panel.render(container);
-
-		expect(setActiveFilterSpy).toHaveBeenCalledWith("TargetA");
-	});
-
-	it("calls clearPendingTarget after rendering with a pending target", () => {
-		const clearSpy = vi.fn();
-		const deps = makeDeps({
-			unresolved: { "notes/a.md": { "TargetA": 1 } },
-			grouping: "target",
-			pendingTarget: "TargetA",
-		});
-		deps.clearPendingTarget = clearSpy;
-
-		const panel = new DanglingPanel(deps);
-		const container = makeContainer();
-		panel.render(container);
-
-		expect(clearSpy).toHaveBeenCalled();
-	});
-
-	it("does not call clearPendingTarget when pendingTarget is null", () => {
-		const clearSpy = vi.fn();
-		const deps = makeDeps({
-			unresolved: { "notes/a.md": { "TargetA": 1 } },
-			pendingTarget: null,
-		});
-		deps.clearPendingTarget = clearSpy;
-
-		const panel = new DanglingPanel(deps);
-		const container = makeContainer();
-		panel.render(container);
-
-		expect(clearSpy).not.toHaveBeenCalled();
-	});
-
-	it("calls clearPendingTarget even when targets.length === 0 (W1 regression)", () => {
-		// pendingTarget is set but the scope yields no dangling targets — the
-		// early empty-state return must still call clearPendingTarget.
-		const clearSpy = vi.fn();
+	it("activeFilter persists even when the scope yields no matching targets (W1 regression invariant)", () => {
+		// activeFilter is set but the scope yields no dangling targets — the
+		// empty-state renders normally; no mechanism should swallow the filter.
 		const deps = makeDeps({
 			unresolved: {},
-			pendingTarget: "Orphan",
+			activeFilter: "Orphan",
 		});
-		deps.clearPendingTarget = clearSpy;
 
 		const panel = new DanglingPanel(deps);
 		const container = makeContainer();
 		panel.render(container);
 
-		expect(clearSpy).toHaveBeenCalled();
-		// Empty state still renders
+		// Empty state still renders (no targets in vault)
 		expect(container.querySelector(".orbit-dangling-empty")).not.toBeNull();
+		// The filter is still reported as active by the deps (not cleared by render)
+		expect(deps._getActiveFilter()).toBe("Orphan");
 	});
 });
 
@@ -886,15 +834,13 @@ describe("DanglingPanel activeFilter", () => {
 		expect(targetBRow).not.toBeNull();
 	});
 
-	it("filter survives a re-render (activeFilter persists without pendingTarget)", () => {
-		// Simulates the second render after pendingManageTarget is consumed:
-		// activeFilter is set, pendingTarget is null (already cleared).
+	it("filter survives a re-render (activeFilter persists across renders)", () => {
+		// Simulates a second render (e.g. vault change) while the filter is active.
 		const deps = makeDeps({
 			unresolved: {
 				"notes/a.md": { "TargetA": 1, "TargetB": 1 },
 			},
 			grouping: "target",
-			pendingTarget: null,
 			activeFilter: "TargetA",
 		});
 		const panel = new DanglingPanel(deps);
@@ -909,6 +855,30 @@ describe("DanglingPanel activeFilter", () => {
 		const targetBRow = container2.querySelector(".orbit-dangling-group[data-target='TargetB']");
 		expect(targetARow).not.toBeNull();
 		expect(targetBRow).toBeNull();
+	});
+
+	// S2: activeFilter works correctly under source grouping
+	it("activeFilter set while grouping === 'source' still shows only the matching target within source groups", () => {
+		// Source grouping inverts the tree: source files are group headers, targets are children.
+		// When activeFilter is set, the rendered targets list is pre-filtered to the matching
+		// DanglingTarget, so source groups that don't link to the filter target disappear.
+		const deps = makeDeps({
+			unresolved: {
+				"notes/source-a.md": { "TargetA": 1 },
+				"notes/source-b.md": { "TargetB": 1 },
+			},
+			grouping: "source",
+			activeFilter: "TargetA",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		// source-a groups around TargetA and should appear; source-b only has TargetB
+		const sourceAGroup = container.querySelector("[data-source='notes/source-a.md']");
+		const sourceBGroup = container.querySelector("[data-source='notes/source-b.md']");
+		expect(sourceAGroup).not.toBeNull();
+		expect(sourceBGroup).toBeNull();
 	});
 });
 

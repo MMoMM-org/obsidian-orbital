@@ -106,7 +106,8 @@ export default class OrbitPlugin extends Plugin {
 				for (const leaf of leaves) {
 					const view = leaf.view;
 					if (view instanceof OrbitView) {
-						view.pendingManageTarget = target;
+						// setState sets activeDanglingFilter, which DanglingPanel reads
+						// directly via getActiveFilter() on each render.
 						void view.setState(
 							{ ...view.getState(), activeTab: "dangling", activeDanglingFilter: target },
 							{ history: false },
