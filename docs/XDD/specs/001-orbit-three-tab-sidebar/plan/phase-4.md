@@ -62,6 +62,10 @@ Delivers the Recent Files tab at parity with `recent-files-obsidian`, enabling i
     - [x] Recent list opens/drags/removes/clears correctly with graceful missing-file handling `[ref: PRD/Feature 4]`
     - [x] Recent-files-obsidian parity reached (removal unblocked) `[ref: PRD/Feature 5; ADR-7]` *(panel-level; live parity verified after T4.3b wiring + T4.4)*
 
+- [x] **T4.3b Wire RecentPanel into OrbitView + main.ts (store + events)** `[activity: integration]` *(added — same live-wiring step as T3.4b)*
+
+  OrbitView: `RecentDeps` + `_buildRecentRenderer` replacing the 'recent' placeholder. main.ts: plugin-scoped `RecentFilesStore` (de-duped `_isExcluded` predicate) + `DragInsertHelper`, `_buildRecentDeps`, passed as 5th OrbitView arg. Events: workspace `file-open` → `store.onFileOpen(path, basename)` + repaint (guarded `instanceof TFile && md`); vault `rename` → `store.rename(old,new,basename)`; vault `delete` → `store.delete(path)` — alongside the existing index calls.
+
 - [ ] **T4.4 Phase Validation** `[activity: validate]`
 
   Run all Phase 4 tests, lint, typecheck, build. Verify Recent tab against PRD Feature 4 ACs and confirm parity checklist (list/length/exclusions/drag/mobile-insert/remove/clear/persist) for the v1 launch gate.
