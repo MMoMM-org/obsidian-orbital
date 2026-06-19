@@ -38,14 +38,14 @@ Integrates the tabs into one coherent pane, hardens accessibility/mobile/perform
   - Success:
     - [x] Missing→Manage deep link lands on the right target in the Dangling tab `[ref: PRD/Feature 2; SDD/Open-question resolution]`
 
-- [ ] **T5.2 Accessibility, mobile & performance hardening** `[activity: frontend-ui]` `[ref: SDD/Accessibility, Mobile, Performance, Quality Requirements]`
+- [x] **T5.2 Accessibility, mobile & performance hardening** `[activity: frontend-ui]` `[ref: SDD/Accessibility, Mobile, Performance, Quality Requirements]`
 
   1. Prime: Review ARIA/keyboard requirements, mobile touch/label-collapse, debounce + 2nd-hop cap + sequential bulk-yield.
   2. Test: focus moves to active panel on tab switch and to next sibling after a row is removed; `aria-live` announces bulk results; tab labels collapse to icons on narrow width; long lists render first ~100 with "show more"; large bulk op yields periodically and shows a progress Notice; refresh stays debounced under rapid navigation.
   3. Implement: focus management, `aria-live` region, responsive CSS in `styles.css`, list truncation + progress feedback, periodic yield in bulk loop.
   4. Validate: unit tests for focus/aria/truncation; manual large-vault sanity if available; typecheck; lint; stylelint.
   - Success:
-    - [ ] Keyboard/SR-operable; mobile-usable; no UI freeze on large vault or large bulk op `[ref: SDD/Quality Requirements; PRD/Success Metrics]`
+    - [x] Keyboard/SR-operable; mobile-usable; no UI freeze on large vault or large bulk op `[ref: SDD/Quality Requirements; PRD/Success Metrics]`
 
 - [ ] **T5.3 Submission compliance & manifest** `[activity: integration]` `[ref: SDD/CON-3; tcs-patterns:obsidian-plugin]`
 
