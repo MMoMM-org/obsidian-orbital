@@ -760,6 +760,34 @@ describe("OrbitView T3.4b — Dangling panel wiring", () => {
 		expect(scopeBtnAfter.textContent).toBe("Folder");
 	});
 
+	it("seeds danglingScope from settings.danglingDefaultScope when danglingDeps provided", async () => {
+		const deps = makeDanglingDeps();
+		// Override getSettings to return danglingDefaultScope: "folder"
+		const depsWithFolderScope: DanglingDeps = {
+			...deps,
+			getSettings: () => ({ ...DEFAULT_SETTINGS, danglingDefaultScope: "folder" }),
+		};
+		const view = new OrbitView(makeLeaf(), undefined, undefined, depsWithFolderScope);
+
+		const viewApp = (view as unknown as { app: App }).app;
+		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(null);
+
+		await view.onOpen();
+
+		// Navigate to dangling tab to trigger render
+		const danglingTab = view.contentEl.querySelector("[data-tab-id='dangling']") as HTMLElement;
+		danglingTab.click();
+		await flush();
+
+		// Initial scope should be "folder" seeded from settings (not hardcoded "vault")
+		expect(view.getState().danglingScope).toBe("folder");
+
+		// The rendered scope toggle button should read "Folder"
+		const scopeBtn = view.contentEl.querySelector("[data-action='toggle-scope']") as HTMLElement;
+		expect(scopeBtn).not.toBeNull();
+		expect(scopeBtn.textContent).toBe("Folder");
+	});
+
 	it("getGrouping returns the settings default initially and setGrouping round-trips", async () => {
 		const deps = makeDanglingDeps();
 		const view = new OrbitView(makeLeaf(), undefined, undefined, deps);

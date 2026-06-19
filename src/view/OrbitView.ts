@@ -129,9 +129,11 @@ export class OrbitView extends ItemView {
 		}
 
 		if (danglingDeps !== undefined) {
+			const settings = danglingDeps.getSettings();
 			this.state = {
 				...this.state,
-				danglingGrouping: danglingDeps.getSettings().danglingGrouping,
+				danglingScope: settings.danglingDefaultScope,
+				danglingGrouping: settings.danglingGrouping,
 			};
 			merged.dangling = this._buildDanglingRenderer(danglingDeps);
 		}
@@ -278,6 +280,7 @@ export class OrbitView extends ItemView {
 	 * OrbitView's own state at render time.
 	 */
 	private _buildDanglingRenderer(deps: DanglingDeps): PanelRenderer {
+		// activePath is intentionally omitted: DanglingPanel resolves its own path via getFolderPath/getActiveFile.
 		return (container: HTMLElement): void => {
 			const panel = new DanglingPanel({
 				...deps,
