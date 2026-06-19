@@ -8,7 +8,7 @@
  * TDD: these tests were written BEFORE the implementation.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { RecentFilesStore } from "recent/RecentFilesStore";
 import type { RecentFilesStoreDeps } from "recent/RecentFilesStore";
 import type { OrbitSettings } from "types/index";
@@ -106,6 +106,19 @@ describe("RecentFilesStore — onFileOpen()", () => {
 
 		expect(store.list()[0]).toEqual({ path: "notes/b.md", basename: "b" });
 		expect(store.list()).toHaveLength(2);
+	});
+
+	it("dedup path refreshes basename when re-opened with a new basename", async () => {
+		const settings = makeSettings({
+			recentFiles: [{ path: "notes/b.md", basename: "b" }],
+		});
+		const deps = makeDeps(settings);
+		const store = new RecentFilesStore(deps);
+
+		await store.onFileOpen("notes/b.md", "b-renamed");
+
+		expect(store.list()).toHaveLength(1);
+		expect(store.list()[0]).toEqual({ path: "notes/b.md", basename: "b-renamed" });
 	});
 
 	it("does not create duplicates when re-opening the current head file", async () => {
