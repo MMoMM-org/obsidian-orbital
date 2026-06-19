@@ -47,14 +47,14 @@ Integrates the tabs into one coherent pane, hardens accessibility/mobile/perform
   - Success:
     - [x] Keyboard/SR-operable; mobile-usable; no UI freeze on large vault or large bulk op `[ref: SDD/Quality Requirements; PRD/Success Metrics]`
 
-- [ ] **T5.3 Submission compliance & manifest** `[activity: integration]` `[ref: SDD/CON-3; tcs-patterns:obsidian-plugin]`
+- [x] **T5.3 Submission compliance & manifest** `[activity: integration]` `[ref: SDD/CON-3; tcs-patterns:obsidian-plugin]`
 
   1. Prime: Review community-directory manifest rules and code conventions.
   2. Test/checks: `manifest.json` description ≤250 chars, terminal punctuation, no "Obsidian", action-verb lead; `id` unchanged ("orbit"); author has no email; `isDesktopOnly:false` justified (no unguarded Node APIs); grep confirms no `innerHTML`/`console.log`/`eslint-disable`/sample-plugin residue; README documents the three tabs + that it replaces the three plugins (MIT attribution for relation-pane/dangling-links).
   3. Implement: update `manifest.json` description, `README.md`, attribution notes.
   4. Validate: `npm run lint` (eslint-obsidianmd) + `npm run build` clean; manual manifest checklist.
   - Success:
-    - [ ] Passes the obsidian-plugin submission checklist `[ref: SDD/CON-3]`
+    - [x] Passes the obsidian-plugin submission checklist `[ref: SDD/CON-3]`
 
 - [ ] **T5.4 End-to-end acceptance validation** `[activity: validate]` `[ref: PRD/all ACs; SDD/Acceptance Criteria]`
 
