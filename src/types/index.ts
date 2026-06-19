@@ -36,6 +36,7 @@ export const DEFAULT_SETTINGS: OrbitSettings = {
 export interface OrbitViewState {
 	activeTab: TabId;
 	danglingScope: DanglingScope;
+	danglingGrouping: DanglingGrouping;
 	collapsedSections: string[];
 }
 

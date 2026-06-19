@@ -12,16 +12,22 @@
  * Relations wiring (T2.4):
  *   Pass `relationsDeps` to the constructor and OrbitView will build the
  *   real RelationsPanel for the 'relations' tab, backed by the plugin's
- *   shared index and settings. The other two tabs stay as placeholders until
- *   their respective phases land.
+ *   shared index and settings.
+ *
+ * Dangling wiring (T3.4b):
+ *   Pass `danglingDeps` to the constructor and OrbitView will build the
+ *   real DanglingPanel for the 'dangling' tab, backed by the plugin's
+ *   shared index, settings, and link-rewrite service.
  */
 
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import type { ViewStateResult } from "obsidian";
-import type { OrbitViewState, TabId } from "types/index";
+import type { OrbitViewState, TabId, DanglingGrouping } from "types/index";
 import { TabBar, TAB_DEFINITIONS } from "view/TabBar";
 import { RelationsPanel } from "view/panels/RelationsPanel";
 import type { RelationsPanelDeps } from "view/panels/RelationsPanel";
+import { DanglingPanel } from "view/panels/DanglingPanel";
+import type { DanglingPanelDeps } from "view/panels/DanglingPanel";
 
 export const VIEW_TYPE = "orbit";
 
@@ -42,6 +48,23 @@ export type PanelRenderer = (container: HTMLElement, activePath: string | null) 
  */
 export type RelationsDeps = Omit<RelationsPanelDeps, "getCollapsed" | "setCollapsed" | "registerDomEvent">;
 
+/**
+ * Dependencies the plugin supplies for building the Dangling panel.
+ * OrbitView fills the view-owned deps: getGrouping/setGrouping, getScope/setScope,
+ * getFolderPath, getPendingTarget/clearPendingTarget, and registerDomEvent.
+ */
+export type DanglingDeps = Omit<
+	DanglingPanelDeps,
+	| "getGrouping"
+	| "setGrouping"
+	| "getScope"
+	| "setScope"
+	| "getFolderPath"
+	| "getPendingTarget"
+	| "clearPendingTarget"
+	| "registerDomEvent"
+>;
+
 const DEFAULT_PANEL_RENDERERS: Record<TabId, PanelRenderer> = {
 	relations: (el) => {
 		el.createDiv({ cls: "orbit-panel-placeholder", text: "Relations" });
@@ -58,6 +81,7 @@ export class OrbitView extends ItemView {
 	private state: OrbitViewState = {
 		activeTab: "relations",
 		danglingScope: "vault",
+		danglingGrouping: "target",
 		collapsedSections: [],
 	};
 
@@ -67,7 +91,8 @@ export class OrbitView extends ItemView {
 
 	/**
 	 * Optional ephemeral stash for a missing-link target that triggered a
-	 * tab switch via onManage. Read by the Dangling tab once it lands (T5.1).
+	 * tab switch via onManage (set by RelationsPanel). Consumed by the
+	 * Dangling tab renderer on each render via getPendingTarget/clearPendingTarget.
 	 */
 	pendingManageTarget: string | null = null;
 
@@ -75,8 +100,8 @@ export class OrbitView extends ItemView {
 		leaf: WorkspaceLeaf,
 		/**
 		 * Optional panel renderers override (test seam and future tabs).
-		 * If `relationsDeps` is also supplied, the relations renderer built from
-		 * deps takes precedence over any `relations` key here.
+		 * If `relationsDeps` or `danglingDeps` is also supplied, the renderers
+		 * built from deps take precedence over any matching key here.
 		 */
 		panelRenderers?: Partial<Record<TabId, PanelRenderer>>,
 		/**
@@ -85,6 +110,12 @@ export class OrbitView extends ItemView {
 		 * is used (tests that don't need the real panel can omit this).
 		 */
 		relationsDeps?: RelationsDeps,
+		/**
+		 * When supplied, OrbitView constructs the real DanglingPanel backed
+		 * by the plugin's index, settings, and link-rewrite service.
+		 * When absent, the default placeholder is used.
+		 */
+		danglingDeps?: DanglingDeps,
 	) {
 		super(leaf);
 
@@ -95,6 +126,14 @@ export class OrbitView extends ItemView {
 
 		if (relationsDeps !== undefined) {
 			merged.relations = this._buildRelationsRenderer(relationsDeps);
+		}
+
+		if (danglingDeps !== undefined) {
+			this.state = {
+				...this.state,
+				danglingGrouping: danglingDeps.getSettings().danglingGrouping,
+			};
+			merged.dangling = this._buildDanglingRenderer(danglingDeps);
 		}
 
 		this.panelRenderers = merged;
@@ -158,6 +197,7 @@ export class OrbitView extends ItemView {
 		return {
 			activeTab: this.state.activeTab,
 			danglingScope: this.state.danglingScope,
+			danglingGrouping: this.state.danglingGrouping,
 			collapsedSections: this.state.collapsedSections,
 		};
 	}
@@ -174,6 +214,7 @@ export class OrbitView extends ItemView {
 		this.state = {
 			activeTab: resolvedTab,
 			danglingScope: incoming.danglingScope ?? this.state.danglingScope,
+			danglingGrouping: incoming.danglingGrouping ?? this.state.danglingGrouping,
 			collapsedSections: incoming.collapsedSections ?? this.state.collapsedSections,
 		};
 
@@ -222,6 +263,44 @@ export class OrbitView extends ItemView {
 				},
 			});
 			panel.render(container, activePath);
+		};
+	}
+
+	// -------------------------------------------------------------------------
+	// Private — dangling panel factory
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Build the PanelRenderer closure for the 'dangling' tab.
+	 * Constructs a new DanglingPanel on each render call so the panel always
+	 * reflects the latest deps state (settings, index) without stale closures.
+	 * View-owned deps (grouping, scope, folderPath, pendingTarget) are read from
+	 * OrbitView's own state at render time.
+	 */
+	private _buildDanglingRenderer(deps: DanglingDeps): PanelRenderer {
+		return (container: HTMLElement): void => {
+			const panel = new DanglingPanel({
+				...deps,
+				getGrouping: (): DanglingGrouping => this.state.danglingGrouping,
+				setGrouping: (g: DanglingGrouping): void => {
+					this.state = { ...this.state, danglingGrouping: g };
+					this.renderPanel("dangling");
+				},
+				getScope: () => this.state.danglingScope,
+				setScope: (s) => {
+					this.state = { ...this.state, danglingScope: s };
+					this.renderPanel("dangling");
+				},
+				getFolderPath: () => this.app.workspace.getActiveFile()?.parent?.path ?? "",
+				getPendingTarget: () => this.pendingManageTarget,
+				clearPendingTarget: () => {
+					this.pendingManageTarget = null;
+				},
+				registerDomEvent: (el, type, handler) => {
+					this.registerDomEvent(el, type, handler);
+				},
+			});
+			panel.render(container);
 		};
 	}
 

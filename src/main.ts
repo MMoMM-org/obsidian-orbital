@@ -3,9 +3,13 @@ import type { Debouncer } from "obsidian";
 import { SettingsTab } from "settings/SettingsTab";
 import { DEFAULT_SETTINGS, type OrbitSettings } from "types/index";
 import { OrbitView, VIEW_TYPE } from "view/OrbitView";
-import type { RelationsDeps } from "view/OrbitView";
+import type { RelationsDeps, DanglingDeps } from "view/OrbitView";
 import { LinkGraphIndex } from "graph/LinkGraphIndex";
 import { ExclusionMatcher } from "shared/ExclusionMatcher";
+import { LinkRewriteService } from "links/LinkRewriteService";
+import { NotePickerModal, NoteFilePicker } from "modals/NotePickerModal";
+import { ConfirmRewriteModal } from "modals/ConfirmRewriteModal";
+import { createNote } from "links/createNote";
 
 export default class OrbitPlugin extends Plugin {
 	settings: OrbitSettings = DEFAULT_SETTINGS;
@@ -30,6 +34,7 @@ export default class OrbitPlugin extends Plugin {
 			leaf,
 			undefined,
 			this._buildRelationsDeps(),
+			this._buildDanglingDeps(),
 		));
 
 		this.addCommand({
@@ -111,6 +116,47 @@ export default class OrbitPlugin extends Plugin {
 					}
 				}
 			},
+		};
+	}
+
+	// ---------------------------------------------------------------------------
+	// Private — Dangling deps factory
+	// ---------------------------------------------------------------------------
+
+	/**
+	 * Build the DanglingDeps bundle the dangling panel needs.
+	 *
+	 * service: LinkRewriteService constructed with the real vault, fileManager,
+	 *   metadataCache, index, and workspace. Cast structurally to avoid the
+	 *   overloaded-signature incompatibility (same pattern as relations app cast).
+	 * ConfirmRewriteModal, folderPicker, notePicker: constructor references cast
+	 *   structurally — the real App is a superset of DanglingPanelApp so the
+	 *   constructors are runtime-compatible despite the nominal type mismatch.
+	 * createNote: passed directly (its AppMinimal structural type accepts the
+	 *   real App at runtime).
+	 */
+	private _buildDanglingDeps(): DanglingDeps {
+		// Cast the real Obsidian MetadataCache to the structural subset expected
+		// by LinkRewriteService (getFileCache signature differs nominally).
+		type McArg = ConstructorParameters<typeof LinkRewriteService>[2];
+
+		return {
+			index: this._index,
+			getSettings: () => this.settings,
+			app: this.app,
+			service: new LinkRewriteService(
+				this.app.vault,
+				this.app.fileManager,
+				this.app.metadataCache as unknown as McArg,
+				this._index,
+				this.app.workspace,
+			),
+			// Cast: real App constructors are supersets of DanglingPanelApp —
+			// runtime-compatible but not nominally assignable.
+			ConfirmRewriteModal: ConfirmRewriteModal as unknown as DanglingDeps["ConfirmRewriteModal"],
+			folderPicker: NotePickerModal as unknown as DanglingDeps["folderPicker"],
+			notePicker: NoteFilePicker as unknown as DanglingDeps["notePicker"],
+			createNote,
 		};
 	}
 

@@ -1,5 +1,5 @@
 /**
- * T1.3 / T2.4 — OrbitView shell + accessible TabBar + Relations wiring
+ * T1.3 / T2.4 / T3.4b — OrbitView shell + accessible TabBar + Relations wiring + Dangling wiring
  *
  * Tests cover:
  * - VIEW_TYPE constant, display text, icon
@@ -14,12 +14,17 @@
  * - T2.4: RelationsPanel renders real section labels when relationsDeps provided
  * - T2.4: refreshActivePanel re-renders with updated activePath
  * - T2.4: onManage callback switches activeTab to 'dangling'
+ * - T3.4b: DanglingPanel wired — dangling tab renders real panel (empty state)
+ * - T3.4b: getScope/setScope round-trip for dangling tab
+ * - T3.4b: getGrouping/setGrouping round-trip for dangling tab
+ * - T3.4b: getFolderPath returns active file's parent folder
+ * - T3.4b: getPendingTarget/clearPendingTarget bridge pendingManageTarget
  */
 
 import { describe, it, expect, vi } from "vitest";
-import { App, WorkspaceLeaf, ViewStateResult, augmentEl } from "../__mocks__/obsidian";
+import { App, WorkspaceLeaf, ViewStateResult, augmentEl, TFile, TFolder } from "../__mocks__/obsidian";
 import { OrbitView, VIEW_TYPE } from "view/OrbitView";
-import type { RelationsDeps } from "view/OrbitView";
+import type { RelationsDeps, DanglingDeps } from "view/OrbitView";
 import type { RelationsPanelApp } from "view/panels/RelationsPanel";
 import { LinkGraphIndex } from "graph/LinkGraphIndex";
 import type { MetadataCache as IndexMetadataCache } from "graph/LinkGraphIndex";
@@ -51,6 +56,7 @@ function makeInitialState(overrides?: Partial<OrbitViewState>): OrbitViewState {
 	return {
 		activeTab: "relations",
 		danglingScope: "vault",
+		danglingGrouping: "target",
 		collapsedSections: [],
 		...overrides,
 	};
@@ -311,16 +317,18 @@ describe("OrbitView getState/setState", () => {
 		const state = view.getState() as OrbitViewState;
 		expect(state.activeTab).toBe("relations");
 		expect(state.danglingScope).toBe("vault");
+		expect(state.danglingGrouping).toBe("target");
 		expect(state.collapsedSections).toEqual([]);
 	});
 
-	it("setState round-trips activeTab, danglingScope, collapsedSections", async () => {
+	it("setState round-trips activeTab, danglingScope, danglingGrouping, collapsedSections", async () => {
 		const view = new OrbitView(makeLeaf());
 		await view.onOpen();
 
 		const newState: OrbitViewState = {
 			activeTab: "dangling",
 			danglingScope: "folder",
+			danglingGrouping: "source",
 			collapsedSections: ["section-a"],
 		};
 		await view.setState(newState, makeResult());
@@ -648,5 +656,203 @@ describe("OrbitView T2.4 — Relations panel wiring", () => {
 			".orbit-relations-section[data-section='outgoing']",
 		);
 		expect(outgoingSection?.classList.contains("is-collapsed")).toBe(true);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// T3.4b — DanglingPanel wiring via danglingDeps
+// ---------------------------------------------------------------------------
+
+function makeDanglingDeps(unresolved: Record<string, Record<string, number>> = {}): DanglingDeps {
+	const app = new App();
+	app.metadataCache.unresolvedLinks = unresolved;
+
+	const indexCache = {
+		resolvedLinks: {},
+		unresolvedLinks: unresolved,
+		getFirstLinkpathDest: vi.fn(() => null),
+	};
+	const index = new LinkGraphIndex(indexCache as unknown as IndexMetadataCache);
+	index.buildFull();
+
+	const mockService = {
+		previewRename: vi.fn(async () => ({ occurrences: 0, files: [] })),
+		applyRename: vi.fn(async () => ({ filesSucceeded: 0, filesFailed: [] })),
+		applyAlias: vi.fn(async () => ({ filesSucceeded: 0, filesFailed: [] })),
+		applyDelete: vi.fn(async () => ({ filesSucceeded: 0, filesFailed: [] })),
+	};
+
+	const MockConfirmRewriteModal = vi.fn().mockImplementation(() => ({ open: vi.fn() }));
+	const MockFolderPicker = vi.fn().mockImplementation(() => ({ pickFolder: vi.fn(async () => null) }));
+	const MockNotePicker = vi.fn().mockImplementation(() => ({ pickNote: vi.fn(async () => null) }));
+	const mockCreateNote = vi.fn(async () => ({
+		file: { path: "New Note.md" },
+		existed: false,
+	}));
+
+	return {
+		index,
+		getSettings: () => ({ ...DEFAULT_SETTINGS }),
+		app: app as unknown as DanglingDeps["app"],
+		service: mockService,
+		ConfirmRewriteModal: MockConfirmRewriteModal as unknown as DanglingDeps["ConfirmRewriteModal"],
+		folderPicker: MockFolderPicker as unknown as DanglingDeps["folderPicker"],
+		notePicker: MockNotePicker as unknown as DanglingDeps["notePicker"],
+		createNote: mockCreateNote as unknown as DanglingDeps["createNote"],
+	};
+}
+
+describe("OrbitView T3.4b — Dangling panel wiring", () => {
+	it("renders DanglingPanel empty state (not placeholder) when danglingDeps provided and dangling tab selected", async () => {
+		const deps = makeDanglingDeps();
+		const view = new OrbitView(makeLeaf(), undefined, undefined, deps);
+
+		// Set active file with a parent folder
+		const viewApp = (view as unknown as { app: App }).app;
+		const mockFile = new TFile();
+		mockFile.path = "notes/active.md";
+		const mockFolder = new TFolder();
+		mockFolder.path = "notes";
+		mockFile.parent = mockFolder;
+		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(mockFile);
+
+		await view.onOpen();
+
+		// Navigate to dangling tab
+		const danglingTab = view.contentEl.querySelector("[data-tab-id='dangling']") as HTMLElement;
+		danglingTab.click();
+		await flush();
+
+		// Placeholder must not be present
+		const placeholder = view.contentEl.querySelector(".orbit-panel-placeholder");
+		expect(placeholder).toBeNull();
+
+		// Real DanglingPanel renders the empty state for an empty index
+		const emptyState = view.contentEl.querySelector(".orbit-dangling-empty");
+		expect(emptyState).not.toBeNull();
+		expect(emptyState?.textContent).toBe("No dangling links in this scope.");
+	});
+
+	it("getScope returns 'vault' initially and setScope persists via state", async () => {
+		const deps = makeDanglingDeps();
+		const view = new OrbitView(makeLeaf(), undefined, undefined, deps);
+
+		const viewApp = (view as unknown as { app: App }).app;
+		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(null);
+
+		await view.onOpen();
+
+		// Navigate to dangling tab to trigger render
+		const danglingTab = view.contentEl.querySelector("[data-tab-id='dangling']") as HTMLElement;
+		danglingTab.click();
+		await flush();
+
+		// After rendering, the scope toggle button should say "Vault" (vault scope default)
+		const scopeBtn = view.contentEl.querySelector("[data-action='toggle-scope']") as HTMLElement;
+		expect(scopeBtn).not.toBeNull();
+		expect(scopeBtn.textContent).toBe("Vault");
+
+		// Clicking scope toggle fires setScope → re-renders with folder scope
+		scopeBtn.click();
+		await flush();
+
+		const scopeBtnAfter = view.contentEl.querySelector("[data-action='toggle-scope']") as HTMLElement;
+		expect(scopeBtnAfter.textContent).toBe("Folder");
+	});
+
+	it("getGrouping returns the settings default initially and setGrouping round-trips", async () => {
+		const deps = makeDanglingDeps();
+		const view = new OrbitView(makeLeaf(), undefined, undefined, deps);
+
+		const viewApp = (view as unknown as { app: App }).app;
+		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(null);
+
+		await view.onOpen();
+
+		const danglingTab = view.contentEl.querySelector("[data-tab-id='dangling']") as HTMLElement;
+		danglingTab.click();
+		await flush();
+
+		// Default grouping is "target" → button says "Group by source"
+		const groupingBtn = view.contentEl.querySelector("[data-action='toggle-grouping']") as HTMLElement;
+		expect(groupingBtn).not.toBeNull();
+		expect(groupingBtn.textContent).toBe("Group by source");
+
+		// Clicking grouping toggle fires setGrouping → re-renders with source grouping
+		groupingBtn.click();
+		await flush();
+
+		const groupingBtnAfter = view.contentEl.querySelector("[data-action='toggle-grouping']") as HTMLElement;
+		expect(groupingBtnAfter.textContent).toBe("Group by target");
+	});
+
+	it("getFolderPath returns the active file's parent folder path", async () => {
+		const deps = makeDanglingDeps({
+			"notes/active.md": { "MissingNote": 1 },
+		});
+		const view = new OrbitView(makeLeaf(), undefined, undefined, deps);
+
+		const viewApp = (view as unknown as { app: App }).app;
+		const mockFile = new TFile();
+		mockFile.path = "notes/active.md";
+		const mockFolder = new TFolder();
+		mockFolder.path = "notes";
+		mockFile.parent = mockFolder;
+		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(mockFile);
+
+		await view.onOpen();
+
+		const danglingTab = view.contentEl.querySelector("[data-tab-id='dangling']") as HTMLElement;
+		danglingTab.click();
+		await flush();
+
+		// Switch to folder scope
+		const scopeBtn = view.contentEl.querySelector("[data-action='toggle-scope']") as HTMLElement;
+		scopeBtn.click();
+		await flush();
+
+		// With folder scope and a file in "notes/", the MissingNote should appear
+		// because its source (notes/active.md) starts with "notes/"
+		const emptyState = view.contentEl.querySelector(".orbit-dangling-empty");
+		expect(emptyState).toBeNull(); // should have targets
+		const targetGroup = view.contentEl.querySelector("[data-target='MissingNote']");
+		expect(targetGroup).not.toBeNull();
+	});
+
+	it("getPendingTarget bridges pendingManageTarget and clearPendingTarget nulls it", async () => {
+		const deps = makeDanglingDeps({
+			"notes/active.md": { "PendingTarget": 1 },
+		});
+		const view = new OrbitView(makeLeaf(), undefined, undefined, deps);
+
+		const viewApp = (view as unknown as { app: App }).app;
+		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(null);
+
+		await view.onOpen();
+
+		// Stash a pending target
+		view.pendingManageTarget = "PendingTarget";
+
+		// Navigate to dangling tab — render should consume the pending target
+		const danglingTab = view.contentEl.querySelector("[data-tab-id='dangling']") as HTMLElement;
+		danglingTab.click();
+		await flush();
+
+		// After render, pendingManageTarget should be cleared
+		expect(view.pendingManageTarget).toBeNull();
+	});
+
+	it("does not replace the dangling placeholder when danglingDeps is absent", async () => {
+		const view = new OrbitView(makeLeaf());
+
+		await view.onOpen();
+
+		const danglingTab = view.contentEl.querySelector("[data-tab-id='dangling']") as HTMLElement;
+		danglingTab.click();
+		await flush();
+
+		const placeholder = view.contentEl.querySelector(".orbit-panel-placeholder");
+		expect(placeholder).not.toBeNull();
+		expect(placeholder?.textContent).toBe("Dangling links");
 	});
 });

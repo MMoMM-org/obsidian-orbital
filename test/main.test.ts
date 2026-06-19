@@ -74,6 +74,31 @@ describe("OrbitPlugin onload — view registration", () => {
 		const view = (factory as (leaf: WorkspaceLeaf) => unknown)(leaf);
 		expect(view).toBeInstanceOf(OrbitView);
 	});
+
+	it("dangling tab renders real DanglingPanel (not placeholder) when view created via plugin factory", async () => {
+		const app = makeApp();
+		const plugin = await makePlugin(app);
+		await plugin.onload();
+
+		const factory = vi.mocked(plugin.registerView).mock.calls[0]?.[1];
+		const leaf = new WorkspaceLeaf();
+		const { OrbitView } = await import("view/OrbitView");
+		const view = (factory as unknown as (leaf: WorkspaceLeaf) => unknown)(leaf) as InstanceType<typeof OrbitView>;
+
+		await view.onOpen();
+
+		// Navigate to dangling tab
+		const danglingTab = view.contentEl.querySelector("[data-tab-id='dangling']") as HTMLElement;
+		danglingTab.click();
+		await new Promise<void>((r) => setTimeout(r, 0));
+
+		// Should render real DanglingPanel (empty state) — not the placeholder
+		const placeholder = view.contentEl.querySelector(".orbit-panel-placeholder");
+		expect(placeholder).toBeNull();
+
+		const emptyState = view.contentEl.querySelector(".orbit-dangling-empty");
+		expect(emptyState).not.toBeNull();
+	});
 });
 
 describe("OrbitPlugin onload — command registration", () => {
