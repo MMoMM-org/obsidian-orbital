@@ -120,7 +120,9 @@ describe("previewRename", () => {
 
 		expect(result.occurrences).toBe(2);
 		expect(result.files).toHaveLength(1);
-		expect(result.files[0].path).toBe("folder/X.md");
+		const firstFile = result.files[0];
+		expect(firstFile).toBeDefined();
+		expect(firstFile?.path).toBe("folder/X.md");
 	});
 
 	it("is case-insensitive (matches the index key exactly)", async () => {
@@ -568,8 +570,10 @@ describe("BulkResult — partial failure handling", () => {
 
 		expect(result.filesSucceeded).toBe(1);
 		expect(result.filesFailed).toHaveLength(1);
-		expect(result.filesFailed[0].path).toBe("notes/A.md");
-		expect(result.filesFailed[0].error).toContain("disk error");
+		const failedA = result.filesFailed[0];
+		expect(failedA).toBeDefined();
+		expect(failedA?.path).toBe("notes/A.md");
+		expect(failedA?.error).toContain("disk error");
 		// Both files attempted (batch continued after failure)
 		expect(callCount).toBe(2);
 	});
@@ -593,7 +597,9 @@ describe("BulkResult — partial failure handling", () => {
 
 		expect(result.filesSucceeded).toBe(0);
 		expect(result.filesFailed).toHaveLength(1);
-		expect(result.filesFailed[0].path).toBe("notes/Missing.md");
+		const failedMissing = result.filesFailed[0];
+		expect(failedMissing).toBeDefined();
+		expect(failedMissing?.path).toBe("notes/Missing.md");
 	});
 });
 
@@ -713,7 +719,9 @@ describe("applyDelete — scope folder filter", () => {
 
 		expect(result.filesSucceeded).toBe(1);
 		expect(vi.mocked(app.vault.process)).toHaveBeenCalledTimes(1);
-		const calledFile = vi.mocked(app.vault.process).mock.calls[0][0] as TFile;
+		const firstCall = vi.mocked(app.vault.process).mock.calls[0];
+		expect(firstCall).toBeDefined();
+		const calledFile = firstCall?.[0] as TFile;
 		expect(calledFile.path).toBe("folder/A.md");
 	});
 });

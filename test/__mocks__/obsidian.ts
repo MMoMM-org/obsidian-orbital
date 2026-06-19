@@ -25,9 +25,32 @@ export interface TagCache {
 	position?: unknown;
 }
 
+export interface ReferencePosition {
+	start: { offset: number };
+	end: { offset: number };
+}
+
+export interface ReferenceCache {
+	position: ReferencePosition;
+	link?: string;
+	original?: string;
+	displayText?: string;
+}
+
+export interface FrontmatterLinkCache {
+	key: string;
+	link: string;
+	original: string;
+	displayText?: string;
+	position: ReferencePosition;
+}
+
 export interface CachedMetadata {
 	tags?: TagCache[];
 	frontmatter?: Record<string, unknown>;
+	links?: ReferenceCache[];
+	embeds?: ReferenceCache[];
+	frontmatterLinks?: FrontmatterLinkCache[];
 }
 
 /** Mirrors Obsidian's ViewStateResult — passed to setState so views can signal
@@ -654,13 +677,13 @@ export function createMockTFile(overrides?: Partial<{
 	return file;
 }
 
-export function createMockCachedMetadata(overrides?: Partial<{
-	tags: TagCache[];
-	frontmatter: Record<string, unknown>;
-}>): CachedMetadata {
+export function createMockCachedMetadata(overrides?: Partial<CachedMetadata>): CachedMetadata {
 	return {
 		tags: overrides?.tags ?? [],
 		frontmatter: overrides?.frontmatter ?? {},
+		links: overrides?.links,
+		embeds: overrides?.embeds,
+		frontmatterLinks: overrides?.frontmatterLinks,
 	};
 }
 
