@@ -40,17 +40,17 @@ Delivers the Dangling Links tab and the vault-wide bulk-rewrite engine — the p
   3. Implement: `src/links/wikilink.ts` (pure functions only).
   4. Validate: exhaustive unit tests over all link forms + edge cases; typecheck; lint.
   - Success:
-    - [ ] All wikilink forms round-trip with parts preserved `[ref: PRD/Feature 3 — preserve alias/#/^/!]`
+    - [x] All wikilink forms round-trip with parts preserved `[ref: PRD/Feature 3 — preserve alias/#/^/!]`
 
-- [ ] **T3.2 LinkRewriteService (preview + rename/merge/alias/delete)** `[activity: backend-api]` `[ref: SDD/LinkRewriteService; Runtime View — Secondary Flow; ADR-5]`
+- [x] **T3.2 LinkRewriteService (preview + rename/merge/alias/delete)** `[activity: backend-api]` `[ref: SDD/LinkRewriteService; Runtime View — Secondary Flow; ADR-5]`
 
   1. Prime: Read service contract, offset-splice example, hybrid engine + no-undo constraint.
   2. Test (mock vault/fileManager): `previewRename` returns `{occurrences, files[]}` from index; `applyRename` to a non-existent target uses `vault.process` offset-splice (descending) and preserves parts; `applyRename` to a real note path routes via `renameFile`/`generateMarkdownLink` (merge); `applyAlias` rewrites to `[[note|orig]]` for chosen existing note; `applyDelete` removes links (with `onlyInActiveNote` honored); frontmatter links rewritten via `processFrontMatter`; per-file failures accumulate into `BulkResult` (batch continues); operations run sequentially; counts re-resolved before applying.
   3. Implement: `src/links/LinkRewriteService.ts` (uses `wikilink.ts` + `LinkGraphIndex`).
   4. Validate: unit tests incl. multi-link-per-file ordering and partial failure; typecheck; lint.
   - Success:
-    - [ ] Vault-wide rewrites preserve all link forms and keep editors in sync via `vault.process` `[ref: PRD/Feature 3; SDD/ADR-5]`
-    - [ ] Real-target rename routes through merge path; partial failures reported `[ref: PRD/Detailed Feature Spec]`
+    - [x] Vault-wide rewrites preserve all link forms and keep editors in sync via `vault.process` `[ref: PRD/Feature 3; SDD/ADR-5]`
+    - [x] Real-target rename routes through merge path; partial failures reported `[ref: PRD/Detailed Feature Spec]`
 
 - [ ] **T3.3 Create-missing-note + modals (confirm preview, note/folder picker)** `[activity: frontend-ui]` `[parallel: true]` `[ref: SDD/modals; PRD/Feature 3]`
 
