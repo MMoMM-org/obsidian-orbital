@@ -111,6 +111,12 @@ export class App {
 	};
 	fileManager = {
 		processFrontMatter: vi.fn(),
+		/** renameFile — moves/renames a TFile in the vault. */
+		renameFile: vi.fn(async (_file: TFile, _newPath: string): Promise<void> => {}),
+		/** generateMarkdownLink — produces a wikilink/markdown link string for a target file. */
+		generateMarkdownLink: vi.fn(
+			(_file: TFile, _sourcePath: string, _subpath?: string, _alias?: string): string => "",
+		),
 	};
 	workspace = {
 		getActiveViewOfType: vi.fn(),
