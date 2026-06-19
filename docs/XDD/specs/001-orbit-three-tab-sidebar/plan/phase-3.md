@@ -62,15 +62,15 @@ Delivers the Dangling Links tab and the vault-wide bulk-rewrite engine — the p
     - [x] Preview + confirmation gate every vault-wide op with a no-undo warning `[ref: SDD/CON-7; PRD/Detailed Feature Spec]`
     - [x] Create-missing-note lets the user pick the path `[ref: PRD/Feature 3 — create]`
 
-- [ ] **T3.4 DanglingPanel (grouped tree, scope/grouping toggles, inline actions)** `[activity: frontend-ui]` `[ref: SDD/User Interface & UX; ADR-4; PRD/Feature 3]`
+- [x] **T3.4 DanglingPanel (grouped tree, scope/grouping toggles, inline actions)** `[activity: frontend-ui]` `[ref: SDD/User Interface & UX; ADR-4; PRD/Feature 3]`
 
   1. Prime: Read UI section (grouped `tree-item` tree, inline `clickable-icon` actions, scope toggle), default by-target/vault.
   2. Test (mock): lists dangling targets grouped by-target (default) with counts; grouping toggle switches to by-source; scope toggle switches vault↔folder and updates copy/counts; each target row exposes rename/alias/create/delete actions wired to the service+modals; receives and applies the "Manage →" filter from Relations (focus/scroll to that target); positive empty state when none in scope; bulk result surfaced via Notice + `aria-live`.
   3. Implement: `src/view/panels/DanglingPanel.ts`.
   4. Validate: unit tests; no `innerHTML`; mobile-reachable actions (no hover-only); typecheck; lint.
   - Success:
-    - [ ] All four inline actions work end-to-end with preview/confirm; grouping + scope toggles function `[ref: PRD/Feature 3]`
-    - [ ] "Manage →" deep link from Relations filters to the target `[ref: PRD/Feature 2; SDD/Runtime View]`
+    - [x] All four inline actions work end-to-end with preview/confirm; grouping + scope toggles function `[ref: PRD/Feature 3]`
+    - [x] "Manage →" deep link from Relations filters to the target `[ref: PRD/Feature 2; SDD/Runtime View]`
 
 - [ ] **T3.5 Phase Validation** `[activity: validate]`
 
