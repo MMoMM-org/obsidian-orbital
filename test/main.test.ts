@@ -99,6 +99,32 @@ describe("OrbitPlugin onload — view registration", () => {
 		const emptyState = view.contentEl.querySelector(".orbit-dangling-empty");
 		expect(emptyState).not.toBeNull();
 	});
+
+	it("recent tab renders real RecentPanel empty state (not placeholder) when view created via plugin factory", async () => {
+		const app = makeApp();
+		const plugin = await makePlugin(app);
+		await plugin.onload();
+
+		const factory = vi.mocked(plugin.registerView).mock.calls[0]?.[1];
+		const leaf = new WorkspaceLeaf();
+		const { OrbitView } = await import("view/OrbitView");
+		const view = (factory as unknown as (leaf: WorkspaceLeaf) => unknown)(leaf) as InstanceType<typeof OrbitView>;
+
+		await view.onOpen();
+
+		// Navigate to recent tab
+		const recentTab = view.contentEl.querySelector("[data-tab-id='recent']") as HTMLElement;
+		recentTab.click();
+		await new Promise<void>((r) => setTimeout(r, 0));
+
+		// Should render real RecentPanel (empty state) — not the placeholder
+		const placeholder = view.contentEl.querySelector(".orbit-panel-placeholder");
+		expect(placeholder).toBeNull();
+
+		const emptyState = view.contentEl.querySelector(".orbit-recent-empty");
+		expect(emptyState).not.toBeNull();
+		expect(emptyState?.textContent).toBe("No recent files yet.");
+	});
 });
 
 describe("OrbitPlugin onload — command registration", () => {

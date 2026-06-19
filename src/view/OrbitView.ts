@@ -28,6 +28,8 @@ import { RelationsPanel } from "view/panels/RelationsPanel";
 import type { RelationsPanelDeps } from "view/panels/RelationsPanel";
 import { DanglingPanel } from "view/panels/DanglingPanel";
 import type { DanglingPanelDeps } from "view/panels/DanglingPanel";
+import { RecentPanel } from "view/panels/RecentPanel";
+import type { RecentPanelDeps } from "view/panels/RecentPanel";
 
 export const VIEW_TYPE = "orbit";
 
@@ -64,6 +66,12 @@ export type DanglingDeps = Omit<
 	| "clearPendingTarget"
 	| "registerDomEvent"
 >;
+
+/**
+ * Dependencies the plugin supplies for building the Recent panel.
+ * OrbitView fills only `registerDomEvent` (view-lifecycle owned).
+ */
+export type RecentDeps = Omit<RecentPanelDeps, "registerDomEvent">;
 
 const DEFAULT_PANEL_RENDERERS: Record<TabId, PanelRenderer> = {
 	relations: (el) => {
@@ -116,6 +124,12 @@ export class OrbitView extends ItemView {
 		 * When absent, the default placeholder is used.
 		 */
 		danglingDeps?: DanglingDeps,
+		/**
+		 * When supplied, OrbitView constructs the real RecentPanel backed
+		 * by the plugin's shared RecentFilesStore and DragInsertHelper.
+		 * When absent, the default placeholder is used.
+		 */
+		recentDeps?: RecentDeps,
 	) {
 		super(leaf);
 
@@ -136,6 +150,10 @@ export class OrbitView extends ItemView {
 				danglingGrouping: settings.danglingGrouping,
 			};
 			merged.dangling = this._buildDanglingRenderer(danglingDeps);
+		}
+
+		if (recentDeps !== undefined) {
+			merged.recent = this._buildRecentRenderer(recentDeps);
 		}
 
 		this.panelRenderers = merged;
@@ -299,6 +317,28 @@ export class OrbitView extends ItemView {
 				clearPendingTarget: () => {
 					this.pendingManageTarget = null;
 				},
+				registerDomEvent: (el, type, handler) => {
+					this.registerDomEvent(el, type, handler);
+				},
+			});
+			panel.render(container);
+		};
+	}
+
+	// -------------------------------------------------------------------------
+	// Private — recent panel factory
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Build the PanelRenderer closure for the 'recent' tab.
+	 * Constructs a new RecentPanel on each render call so the panel always
+	 * reflects the latest store state without stale closures.
+	 * activePath is intentionally omitted: RecentPanel resolves its own list via the store.
+	 */
+	private _buildRecentRenderer(deps: RecentDeps): PanelRenderer {
+		return (container: HTMLElement): void => {
+			const panel = new RecentPanel({
+				...deps,
 				registerDomEvent: (el, type, handler) => {
 					this.registerDomEvent(el, type, handler);
 				},

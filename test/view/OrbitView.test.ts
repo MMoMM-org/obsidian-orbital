@@ -24,7 +24,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { App, WorkspaceLeaf, ViewStateResult, augmentEl, TFile, TFolder } from "../__mocks__/obsidian";
 import { OrbitView, VIEW_TYPE } from "view/OrbitView";
-import type { RelationsDeps, DanglingDeps } from "view/OrbitView";
+import type { RelationsDeps, DanglingDeps, RecentDeps } from "view/OrbitView";
 import type { RelationsPanelApp } from "view/panels/RelationsPanel";
 import { LinkGraphIndex } from "graph/LinkGraphIndex";
 import type { MetadataCache as IndexMetadataCache } from "graph/LinkGraphIndex";
@@ -882,5 +882,83 @@ describe("OrbitView T3.4b — Dangling panel wiring", () => {
 		const placeholder = view.contentEl.querySelector(".orbit-panel-placeholder");
 		expect(placeholder).not.toBeNull();
 		expect(placeholder?.textContent).toBe("Dangling links");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// T4.3b — RecentPanel wiring via recentDeps
+// ---------------------------------------------------------------------------
+
+function makeRecentDeps(): RecentDeps {
+	const store = {
+		list: vi.fn(() => [] as Array<{ path: string; basename: string }>),
+		removeOne: vi.fn(async () => {}),
+		clear: vi.fn(async () => {}),
+		delete: vi.fn(async () => {}),
+	};
+
+	const app = new App();
+
+	const dragHelper = {
+		onDragStart: vi.fn((_event: DragEvent, _path: string) => {}),
+		insertAtCursor: vi.fn((_linktext: string) => {}),
+	};
+
+	return {
+		store,
+		app: app as unknown as RecentDeps["app"],
+		dragHelper,
+	};
+}
+
+describe("OrbitView T4.3b — Recent panel wiring", () => {
+	it("renders RecentPanel empty state (not placeholder) when recentDeps provided and recent tab selected", async () => {
+		const deps = makeRecentDeps();
+		const view = new OrbitView(makeLeaf(), undefined, undefined, undefined, deps);
+
+		await view.onOpen();
+
+		// Navigate to recent tab
+		const recentTab = view.contentEl.querySelector("[data-tab-id='recent']") as HTMLElement;
+		recentTab.click();
+		await flush();
+
+		// Placeholder must not be present
+		const placeholder = view.contentEl.querySelector(".orbit-panel-placeholder");
+		expect(placeholder).toBeNull();
+
+		// Real RecentPanel renders the empty state for an empty store
+		const emptyState = view.contentEl.querySelector(".orbit-recent-empty");
+		expect(emptyState).not.toBeNull();
+		expect(emptyState?.textContent).toBe("No recent files yet.");
+	});
+
+	it("does not replace the recent placeholder when recentDeps is absent", async () => {
+		const view = new OrbitView(makeLeaf());
+
+		await view.onOpen();
+
+		const recentTab = view.contentEl.querySelector("[data-tab-id='recent']") as HTMLElement;
+		recentTab.click();
+		await flush();
+
+		const placeholder = view.contentEl.querySelector(".orbit-panel-placeholder");
+		expect(placeholder).not.toBeNull();
+		expect(placeholder?.textContent).toBe("Recent files");
+	});
+
+	it("calls store.list() when recent tab is rendered", async () => {
+		const deps = makeRecentDeps();
+		const listSpy = vi.spyOn(deps.store, "list");
+		const view = new OrbitView(makeLeaf(), undefined, undefined, undefined, deps);
+
+		await view.onOpen();
+
+		// Navigate to recent tab
+		const recentTab = view.contentEl.querySelector("[data-tab-id='recent']") as HTMLElement;
+		recentTab.click();
+		await flush();
+
+		expect(listSpy).toHaveBeenCalled();
 	});
 });

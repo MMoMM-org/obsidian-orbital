@@ -1,15 +1,17 @@
-import { Plugin, debounce, TFile } from "obsidian";
+import { Plugin, debounce, TFile, MarkdownView } from "obsidian";
 import type { Debouncer } from "obsidian";
 import { SettingsTab } from "settings/SettingsTab";
 import { DEFAULT_SETTINGS, type OrbitSettings } from "types/index";
 import { OrbitView, VIEW_TYPE } from "view/OrbitView";
-import type { RelationsDeps, DanglingDeps } from "view/OrbitView";
+import type { RelationsDeps, DanglingDeps, RecentDeps } from "view/OrbitView";
 import { LinkGraphIndex } from "graph/LinkGraphIndex";
 import { ExclusionMatcher } from "shared/ExclusionMatcher";
 import { LinkRewriteService } from "links/LinkRewriteService";
 import { NotePickerModal, NoteFilePicker } from "modals/NotePickerModal";
 import { ConfirmRewriteModal } from "modals/ConfirmRewriteModal";
 import { createNote } from "links/createNote";
+import { RecentFilesStore } from "recent/RecentFilesStore";
+import { DragInsertHelper } from "recent/DragInsertHelper";
 
 export default class OrbitPlugin extends Plugin {
 	settings: OrbitSettings = DEFAULT_SETTINGS;
@@ -18,6 +20,13 @@ export default class OrbitPlugin extends Plugin {
 	_index: LinkGraphIndex = new LinkGraphIndex(
 		{ resolvedLinks: {}, unresolvedLinks: {} },
 	);
+
+	/** Plugin-scoped recent-files store — survives view open/close. */
+	_recentStore: RecentFilesStore = new RecentFilesStore({
+		getSettings: () => this.settings,
+		saveSettings: () => this.saveSettings(),
+		isExcluded: (path: string) => this._isExcluded(path),
+	});
 
 	/** Debounced handler for active-leaf-change events (trailing). */
 	_refreshDebouncer: Debouncer<[], void> | null = null;
@@ -35,6 +44,7 @@ export default class OrbitPlugin extends Plugin {
 			undefined,
 			this._buildRelationsDeps(),
 			this._buildDanglingDeps(),
+			this._buildRecentDeps(),
 		));
 
 		this.addCommand({
@@ -161,6 +171,40 @@ export default class OrbitPlugin extends Plugin {
 	}
 
 	// ---------------------------------------------------------------------------
+	// Private — Recent deps factory
+	// ---------------------------------------------------------------------------
+
+	/**
+	 * Returns true when a file at the given path should be excluded from recents.
+	 * Resolves the path to a TFile via vault (for tag exclusion); falls back to
+	 * path-only exclusion for unresolved paths.
+	 */
+	private _isExcluded(path: string): boolean {
+		const s = this.settings;
+		const matcher = new ExclusionMatcher(s.excludePathPatterns, s.excludeTagPatterns);
+		const abstract = this.app.vault.getAbstractFileByPath(path);
+		if (abstract instanceof TFile) {
+			return matcher.isExcluded(abstract, this.app.metadataCache);
+		}
+		return matcher.isPathExcluded(path);
+	}
+
+	/** Build the RecentDeps bundle the recent panel needs. */
+	private _buildRecentDeps(): RecentDeps {
+		const dragHelper = new DragInsertHelper({
+			getFirstLinkpathDest: (lp, sp) => this.app.metadataCache.getFirstLinkpathDest(lp, sp),
+			getActiveMarkdownView: () => this.app.workspace.getActiveViewOfType(MarkdownView),
+			dragManager: this.app.dragManager,
+		});
+
+		return {
+			store: this._recentStore,
+			app: this.app as unknown as RecentDeps["app"],
+			dragHelper,
+		};
+	}
+
+	// ---------------------------------------------------------------------------
 	// Private — event wiring
 	// ---------------------------------------------------------------------------
 
@@ -192,8 +236,9 @@ export default class OrbitPlugin extends Plugin {
 
 	private _wireVaultEvents(): void {
 		this.registerEvent(
-			this.app.vault.on("rename", (file: { path: string }, oldPath: string) => {
+			this.app.vault.on("rename", (file: { path: string; basename?: string }, oldPath: string) => {
 				this._index.renameFile(oldPath, file.path);
+				void this._recentStore.rename(oldPath, file.path, file.basename ?? "");
 				this._repaintActivePanel();
 			}),
 		);
@@ -201,7 +246,17 @@ export default class OrbitPlugin extends Plugin {
 		this.registerEvent(
 			this.app.vault.on("delete", (file: { path: string }) => {
 				this._index.removeFile(file.path);
+				void this._recentStore.delete(file.path);
 				this._repaintActivePanel();
+			}),
+		);
+
+		this.registerEvent(
+			this.app.workspace.on("file-open", (file: TFile | null) => {
+				if (file instanceof TFile && file.extension === "md") {
+					void this._recentStore.onFileOpen(file.path, file.basename);
+					this._repaintActivePanel();
+				}
 			}),
 		);
 	}

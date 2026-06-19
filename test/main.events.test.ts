@@ -360,3 +360,110 @@ describe("T2.4 — event cleanup via registerEvent", () => {
 		expect(index).toBeInstanceOf(LinkGraphIndex);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// T4.3b — RecentFilesStore event wiring
+// ---------------------------------------------------------------------------
+
+describe("T4.3b — RecentFilesStore event wiring", () => {
+	it("plugin exposes _recentStore after onload", async () => {
+		const app = makeApp();
+		const plugin = await makePlugin(app);
+		await plugin.onload();
+		await flush();
+
+		const { RecentFilesStore } = await import("recent/RecentFilesStore");
+		const store = (plugin as unknown as { _recentStore: unknown })._recentStore;
+		expect(store).toBeInstanceOf(RecentFilesStore);
+	});
+
+	it("'file-open' handler calls store.onFileOpen(path, basename) for a markdown TFile", async () => {
+		const app = makeApp();
+		const plugin = await makePlugin(app);
+		await plugin.onload();
+		await flush();
+
+		const store = (plugin as unknown as { _recentStore: { onFileOpen: (path: string, basename: string) => Promise<void> } })._recentStore;
+		const onFileOpenSpy = vi.spyOn(store, "onFileOpen").mockResolvedValue(undefined);
+
+		const fileOpenHandler = getRegisteredHandler(
+			app.workspace.on as ReturnType<typeof vi.fn>,
+			"file-open",
+		);
+		expect(fileOpenHandler).toBeDefined();
+
+		// Simulate opening a markdown TFile
+		const { TFile } = await import("./__mocks__/obsidian");
+		const mockFile = new TFile();
+		mockFile.path = "notes/hello.md";
+		mockFile.basename = "hello";
+		mockFile.extension = "md";
+		fileOpenHandler?.(mockFile);
+
+		expect(onFileOpenSpy).toHaveBeenCalledWith("notes/hello.md", "hello");
+	});
+
+	it("'file-open' handler is a no-op when file is null (guard)", async () => {
+		const app = makeApp();
+		const plugin = await makePlugin(app);
+		await plugin.onload();
+		await flush();
+
+		const store = (plugin as unknown as { _recentStore: { onFileOpen: (path: string, basename: string) => Promise<void> } })._recentStore;
+		const onFileOpenSpy = vi.spyOn(store, "onFileOpen").mockResolvedValue(undefined);
+
+		const fileOpenHandler = getRegisteredHandler(
+			app.workspace.on as ReturnType<typeof vi.fn>,
+			"file-open",
+		);
+
+		// null file — should not throw and should not call onFileOpen
+		expect(() => fileOpenHandler?.(null)).not.toThrow();
+		expect(onFileOpenSpy).not.toHaveBeenCalled();
+	});
+
+	it("vault 'rename' also calls store.rename(oldPath, newPath, newBasename)", async () => {
+		const app = makeApp();
+		const plugin = await makePlugin(app);
+		await plugin.onload();
+		await flush();
+
+		const store = (plugin as unknown as { _recentStore: { rename: (o: string, n: string, nb: string) => Promise<void> } })._recentStore;
+		const renameSpy = vi.spyOn(store, "rename").mockResolvedValue(undefined);
+
+		const vaultOn = app.vault as unknown as { on: ReturnType<typeof vi.fn> };
+		const renameHandler = getRegisteredHandler(vaultOn.on, "rename");
+		expect(renameHandler).toBeDefined();
+
+		const { TFile } = await import("./__mocks__/obsidian");
+		const newFile = new TFile();
+		newFile.path = "notes/new.md";
+		newFile.basename = "new";
+		newFile.extension = "md";
+		renameHandler?.(newFile, "notes/old.md");
+
+		expect(renameSpy).toHaveBeenCalledWith("notes/old.md", "notes/new.md", "new");
+	});
+
+	it("vault 'delete' also calls store.delete(path)", async () => {
+		const app = makeApp();
+		const plugin = await makePlugin(app);
+		await plugin.onload();
+		await flush();
+
+		const store = (plugin as unknown as { _recentStore: { delete: (p: string) => Promise<void> } })._recentStore;
+		const deleteSpy = vi.spyOn(store, "delete").mockResolvedValue(undefined);
+
+		const vaultOn = app.vault as unknown as { on: ReturnType<typeof vi.fn> };
+		const deleteHandler = getRegisteredHandler(vaultOn.on, "delete");
+		expect(deleteHandler).toBeDefined();
+
+		const { TFile } = await import("./__mocks__/obsidian");
+		const deletedFile = new TFile();
+		deletedFile.path = "notes/gone.md";
+		deletedFile.extension = "md";
+		deleteHandler?.(deletedFile);
+
+		expect(deleteSpy).toHaveBeenCalledWith("notes/gone.md");
+	});
+});
