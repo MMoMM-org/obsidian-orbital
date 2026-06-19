@@ -1,6 +1,6 @@
 ---
 title: "Phase 4: Recent Files tab"
-status: in_progress
+status: completed
 version: "1.0"
 phase: 4
 ---
@@ -66,6 +66,8 @@ Delivers the Recent Files tab at parity with `recent-files-obsidian`, enabling i
 
   OrbitView: `RecentDeps` + `_buildRecentRenderer` replacing the 'recent' placeholder. main.ts: plugin-scoped `RecentFilesStore` (de-duped `_isExcluded` predicate) + `DragInsertHelper`, `_buildRecentDeps`, passed as 5th OrbitView arg. Events: workspace `file-open` → `store.onFileOpen(path, basename)` + repaint (guarded `instanceof TFile && md`); vault `rename` → `store.rename(old,new,basename)`; vault `delete` → `store.delete(path)` — alongside the existing index calls.
 
-- [ ] **T4.4 Phase Validation** `[activity: validate]`
+- [x] **T4.4 Phase Validation** `[activity: validate]`
 
   Run all Phase 4 tests, lint, typecheck, build. Verify Recent tab against PRD Feature 4 ACs and confirm parity checklist (list/length/exclusions/drag/mobile-insert/remove/clear/persist) for the v1 launch gate.
+
+  **Result:** 427 tests pass; typecheck + lint + production build green. All 11 Feature 4 ACs SATISFIED + the ADR-7 live-reachability launch gate confirmed (RecentPanel wired into OrbitView; file-open/rename/delete events update the store in real use). Parity checklist met: list/MRU, length cap (live re-prune), exclusions, open/mod-click, remove/clear (persisted), drag-to-link (dragFile→onDragStart), mobile tap-insert (Platform-gated) + graceful drag-API degrade, persistence (saveData) + rename/delete sync, missing-file self-heal, empty state. No drift.

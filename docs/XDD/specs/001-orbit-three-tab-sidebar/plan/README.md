@@ -96,7 +96,7 @@ Each phase is a separate file. Tasks follow red-green-refactor: **Prime** (conte
 - [x] [Phase 1: Foundation — settings, view shell, tab bar](phase-1.md)
 - [x] [Phase 2: Link graph index & Relations tab](phase-2.md)
 - [x] [Phase 3: Dangling Links tab & bulk-rewrite engine](phase-3.md)
-- [ ] [Phase 4: Recent Files tab](phase-4.md)
+- [x] [Phase 4: Recent Files tab](phase-4.md)
 - [ ] [Phase 5: Cross-tab integration, accessibility & submission validation](phase-5.md)
 
 **Dependency graph**:
