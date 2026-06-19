@@ -267,5 +267,37 @@ describe("ConfirmRewriteModal", () => {
 			const btn = modal.contentEl.querySelector<HTMLButtonElement>("[data-action='confirm']");
 			expect(btn?.disabled).toBe(false);
 		});
+
+		it("calls onConfirm with empty string when confirm is clicked for merge op", () => {
+			const app = makeApp();
+			const onConfirm = vi.fn();
+			const modal = new ConfirmRewriteModal(app, {
+				preview: makePreview(),
+				kind: "merge",
+				onConfirm,
+			});
+			modal.onOpen();
+
+			const btn = modal.contentEl.querySelector<HTMLButtonElement>("[data-action='confirm']");
+			btn!.click();
+
+			expect(onConfirm).toHaveBeenCalledWith("");
+		});
+
+		it("calls onConfirm with empty string when confirm is clicked for alias op", () => {
+			const app = makeApp();
+			const onConfirm = vi.fn();
+			const modal = new ConfirmRewriteModal(app, {
+				preview: makePreview(),
+				kind: "alias",
+				onConfirm,
+			});
+			modal.onOpen();
+
+			const btn = modal.contentEl.querySelector<HTMLButtonElement>("[data-action='confirm']");
+			btn!.click();
+
+			expect(onConfirm).toHaveBeenCalledWith("");
+		});
 	});
 });

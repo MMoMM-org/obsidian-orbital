@@ -202,7 +202,6 @@ export class ConfirmRewriteModal extends Modal {
 			cls: "orbit-confirm-btn mod-cta",
 			attr: { "data-action": "confirm", "aria-label": "Confirm operation" },
 		}) as HTMLButtonElement;
-		confirmBtn.disabled = false;
 
 		confirmBtn.addEventListener("click", () => {
 			this.opts.onConfirm("");

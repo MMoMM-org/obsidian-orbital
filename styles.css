@@ -122,6 +122,12 @@
 	padding: 4px 8px;
 }
 
+/* ── Utility ────────────────────────────────────────────────────────────────*/
+
+.is-hidden {
+	display: none;
+}
+
 /* ── Placeholder / empty state ──────────────────────────────────────────────*/
 
 .orbit-panel-placeholder {
