@@ -94,7 +94,7 @@ Each phase is a separate file. Tasks follow red-green-refactor: **Prime** (conte
 > **Tracking Principle**: track logical units that produce verifiable outcomes. The TDD cycle is the method, not separate tracked items.
 
 - [x] [Phase 1: Foundation — settings, view shell, tab bar](phase-1.md)
-- [ ] [Phase 2: Link graph index & Relations tab](phase-2.md)
+- [x] [Phase 2: Link graph index & Relations tab](phase-2.md)
 - [ ] [Phase 3: Dangling Links tab & bulk-rewrite engine](phase-3.md)
 - [ ] [Phase 4: Recent Files tab](phase-4.md)
 - [ ] [Phase 5: Cross-tab integration, accessibility & submission validation](phase-5.md)

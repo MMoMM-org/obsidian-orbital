@@ -1,6 +1,6 @@
 ---
 title: "Phase 2: Link graph index & Relations tab"
-status: in_progress
+status: completed
 version: "1.0"
 phase: 2
 ---
@@ -64,7 +64,7 @@ Delivers the reverse-index link graph and a working Relations tab: outgoing, bac
     - [ ] Sections, counts, click/cmd-click, hover preview all work; empty state shown when no note `[ref: PRD/Feature 2]`
     - [ ] "Manage →" emits a navigate-to-Dangling-filtered request `[ref: PRD/Feature 2; SDD/Runtime View]`
 
-- [ ] **T2.4 Wire refresh events (debounced) in main/view** `[activity: integration]` `[ref: SDD/External Interfaces — inbound; Runtime View — Primary Flow]`
+- [x] **T2.4 Wire refresh events (debounced) in main/view** `[activity: integration]` `[ref: SDD/External Interfaces — inbound; Runtime View — Primary Flow]`
 
   1. Prime: Review inbound events and debounce strategy (eager cheap index update vs debounced view repaint).
   2. Test: `active-leaf-change` triggers a debounced Relations refresh (`refreshDebounceMs`, trailing); `metadataCache 'resolved'` (first, after `onLayoutReady`) builds the index once; `metadataCache 'changed'` updates the index for that file (not debounced away) and schedules a repaint; `vault 'rename'/'delete'` update index; all registered via `this.register*` and cleaned up; debounce timer cleared on unload.
@@ -73,6 +73,6 @@ Delivers the reverse-index link graph and a working Relations tab: outgoing, bac
   - Success:
     - [ ] Rapid note switches coalesce into one refresh; index builds once at startup `[ref: SDD/Performance; ADR-2]`
 
-- [ ] **T2.5 Phase Validation** `[activity: validate]`
+- [x] **T2.5 Phase Validation** `[activity: validate]`
 
   Run all Phase 2 tests, lint, typecheck, build. Verify Relations tab against PRD Feature 2 ACs (sections/counts, 2nd-hop dedup+cap, click/cmd-click, hover, Missing+Manage, empty + missing-note states). Confirm no full-graph rescans on navigation.
