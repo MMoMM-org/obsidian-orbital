@@ -1,6 +1,6 @@
 ---
 title: "Phase 3: Dangling Links tab & bulk-rewrite engine"
-status: in_progress
+status: completed
 version: "1.0"
 phase: 3
 ---
@@ -72,6 +72,12 @@ Delivers the Dangling Links tab and the vault-wide bulk-rewrite engine — the p
     - [x] All four inline actions work end-to-end with preview/confirm; grouping + scope toggles function `[ref: PRD/Feature 3]`
     - [x] "Manage →" deep link from Relations filters to the target `[ref: PRD/Feature 2; SDD/Runtime View]`
 
-- [ ] **T3.5 Phase Validation** `[activity: validate]`
+- [x] **T3.4b Wire DanglingPanel into OrbitView + main.ts** `[activity: integration]` *(added during T3.5 validation)*
+
+  Phase-3 validation found `DanglingPanel` built + unit-tested but not rendered in the live plugin (dangling tab showed a placeholder). Mirrors the T2.4 Relations wiring: added `DanglingDeps` + `_buildDanglingRenderer` to `OrbitView` (replaces the placeholder), `_buildDanglingDeps` to `main.ts` (constructs `LinkRewriteService`, supplies modal/picker constructors + `createNote`), `getFolderPath` = active note's parent folder, and `danglingGrouping` added to `OrbitViewState` (backward-compatible persistence). Closes validation drift M1/M2.
+
+- [x] **T3.5 Phase Validation** `[activity: validate]`
 
   Run all Phase 3 tests, lint, typecheck, build. Verify Dangling tab against PRD Feature 3 ACs (grouping/scope, four actions, preview "X in Y", part preservation, merge path, partial-failure report, empty state). Confirm `vault.process` (not `adapter.write`) for all writes and that bulk runs sequentially with progress feedback.
+
+  **Result:** 365 tests pass; typecheck + lint + production build green. All 8 Feature 3 ACs verified SATISFIED. No `adapter.write` in `src/`; writes go through `vault.process` (body) + `processFrontMatter` (frontmatter); bulk runs sequentially with `BulkResult` partial-failure reporting + `Notice`/`aria-live` feedback. Wiring gap (M1/M2) found and closed via T3.4b.
