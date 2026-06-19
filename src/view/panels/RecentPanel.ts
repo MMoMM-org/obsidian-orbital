@@ -250,7 +250,7 @@ export class RecentPanel {
 	private renderInsertBtn(container: HTMLElement, entry: RecentFileEntry): void {
 		const btn = (container as unknown as AugmentedEl).createEl("button", {
 			cls: "clickable-icon orbit-recent-action-btn",
-			attr: { "aria-label": "Insert link at Cursor" },
+			attr: { "aria-label": "Insert link" },
 		});
 
 		setIcon(btn, "file-plus");

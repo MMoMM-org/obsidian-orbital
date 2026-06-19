@@ -272,6 +272,118 @@
 	border-left: 2px solid var(--text-accent);
 }
 
+/* ── RecentPanel ────────────────────────────────────────────────────────────
+   Flat MRU list with toolbar, per-row remove, drag, and mobile insert.
+   All colors from CSS variables — no hardcoded values.
+   ─────────────────────────────────────────────────────────────────────────*/
+
+.orbit-recent-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.orbit-recent-clear-btn {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	font-size: var(--font-small);
+	color: var(--text-muted);
+	background: transparent;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 2px 6px;
+	cursor: pointer;
+}
+
+.orbit-recent-clear-btn:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.orbit-recent-clear-label {
+	font-size: var(--font-small);
+}
+
+.orbit-recent-list {
+	padding: 0;
+}
+
+.orbit-recent-row {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 8px;
+	cursor: pointer;
+}
+
+.orbit-recent-row:hover {
+	background: var(--background-modifier-hover);
+}
+
+.orbit-recent-label {
+	display: flex;
+	flex: 1 1 auto;
+	align-items: baseline;
+	gap: 4px;
+	min-width: 0;
+	overflow: hidden;
+}
+
+.orbit-recent-basename {
+	flex: 0 1 auto;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: var(--font-small);
+	color: var(--text-normal);
+}
+
+.orbit-recent-path {
+	flex: 0 1 auto;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: var(--font-small);
+	color: var(--text-muted);
+}
+
+.orbit-recent-actions {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	flex: 0 0 auto;
+}
+
+.orbit-recent-action-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 44px;
+	min-height: 44px;
+	background: transparent;
+	border: none;
+	padding: 2px;
+	cursor: pointer;
+	color: var(--text-muted);
+	border-radius: var(--radius-s);
+	line-height: 1;
+}
+
+.orbit-recent-action-btn:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
+.orbit-recent-empty {
+	padding: 16px 8px;
+	color: var(--text-faint);
+	font-size: var(--font-small);
+	text-align: center;
+}
+
 /* ── ConfirmRewriteModal ────────────────────────────────────────────────────
    Confirmation gate for destructive vault operations (rename, delete, alias,
    merge). All layout uses flex. No style.display — visibility via is-hidden.

@@ -70,7 +70,6 @@ function makeFakeDragHelper(): FakeDragHelper {
 type MakeDepsOptions = {
 	entries?: RecentFileEntry[];
 	fileExists?: (path: string) => boolean;
-	isMobile?: boolean;
 };
 
 function makeDeps(opts: MakeDepsOptions = {}): RecentPanelDeps & {
@@ -312,11 +311,16 @@ describe("RecentPanel missing-file self-heal", () => {
 		expect(Notice._instances[0]?.message).toMatch(/no longer exists/i);
 	});
 
-	it("clicking a missing file calls store.delete", async () => {
+	it("clicking a missing file calls store.delete and does not open the file", async () => {
 		const deps = makeDeps({
 			entries: [{ path: "notes/gone.md", basename: "gone" }],
 			fileExists: () => false,
 		});
+		const mockLeaf = { openLinkText: vi.fn(async () => {}) };
+		vi.mocked(deps.appInstance.workspace.getLeaf).mockReturnValue(
+			mockLeaf as unknown as ReturnType<typeof deps.appInstance.workspace.getLeaf>,
+		);
+
 		const panel = new RecentPanel(deps);
 		const container = makeContainer();
 		panel.render(container);
@@ -328,6 +332,9 @@ describe("RecentPanel missing-file self-heal", () => {
 		await vi.waitFor(() => {
 			expect(deps.store.delete).toHaveBeenCalledWith("notes/gone.md");
 		});
+
+		// The panel must not have attempted to open a file that no longer exists
+		expect(deps.appInstance.workspace.getLeaf).not.toHaveBeenCalled();
 	});
 });
 
@@ -481,7 +488,7 @@ describe("RecentPanel mobile insert action", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const insertBtn = container.querySelector("[aria-label='Insert link at Cursor']");
+		const insertBtn = container.querySelector("[aria-label='Insert link']");
 		expect(insertBtn).not.toBeNull();
 	});
 
@@ -495,7 +502,7 @@ describe("RecentPanel mobile insert action", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const insertBtn = container.querySelector("[aria-label='Insert link at Cursor']") as HTMLElement;
+		const insertBtn = container.querySelector("[aria-label='Insert link']") as HTMLElement;
 		insertBtn.click();
 
 		expect(deps.dragHelper.insertAtCursor).toHaveBeenCalledWith("alpha");
@@ -511,7 +518,7 @@ describe("RecentPanel mobile insert action", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const insertBtn = container.querySelector("[aria-label='Insert link at Cursor']");
+		const insertBtn = container.querySelector("[aria-label='Insert link']");
 		expect(insertBtn).toBeNull();
 	});
 });
