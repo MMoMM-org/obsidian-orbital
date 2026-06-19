@@ -77,6 +77,16 @@ export default defineConfig({
 					return fs.existsSync(`${updatedId}.ts`) ? `${updatedId}.ts` : updatedId;
 				},
 			},
+			{
+				find: /^links(\/.*)?$/,
+				replacement: path.resolve(__dirname, "src/links$1"),
+				customResolver(updatedId: string) {
+					if (fs.statSync(updatedId, { throwIfNoEntry: false })?.isDirectory()) {
+						return `${updatedId}/index.ts`;
+					}
+					return fs.existsSync(`${updatedId}.ts`) ? `${updatedId}.ts` : updatedId;
+				},
+			},
 		],
 	},
 	test: {

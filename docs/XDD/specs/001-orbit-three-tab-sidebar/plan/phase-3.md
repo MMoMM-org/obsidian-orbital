@@ -1,6 +1,6 @@
 ---
 title: "Phase 3: Dangling Links tab & bulk-rewrite engine"
-status: pending
+status: in_progress
 version: "1.0"
 phase: 3
 ---
@@ -33,7 +33,7 @@ Delivers the Dangling Links tab and the vault-wide bulk-rewrite engine — the p
 
 > **Mock extension (do first):** add to `test/__mocks__/obsidian.ts` — `fileManager.renameFile`/`generateMarkdownLink`/`getNewFileParent`, `FuzzySuggestModal` base class, and `vault.process` if not already present. Part of T3.2/T3.3 setup.
 
-- [ ] **T3.1 wikilink parse/rewrite utility (pure)** `[activity: domain-modeling]` `[ref: SDD/wikilink.ts; Implementation Examples]`
+- [x] **T3.1 wikilink parse/rewrite utility (pure)** `[activity: domain-modeling]` `[ref: SDD/wikilink.ts; Implementation Examples]`
 
   1. Prime: Read `ParsedLink` contract and the wikilink grammar in SDD (`[[t]]`, `[[t|alias]]`, `[[t#h]]`, `[[t#^b]]`, `![[t]]`).
   2. Test: `parseLinkAtOffset` splits target/subpath/alias/embed for every form; `rewriteTarget` changes only the target, preserving subpath+alias+embed; `toAlias` produces `[[real|originalText]]`; `removeLink` yields alias text (or empty); matching is case-insensitive; malformed/edge inputs handled without throw.
