@@ -43,14 +43,14 @@ Delivers the Recent Files tab at parity with `recent-files-obsidian`, enabling i
   - Success:
     - [x] MRU list deduped, capped, exclusion-aware, persistent, rename/delete-synced `[ref: PRD/Feature 4]`
 
-- [ ] **T4.2 DragInsertHelper (drag-to-link + mobile fallback)** `[activity: frontend-ui]` `[ref: SDD/Implementation Gotchas; PRD/Feature 4]`
+- [x] **T4.2 DragInsertHelper (drag-to-link + mobile fallback)** `[activity: frontend-ui]` `[ref: SDD/Implementation Gotchas; PRD/Feature 4]`
 
   1. Prime: Read the drag-manager gotcha and the augmentation requirement; review `Platform.isMobile` fallback.
   2. Test: on `dragstart`, resolves the `TFile` (`metadataCache.getFirstLinkpathDest`) and calls `dragManager.dragFile`/`onDragStart` when available; feature-detects a missing `dragManager` and does not throw; mobile insert action inserts a `[[wikilink]]` at the active editor cursor.
   3. Implement: `src/recent/DragInsertHelper.ts` + `src/shared/obsidian-augment.d.ts` (typing `app.dragManager`).
   4. Validate: unit tests (mock dragManager present/absent); typecheck; lint (no eslint-disable).
   - Success:
-    - [ ] Desktop drag inserts a wikilink; mobile tap-insert works; absent drag API degrades gracefully `[ref: PRD/Feature 4]`
+    - [x] Desktop drag inserts a wikilink; mobile tap-insert works; absent drag API degrades gracefully `[ref: PRD/Feature 4]`
 
 - [ ] **T4.3 RecentPanel (list, click/cmd-click, remove, clear)** `[activity: frontend-ui]` `[ref: SDD/User Interface & UX; PRD/Feature 4]`
 
