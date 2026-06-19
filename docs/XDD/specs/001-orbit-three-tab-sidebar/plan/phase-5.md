@@ -1,6 +1,6 @@
 ---
 title: "Phase 5: Cross-tab integration, accessibility & submission validation"
-status: pending
+status: in_progress
 version: "1.0"
 phase: 5
 ---
@@ -29,14 +29,14 @@ phase: 5
 
 Integrates the tabs into one coherent pane, hardens accessibility/mobile/performance, and validates the whole plugin against the spec and submission rules.
 
-- [ ] **T5.1 Cross-tab integration (Relations "Manage →" → Dangling filtered)** `[activity: integration]` `[ref: SDD/Runtime View; PRD/Feature 2]`
+- [x] **T5.1 Cross-tab integration (Relations "Manage →" → Dangling filtered)** `[activity: integration]` `[ref: SDD/Runtime View; PRD/Feature 2]`
 
   1. Prime: Review the navigate-to-Dangling-filtered request emitted by RelationsPanel and consumed by DanglingPanel.
   2. Test (mock): clicking "Manage →" on a Missing item switches the active tab to Dangling, applies the target filter, and focuses/scrolls to that target; back-navigation/clear-filter restores the full list; the request survives a single render cycle.
   3. Implement: wire the inter-panel request through `OrbitView` (shared callback/state, no global).
   4. Validate: unit/integration tests; typecheck; lint.
   - Success:
-    - [ ] Missing→Manage deep link lands on the right target in the Dangling tab `[ref: PRD/Feature 2; SDD/Open-question resolution]`
+    - [x] Missing→Manage deep link lands on the right target in the Dangling tab `[ref: PRD/Feature 2; SDD/Open-question resolution]`
 
 - [ ] **T5.2 Accessibility, mobile & performance hardening** `[activity: frontend-ui]` `[ref: SDD/Accessibility, Mobile, Performance, Quality Requirements]`
 
