@@ -152,6 +152,12 @@ interface AugmentedEl {
 // DanglingPanel
 // ---------------------------------------------------------------------------
 
+/**
+ * Maximum number of target/source groups rendered before a "Show more" control appears.
+ * Keeps the panel responsive on large vaults (SDD §451).
+ */
+const RENDER_CAP = 100;
+
 export class DanglingPanel {
 	private readonly deps: DanglingPanelDeps;
 
@@ -282,9 +288,35 @@ export class DanglingPanel {
 		liveRegion: HTMLElement,
 		activeFilter: string | null,
 	): void {
-		for (const dt of targets) {
+		const visible = targets.slice(0, RENDER_CAP);
+		for (const dt of visible) {
 			this.renderTargetGroup(container, dt, scope, settings, liveRegion, activeFilter);
 		}
+
+		if (targets.length > RENDER_CAP) {
+			const overflow = targets.slice(RENDER_CAP);
+			this.renderShowMore(container, overflow.length, () => {
+				for (const dt of overflow) {
+					this.renderTargetGroup(container, dt, scope, settings, liveRegion, activeFilter);
+				}
+			});
+		}
+	}
+
+	private renderShowMore(
+		container: HTMLElement,
+		remainingCount: number,
+		reveal: () => void,
+	): void {
+		const btn = (container as unknown as AugmentedEl).createEl("button", {
+			cls: "orbit-show-more",
+			text: `Show ${remainingCount} more…`,
+		});
+
+		this.deps.registerDomEvent(btn, "click", () => {
+			btn.remove();
+			reveal();
+		});
 	}
 
 	private renderTargetGroup(

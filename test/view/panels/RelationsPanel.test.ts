@@ -540,3 +540,92 @@ describe("RelationsPanel 2nd-hop grouping", () => {
 		expect(viaLabels[0]?.textContent).toMatch(/hop1/);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// T5.2 — Gap D: per-section list truncation with "Show more" button
+// ---------------------------------------------------------------------------
+
+describe("RelationsPanel list truncation (Gap D)", () => {
+	/**
+	 * Build a large resolved-links graph: active.md → 110 different targets.
+	 * These appear as outgoing links (and each target also backlinks to active.md).
+	 */
+	function buildLargeResolvedLinks(count: number): Record<string, Record<string, number>> {
+		const links: Record<string, number> = {};
+		for (let i = 0; i < count; i++) {
+			links[`notes/target-${i}.md`] = 1;
+		}
+		return {
+			"notes/active.md": links,
+		};
+	}
+
+	it("renders all outgoing items when count is within cap (≤100)", () => {
+		const deps = makeDeps({
+			resolved: buildLargeResolvedLinks(5),
+		});
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const outgoing = container.querySelector(".orbit-relations-section[data-section='outgoing']");
+		const items = outgoing?.querySelectorAll(".orbit-relations-item") ?? [];
+		expect(items.length).toBe(5);
+	});
+
+	it("renders only first RENDER_CAP (~100) outgoing items when list exceeds cap", () => {
+		const deps = makeDeps({
+			resolved: buildLargeResolvedLinks(110),
+		});
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const outgoing = container.querySelector(".orbit-relations-section[data-section='outgoing']");
+		const items = outgoing?.querySelectorAll(".orbit-relations-item") ?? [];
+		expect(items.length).toBeLessThanOrEqual(100);
+	});
+
+	it("renders a 'Show more' control in outgoing section when item count exceeds cap", () => {
+		const deps = makeDeps({
+			resolved: buildLargeResolvedLinks(110),
+		});
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const outgoing = container.querySelector(".orbit-relations-section[data-section='outgoing']");
+		const showMore = outgoing?.querySelector(".orbit-show-more");
+		expect(showMore).not.toBeNull();
+	});
+
+	it("does not render 'Show more' in outgoing section when item count is within cap", () => {
+		const deps = makeDeps({
+			resolved: buildLargeResolvedLinks(5),
+		});
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const outgoing = container.querySelector(".orbit-relations-section[data-section='outgoing']");
+		const showMore = outgoing?.querySelector(".orbit-show-more");
+		expect(showMore).toBeNull();
+	});
+
+	it("clicking 'Show more' in outgoing section reveals all items", () => {
+		const deps = makeDeps({
+			resolved: buildLargeResolvedLinks(110),
+		});
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const outgoing = container.querySelector(".orbit-relations-section[data-section='outgoing']");
+		const showMoreBtn = outgoing?.querySelector(".orbit-show-more") as HTMLElement | null;
+		expect(showMoreBtn).not.toBeNull();
+		showMoreBtn!.click();
+
+		const items = outgoing?.querySelectorAll(".orbit-relations-item") ?? [];
+		expect(items.length).toBe(110);
+	});
+});

@@ -84,6 +84,12 @@ const SECTIONS = [
 	{ key: "missing", label: "Missing" },
 ] as const;
 
+/**
+ * Maximum number of items rendered per section before a "Show more" control appears.
+ * Keeps the panel responsive on hub notes with hundreds of links (SDD §451).
+ */
+export const RENDER_CAP = 100;
+
 type SectionKey = (typeof SECTIONS)[number]["key"];
 
 // ---------------------------------------------------------------------------
@@ -147,17 +153,21 @@ export class RelationsPanel {
 
 		this.renderSection(container, "outgoing", result.outgoing.length, collapsed,
 			(children) => {
-				for (const item of result.outgoing) {
-					this.renderResolvedItem(children, item, activePath, settings);
-				}
+				this.renderItemsWithCap(
+					children,
+					result.outgoing,
+					(item) => this.renderResolvedItem(children, item, activePath, settings),
+				);
 			},
 		);
 
 		this.renderSection(container, "backlinks", result.backlinks.length, collapsed,
 			(children) => {
-				for (const item of result.backlinks) {
-					this.renderResolvedItem(children, item, activePath, settings);
-				}
+				this.renderItemsWithCap(
+					children,
+					result.backlinks,
+					(item) => this.renderResolvedItem(children, item, activePath, settings),
+				);
 			},
 		);
 
@@ -306,6 +316,34 @@ export class RelationsPanel {
 		(container as unknown as AugmentedEl).createEl("div", {
 			cls: "orbit-relations-truncated",
 			text: "Showing partial results — lower the 2nd-hop cap to see all.",
+		});
+	}
+
+	/**
+	 * Render items from `list` up to RENDER_CAP, then add a "Show more" control
+	 * that renders the remaining items inline when clicked (Gap D / SDD §451).
+	 */
+	private renderItemsWithCap<T>(
+		container: HTMLElement,
+		list: T[],
+		renderOne: (item: T) => void,
+	): void {
+		if (list.length <= RENDER_CAP) {
+			for (const item of list) renderOne(item);
+			return;
+		}
+
+		for (const item of list.slice(0, RENDER_CAP)) renderOne(item);
+
+		const remaining = list.slice(RENDER_CAP);
+		const showMoreBtn = (container as unknown as AugmentedEl).createEl("button", {
+			cls: "orbit-show-more",
+			text: `Show ${remaining.length} more…`,
+		});
+
+		this.deps.registerDomEvent(showMoreBtn, "click", () => {
+			showMoreBtn.remove();
+			for (const item of remaining) renderOne(item);
 		});
 	}
 

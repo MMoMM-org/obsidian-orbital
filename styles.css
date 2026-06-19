@@ -110,6 +110,25 @@
 	border-radius: var(--radius-s);
 }
 
+/*
+ * Narrow mode (Gap C — T5.2)
+ * When .orbit-tab-bar gains the is-narrow class (set via TabBar.setNarrow()),
+ * hide the tab label text and rely on aria-label for screen-reader users.
+ * The button retains ≥44px touch targets via min-height.
+ * Icons are supplied by Obsidian's setIcon() on each button when narrow mode
+ * is active (the host is responsible for swapping text↔icon).
+ */
+.orbit-tab-bar.is-narrow [role="tab"] {
+	/* Collapse horizontal padding; the button shrinks to icon width */
+	padding: 4px;
+	min-height: 44px;
+	min-width: 44px;
+}
+
+.orbit-tab-bar.is-narrow [role="tab"] .orbit-tab-label {
+	display: none;
+}
+
 /* ── Panel container ────────────────────────────────────────────────────────*/
 
 .orbit-panel-container {
@@ -421,6 +440,27 @@
 .orbit-confirm-delete-label {
 	font-size: var(--font-small);
 	margin-bottom: 8px;
+}
+
+/* ── Show more (Gap D — T5.2) ───────────────────────────────────────────────
+   Inline "Show N more…" control rendered below truncated lists.
+   ─────────────────────────────────────────────────────────────────────────*/
+
+.orbit-show-more {
+	display: block;
+	width: 100%;
+	padding: 4px 8px;
+	font-size: var(--font-small);
+	color: var(--text-accent);
+	background: transparent;
+	border: none;
+	text-align: left;
+	cursor: pointer;
+}
+
+.orbit-show-more:hover {
+	color: var(--text-normal);
+	text-decoration: underline;
 }
 
 .orbit-confirm-checkbox-row {

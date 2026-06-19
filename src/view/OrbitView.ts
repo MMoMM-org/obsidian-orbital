@@ -187,7 +187,9 @@ export class OrbitView extends ItemView {
 			initialTab: this.state.activeTab,
 			onSelect: (tabId) => {
 				this.state = { ...this.state, activeTab: tabId };
+				this._switchingTab = true;
 				this.renderPanel(tabId);
+				this._switchingTab = false;
 			},
 			registerDomEvent: (el, type, handler) => {
 				this.registerDomEvent(el, type, handler);
@@ -233,6 +235,9 @@ export class OrbitView extends ItemView {
 			? newTab
 			: this.state.activeTab;
 
+		// Capture previous tab before updating state so we know if a tab switch occurred.
+		const prevTab = this.state.activeTab;
+
 		this.state = {
 			activeTab: resolvedTab,
 			danglingScope: incoming.danglingScope ?? this.state.danglingScope,
@@ -243,10 +248,13 @@ export class OrbitView extends ItemView {
 				: this.state.activeDanglingFilter,
 		};
 
-		// Update TabBar and panel to reflect new state
+		// Update TabBar and panel to reflect new state.
+		// Move focus into the new panel only when the tab actually changed.
 		if (this.tabBar) {
 			this.tabBar.setActiveTab(resolvedTab);
+			this._switchingTab = resolvedTab !== prevTab;
 			this.renderPanel(resolvedTab);
+			this._switchingTab = false;
 		}
 	}
 
@@ -360,23 +368,32 @@ export class OrbitView extends ItemView {
 	// Private — panel rendering
 	// -------------------------------------------------------------------------
 
+	/** Whether the current renderPanel call is triggered by a tab switch (vs passive refresh). */
+	private _switchingTab = false;
+
 	private renderPanel(tabId: TabId): void {
 		if (!this.panelContainer) return;
 
 		// Remove existing panel(s)
 		this.panelContainer.empty();
 
-		// Build the new panel
+		// Build the new panel — tabindex=-1 makes it programmatically focusable (Gap A).
 		const panelEl = this.panelContainer.createEl("div", {
 			attr: {
 				role: "tabpanel",
 				"aria-labelledby": `orbit-tab-${tabId}`,
 				id: `orbit-tab-panel-${tabId}`,
+				tabindex: "-1",
 			},
 		});
 
 		const activePath = this.app.workspace.getActiveFile()?.path ?? null;
 		const renderer = this.panelRenderers[tabId];
 		renderer(panelEl, activePath);
+
+		// Move focus into the panel only on an explicit tab switch, not on passive refresh.
+		if (this._switchingTab) {
+			panelEl.focus();
+		}
 	}
 }

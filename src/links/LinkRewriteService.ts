@@ -17,6 +17,7 @@
  *   - No undo — the confirm gate lives in T3.3 modals, not here
  */
 
+import { Notice } from "obsidian";
 import type { LinkGraphIndex } from "graph/LinkGraphIndex";
 import {
 	parseLinkAtOffset,
@@ -102,12 +103,27 @@ interface WorkspaceMinimal {
 // LinkRewriteService
 // ---------------------------------------------------------------------------
 
+/** Options to tune bulk-operation behaviour (mainly for testing). */
+export interface LinkRewriteServiceOptions {
+	/**
+	 * Number of files to process per chunk before yielding to the event loop.
+	 * Lower values keep the UI more responsive on large batches.
+	 * Default: 10. Set to 1 in tests to verify yield behaviour without needing
+	 * thousands of files.
+	 */
+	chunkSize?: number;
+}
+
+/** Default chunk size for bulk operations: yield every 10 files. */
+const DEFAULT_CHUNK_SIZE = 10;
+
 export class LinkRewriteService {
 	private readonly vault: Vault;
 	private readonly fileManager: FileManager;
 	private readonly metadataCache: MetadataCacheMinimal;
 	private readonly index: LinkGraphIndex;
 	private readonly workspace: WorkspaceMinimal;
+	private readonly chunkSize: number;
 
 	constructor(
 		vault: Vault,
@@ -115,12 +131,14 @@ export class LinkRewriteService {
 		metadataCache: MetadataCacheMinimal,
 		index: LinkGraphIndex,
 		workspace: WorkspaceMinimal,
+		options?: LinkRewriteServiceOptions,
 	) {
 		this.vault = vault;
 		this.fileManager = fileManager;
 		this.metadataCache = metadataCache;
 		this.index = index;
 		this.workspace = workspace;
+		this.chunkSize = options?.chunkSize ?? DEFAULT_CHUNK_SIZE;
 	}
 
 	// -------------------------------------------------------------------------
@@ -151,7 +169,8 @@ export class LinkRewriteService {
 
 		const result: BulkResult = { filesSucceeded: 0, filesFailed: [] };
 
-		for (const sourcePath of sourcePaths) {
+		for (let i = 0; i < sourcePaths.length; i++) {
+			const sourcePath = sourcePaths[i]!;
 			try {
 				const file = this.vault.getFileByPath(sourcePath);
 				if (file === null) {
@@ -171,8 +190,14 @@ export class LinkRewriteService {
 			} catch (err) {
 				result.filesFailed.push({ path: sourcePath, error: String(err instanceof Error ? err.message : err) });
 			}
+
+			// Yield to event loop periodically to keep UI responsive (Gap E / SDD §575).
+			if ((i + 1) % this.chunkSize === 0) {
+				await yieldToEventLoop();
+			}
 		}
 
+		this.surfaceBulkProgress(result, sourcePaths.length);
 		return result;
 	}
 
@@ -187,7 +212,8 @@ export class LinkRewriteService {
 		// Derive the display target from the real note path basename
 		const realTarget = basenameFromPath(realNotePath);
 
-		for (const sourcePath of sourcePaths) {
+		for (let i = 0; i < sourcePaths.length; i++) {
+			const sourcePath = sourcePaths[i]!;
 			try {
 				const file = this.vault.getFileByPath(sourcePath);
 				if (file === null) {
@@ -202,8 +228,13 @@ export class LinkRewriteService {
 			} catch (err) {
 				result.filesFailed.push({ path: sourcePath, error: String(err instanceof Error ? err.message : err) });
 			}
+
+			if ((i + 1) % this.chunkSize === 0) {
+				await yieldToEventLoop();
+			}
 		}
 
+		this.surfaceBulkProgress(result, sourcePaths.length);
 		return result;
 	}
 
@@ -224,7 +255,8 @@ export class LinkRewriteService {
 
 		const result: BulkResult = { filesSucceeded: 0, filesFailed: [] };
 
-		for (const sourcePath of sourcePaths) {
+		for (let i = 0; i < sourcePaths.length; i++) {
+			const sourcePath = sourcePaths[i]!;
 			try {
 				const file = this.vault.getFileByPath(sourcePath);
 				if (file === null) {
@@ -239,9 +271,31 @@ export class LinkRewriteService {
 			} catch (err) {
 				result.filesFailed.push({ path: sourcePath, error: String(err instanceof Error ? err.message : err) });
 			}
+
+			if ((i + 1) % this.chunkSize === 0) {
+				await yieldToEventLoop();
+			}
 		}
 
+		this.surfaceBulkProgress(result, sourcePaths.length);
 		return result;
+	}
+
+	// ---------------------------------------------------------------------------
+	// Private — bulk progress helpers (Gap E)
+	// ---------------------------------------------------------------------------
+
+	/**
+	 * Emit a single summary Notice after a bulk operation.
+	 * Keeps UX feedback consistent whether the caller (DanglingPanel) shows its
+	 * own aria-live update or not.
+	 */
+	private surfaceBulkProgress(result: BulkResult, total: number): void {
+		const failed = result.filesFailed.length;
+		const msg = failed === 0
+			? `Updated ${result.filesSucceeded} of ${total} files.`
+			: `Updated ${result.filesSucceeded} of ${total} files; ${failed} failed.`;
+		new Notice(msg);
 	}
 
 	// ---------------------------------------------------------------------------
@@ -479,4 +533,13 @@ function basenameFromPath(filePath: string): string {
 	const filename = lastSlash === -1 ? filePath : filePath.slice(lastSlash + 1);
 	const lastDot = filename.lastIndexOf(".");
 	return lastDot === -1 ? filename : filename.slice(0, lastDot);
+}
+
+/**
+ * Yield control to the event loop so the browser/renderer can process pending
+ * UI events between bulk-file iterations (Gap E / SDD §575).
+ * Uses a `setTimeout(0)` macrotask so DOM updates are visible between chunks.
+ */
+function yieldToEventLoop(): Promise<void> {
+	return new Promise<void>((resolve) => window.setTimeout(resolve, 0));
 }

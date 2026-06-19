@@ -31,6 +31,11 @@ export interface TabBarOptions {
 	/** DOM id prefix for tab buttons — used by aria-controls. */
 	idPrefix?: string;
 	/**
+	 * Called whenever the narrow state changes (true = is-narrow class added).
+	 * Allows the host to react to the collapse/expand without polling the DOM.
+	 */
+	onNarrowChange?: (isNarrow: boolean) => void;
+	/**
 	 * DOM event registration delegate. Supply `this.registerDomEvent` from
 	 * the owning ItemView/Component so that tab-button listeners are tracked
 	 * in Obsidian's cleanup chain and torn down on view unload.
@@ -58,6 +63,7 @@ export class TabBar {
 		type: K,
 		handler: (ev: HTMLElementEventMap[K]) => void,
 	) => void;
+	private tablistEl: HTMLElement | null = null;
 
 	constructor(
 		private readonly container: HTMLElement,
@@ -86,6 +92,16 @@ export class TabBar {
 		this.updateButtonStates(tabId);
 	}
 
+	/**
+	 * Toggle the is-narrow class on the tablist element.
+	 * When narrow=true, CSS rules collapse tab labels to icon-only.
+	 * Called by the host when it detects a narrow container width (Gap C).
+	 */
+	setNarrow(narrow: boolean): void {
+		if (this.tablistEl === null) return;
+		this.tablistEl.classList.toggle("is-narrow", narrow);
+	}
+
 	// -------------------------------------------------------------------------
 	// Private — DOM construction
 	// -------------------------------------------------------------------------
@@ -98,6 +114,9 @@ export class TabBar {
 				class: "orbit-tab-bar nav-buttons-container",
 			},
 		});
+
+		// Store a reference so setNarrow can toggle is-narrow on it.
+		this.tablistEl = tablist;
 
 		for (const def of TAB_DEFINITIONS) {
 			this.buildTabButton(tablist, def);

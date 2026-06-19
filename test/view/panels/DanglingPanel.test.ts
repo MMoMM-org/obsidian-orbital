@@ -909,3 +909,86 @@ describe("DanglingPanel XSS safety", () => {
 		expect(found).toBe(true);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// T5.2 — Gap D: list truncation with "Show more" for large DanglingPanel groups
+// ---------------------------------------------------------------------------
+
+describe("DanglingPanel list truncation (Gap D)", () => {
+	/** Build unresolved links with `count` distinct dangling targets from one source. */
+	function buildManyTargets(count: number): Record<string, Record<string, number>> {
+		const targets: Record<string, number> = {};
+		for (let i = 0; i < count; i++) {
+			targets[`Target${i}`] = 1;
+		}
+		return { "notes/source.md": targets };
+	}
+
+	it("renders all target groups when count is within RENDER_CAP (≤100)", () => {
+		const deps = makeDeps({
+			unresolved: buildManyTargets(5),
+			grouping: "target",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const groups = container.querySelectorAll(".orbit-dangling-group");
+		expect(groups.length).toBe(5);
+	});
+
+	it("renders only first RENDER_CAP (~100) target groups when list exceeds cap", () => {
+		const deps = makeDeps({
+			unresolved: buildManyTargets(110),
+			grouping: "target",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const groups = container.querySelectorAll(".orbit-dangling-group");
+		expect(groups.length).toBeLessThanOrEqual(100);
+	});
+
+	it("renders a 'Show more' control when target groups exceed RENDER_CAP", () => {
+		const deps = makeDeps({
+			unresolved: buildManyTargets(110),
+			grouping: "target",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const showMore = container.querySelector(".orbit-show-more");
+		expect(showMore).not.toBeNull();
+	});
+
+	it("does not render 'Show more' when target groups are within cap", () => {
+		const deps = makeDeps({
+			unresolved: buildManyTargets(5),
+			grouping: "target",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const showMore = container.querySelector(".orbit-show-more");
+		expect(showMore).toBeNull();
+	});
+
+	it("clicking 'Show more' reveals all target groups", () => {
+		const deps = makeDeps({
+			unresolved: buildManyTargets(110),
+			grouping: "target",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const showMoreBtn = container.querySelector(".orbit-show-more") as HTMLElement;
+		showMoreBtn.click();
+
+		const groups = container.querySelectorAll(".orbit-dangling-group");
+		expect(groups.length).toBe(110);
+	});
+});

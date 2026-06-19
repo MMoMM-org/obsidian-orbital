@@ -98,6 +98,13 @@ interface AugmentedEl {
 // RecentPanel
 // ---------------------------------------------------------------------------
 
+/**
+ * Maximum number of rows rendered before a "Show more" control appears.
+ * RecentPanel is normally bounded by recentListLength (default 20), but
+ * guard against cases where the store grows unbounded (SDD §451).
+ */
+const RENDER_CAP = 100;
+
 export class RecentPanel {
 	private readonly deps: RecentPanelDeps;
 	private container: HTMLElement | null = null;
@@ -128,8 +135,32 @@ export class RecentPanel {
 			cls: "orbit-recent-list",
 		});
 
-		for (const entry of entries) {
+		this.renderRowsWithCap(list, Array.from(entries), collisionSet);
+	}
+
+	private renderRowsWithCap(
+		list: HTMLElement,
+		entries: RecentFileEntry[],
+		collisionSet: Set<string>,
+	): void {
+		const visible = entries.slice(0, RENDER_CAP);
+		for (const entry of visible) {
 			this.renderRow(list, entry, collisionSet.has(entry.basename));
+		}
+
+		if (entries.length > RENDER_CAP) {
+			const overflow = entries.slice(RENDER_CAP);
+			const showMoreBtn = (list as unknown as AugmentedEl).createEl("button", {
+				cls: "orbit-show-more",
+				text: `Show ${overflow.length} more…`,
+			});
+
+			this.deps.registerDomEvent(showMoreBtn, "click", () => {
+				showMoreBtn.remove();
+				for (const entry of overflow) {
+					this.renderRow(list, entry, collisionSet.has(entry.basename));
+				}
+			});
 		}
 	}
 
@@ -210,7 +241,7 @@ export class RecentPanel {
 		}
 
 		// Remove button
-		this.renderRemoveBtn(actions, entry);
+		this.renderRemoveBtn(actions, row, entry);
 
 		// Click: open file
 		this.deps.registerDomEvent(row, "click", (evt) => {
@@ -231,7 +262,11 @@ export class RecentPanel {
 	// Private — action buttons
 	// -------------------------------------------------------------------------
 
-	private renderRemoveBtn(container: HTMLElement, entry: RecentFileEntry): void {
+	private renderRemoveBtn(
+		container: HTMLElement,
+		row: HTMLElement,
+		entry: RecentFileEntry,
+	): void {
 		const btn = (container as unknown as AugmentedEl).createEl("button", {
 			cls: "clickable-icon orbit-recent-action-btn",
 			attr: { "aria-label": "Remove from recent list" },
@@ -241,10 +276,40 @@ export class RecentPanel {
 
 		this.deps.registerDomEvent(btn, "click", (evt) => {
 			evt.stopPropagation();
+			// Capture focus target before the re-render removes the row (Gap B).
+			const nextFocus = this.findSiblingRow(row, "next") ?? this.findSiblingRow(row, "prev");
 			void this.deps.store.removeOne(entry.path).then(() => {
-				if (this.container !== null) this.render(this.container);
+				if (this.container !== null) {
+					const currentContainer = this.container;
+					this.render(currentContainer);
+					// Focus the sibling row that was next/prev before removal, or the first
+					// row in the re-rendered list if the sibling was also removed.
+					// Use a manual attribute selector; paths don't contain characters
+					// that break attribute matching when wrapped in double quotes.
+					const escapedPath = nextFocus !== null
+						? nextFocus.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
+						: null;
+					const target = escapedPath !== null
+						? currentContainer.querySelector<HTMLElement>(`[data-path="${escapedPath}"]`)
+						: currentContainer.querySelector<HTMLElement>(".orbit-recent-row");
+					target?.focus();
+				}
 			});
 		});
+	}
+
+	/**
+	 * Returns the data-path of the next or previous .orbit-recent-row sibling
+	 * relative to `row` within the same list container, or null if none exists.
+	 */
+	private findSiblingRow(row: HTMLElement, direction: "next" | "prev"): string | null {
+		const parent = row.parentElement;
+		if (parent === null) return null;
+		const rows = Array.from(parent.querySelectorAll(".orbit-recent-row"));
+		const idx = rows.indexOf(row);
+		if (idx === -1) return null;
+		const sibling = direction === "next" ? rows[idx + 1] : rows[idx - 1];
+		return sibling?.getAttribute("data-path") ?? null;
 	}
 
 	private renderInsertBtn(container: HTMLElement, entry: RecentFileEntry): void {

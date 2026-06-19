@@ -17,8 +17,8 @@
  *   - Multi-link-per-file ordering (descending offset)
  */
 
-import { describe, it, expect, vi } from "vitest";
-import { App, TFile, createMockTFile } from "../__mocks__/obsidian";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { App, Notice, TFile, createMockTFile } from "../__mocks__/obsidian";
 import { LinkGraphIndex } from "graph/LinkGraphIndex";
 import { LinkRewriteService } from "links/LinkRewriteService";
 
@@ -740,5 +740,176 @@ describe("applyDelete — scope folder filter", () => {
 		expect(firstCall).toBeDefined();
 		const calledFile = firstCall?.[0] as TFile;
 		expect(calledFile.path).toBe("folder/A.md");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// T5.2 — Gap E: bulk yield + progress Notice
+// ---------------------------------------------------------------------------
+
+describe("BulkResult — periodic yield and progress Notice (Gap E)", () => {
+	beforeEach(() => {
+		Notice._reset();
+	});
+	afterEach(() => {
+		Notice._reset();
+	});
+
+	/**
+	 * Seed N distinct files each referencing the same dangling target.
+	 * Returns the list of file paths.
+	 */
+	function seedManyFiles(app: App, index: LinkGraphIndex, target: string, count: number): string[] {
+		const paths: string[] = [];
+		for (let i = 0; i < count; i++) {
+			const p = `notes/file-${i}.md`;
+			paths.push(p);
+			app.metadataCache.unresolvedLinks[p] = { [target]: 1 };
+		}
+		index.buildFull();
+		return paths;
+	}
+
+	it("emits a final progress Notice summarising the result after applyRename", async () => {
+		const app = makeApp();
+		const index = makeIndex(app);
+		const paths = seedManyFiles(app, index, "Target", 3);
+
+		vi.mocked(app.vault.getAbstractFileByPath).mockReturnValue(null);
+		vi.mocked(app.vault.getFileByPath).mockImplementation(
+			(path: string) => paths.includes(path) ? createMockTFile({ path }) : null,
+		);
+		vi.mocked(app.metadataCache.getFileCache).mockReturnValue(
+			makeCacheWithLinks([{ start: 0, end: 10 }]),
+		);
+		vi.mocked(app.vault.process).mockImplementation(
+			async (_file: TFile, transform: (data: string) => string) => transform("[[Target]]"),
+		);
+
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		await svc.applyRename("Target", "NewTarget", {});
+
+		// At least one Notice should have been emitted (progress or final)
+		expect(Notice._instances.length).toBeGreaterThan(0);
+		// The final notice should mention the count
+		const messages = Notice._instances.map((n) => n.message);
+		const hasSummary = messages.some((m) => /3|updated/i.test(m));
+		expect(hasSummary).toBe(true);
+	});
+
+	it("emits a final progress Notice after applyAlias", async () => {
+		const app = makeApp();
+		const index = makeIndex(app);
+		const paths = seedManyFiles(app, index, "Target", 2);
+
+		vi.mocked(app.vault.getAbstractFileByPath).mockReturnValue(null);
+		vi.mocked(app.vault.getFileByPath).mockImplementation(
+			(path: string) => paths.includes(path) ? createMockTFile({ path }) : null,
+		);
+		vi.mocked(app.metadataCache.getFileCache).mockReturnValue(
+			makeCacheWithLinks([{ start: 0, end: 10 }]),
+		);
+		vi.mocked(app.vault.process).mockImplementation(
+			async (_file: TFile, transform: (data: string) => string) => transform("[[Target]]"),
+		);
+
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		await svc.applyAlias("Target", "notes/RealNote.md", {});
+
+		expect(Notice._instances.length).toBeGreaterThan(0);
+	});
+
+	it("emits a final progress Notice after applyDelete", async () => {
+		const app = makeApp();
+		const index = makeIndex(app);
+		const paths = seedManyFiles(app, index, "Target", 2);
+
+		vi.mocked(app.vault.getAbstractFileByPath).mockReturnValue(null);
+		vi.mocked(app.vault.getFileByPath).mockImplementation(
+			(path: string) => paths.includes(path) ? createMockTFile({ path }) : null,
+		);
+		vi.mocked(app.metadataCache.getFileCache).mockReturnValue(
+			makeCacheWithLinks([{ start: 0, end: 10 }]),
+		);
+		vi.mocked(app.vault.process).mockImplementation(
+			async (_file: TFile, transform: (data: string) => string) => transform("[[Target]]"),
+		);
+
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		await svc.applyDelete("Target", {}, false);
+
+		expect(Notice._instances.length).toBeGreaterThan(0);
+	});
+
+	it("accepts an injectable chunkSize parameter to control yield frequency", async () => {
+		// With chunkSize=1 on 3 files, we get 3 yields — the service should accept
+		// this parameter without error. We verify it completes successfully.
+		const app = makeApp();
+		const index = makeIndex(app);
+		const paths = seedManyFiles(app, index, "Target", 3);
+
+		vi.mocked(app.vault.getAbstractFileByPath).mockReturnValue(null);
+		vi.mocked(app.vault.getFileByPath).mockImplementation(
+			(path: string) => paths.includes(path) ? createMockTFile({ path }) : null,
+		);
+		vi.mocked(app.metadataCache.getFileCache).mockReturnValue(
+			makeCacheWithLinks([{ start: 0, end: 10 }]),
+		);
+		vi.mocked(app.vault.process).mockImplementation(
+			async (_file: TFile, transform: (data: string) => string) => transform("[[Target]]"),
+		);
+
+		// chunkSize=1 means yield after every single file
+		const svc = new LinkRewriteService(
+			app.vault,
+			app.fileManager,
+			app.metadataCache,
+			index,
+			app.workspace,
+			{ chunkSize: 1 },
+		);
+		const result = await svc.applyRename("Target", "NewTarget", {});
+
+		expect(result.filesSucceeded).toBe(3);
+		expect(result.filesFailed).toEqual([]);
+	});
+
+	it("progress notice includes failure count when some files fail", async () => {
+		const app = makeApp();
+		const index = makeIndex(app);
+
+		// 3 files: 2 succeed, 1 fails
+		const goodPaths = ["notes/A.md", "notes/B.md"];
+		const badPath = "notes/Bad.md";
+		app.metadataCache.unresolvedLinks["notes/A.md"] = { Target: 1 };
+		app.metadataCache.unresolvedLinks["notes/B.md"] = { Target: 1 };
+		app.metadataCache.unresolvedLinks["notes/Bad.md"] = { Target: 1 };
+		index.buildFull();
+
+		vi.mocked(app.vault.getAbstractFileByPath).mockReturnValue(null);
+		vi.mocked(app.vault.getFileByPath).mockImplementation((path: string) => {
+			if (goodPaths.includes(path)) return createMockTFile({ path });
+			if (path === badPath) return createMockTFile({ path });
+			return null;
+		});
+		vi.mocked(app.metadataCache.getFileCache).mockReturnValue(
+			makeCacheWithLinks([{ start: 0, end: 10 }]),
+		);
+		vi.mocked(app.vault.process).mockImplementation(
+			async (file: TFile, transform: (data: string) => string) => {
+				if (file.path === badPath) throw new Error("write failed");
+				return transform("[[Target]]");
+			},
+		);
+
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const result = await svc.applyRename("Target", "NewTarget", {});
+
+		expect(result.filesSucceeded).toBe(2);
+		expect(result.filesFailed).toHaveLength(1);
+		// Summary notice should mention the failure count
+		const messages = Notice._instances.map((n) => n.message);
+		const hasFailed = messages.some((m) => /fail|1/i.test(m));
+		expect(hasFailed).toBe(true);
 	});
 });

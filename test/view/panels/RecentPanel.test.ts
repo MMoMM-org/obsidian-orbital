@@ -522,3 +522,155 @@ describe("RecentPanel mobile insert action", () => {
 		expect(insertBtn).toBeNull();
 	});
 });
+
+// ---------------------------------------------------------------------------
+// T5.2 — Gap B: focus moves to next sibling row after removal
+// ---------------------------------------------------------------------------
+
+describe("RecentPanel focus management after row removal (Gap B)", () => {
+	it("after removing the first row, the re-rendered panel focuses the row that was next", async () => {
+		const deps = makeDeps({
+			entries: [
+				{ path: "notes/alpha.md", basename: "alpha" },
+				{ path: "notes/beta.md", basename: "beta" },
+				{ path: "notes/gamma.md", basename: "gamma" },
+			],
+		});
+		const panel = new RecentPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		// Capture all focus() calls that happen during/after re-render.
+		// We patch HTMLElement.prototype.focus to record which data-path received focus.
+		const focusedPaths: string[] = [];
+		const origFocus = HTMLElement.prototype.focus;
+		HTMLElement.prototype.focus = function (this: HTMLElement) {
+			const path = this.getAttribute("data-path");
+			if (path !== null) focusedPaths.push(path);
+			origFocus.call(this);
+		};
+
+		try {
+			// Click the remove button on the first row (alpha)
+			const removeBtns = container.querySelectorAll("[aria-label='Remove from recent list']");
+			(removeBtns[0] as HTMLElement).click();
+
+			await vi.waitFor(() => {
+				// After re-render, two rows remain
+				expect(container.querySelectorAll(".orbit-recent-row").length).toBe(2);
+			});
+
+			// Focus should have been moved to the row that was next (beta)
+			expect(focusedPaths).toContain("notes/beta.md");
+		} finally {
+			HTMLElement.prototype.focus = origFocus;
+		}
+	});
+
+	it("after removing the last row, focus moves to the previous row", async () => {
+		const deps = makeDeps({
+			entries: [
+				{ path: "notes/alpha.md", basename: "alpha" },
+				{ path: "notes/beta.md", basename: "beta" },
+			],
+		});
+		const panel = new RecentPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		// Click remove on the last (second) row
+		const removeBtns = container.querySelectorAll("[aria-label='Remove from recent list']");
+		(removeBtns[1] as HTMLElement).click();
+
+		await vi.waitFor(() => {
+			const rows = container.querySelectorAll(".orbit-recent-row");
+			expect(rows.length).toBe(1);
+		});
+
+		// The single remaining row (alpha) should exist
+		const rows = container.querySelectorAll(".orbit-recent-row");
+		expect(rows[0]?.getAttribute("data-path")).toBe("notes/alpha.md");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// T5.2 — Gap D: list truncation with "Show more" button
+// ---------------------------------------------------------------------------
+
+describe("RecentPanel list truncation (Gap D)", () => {
+	it("renders all entries when count is below the render cap (≤100)", () => {
+		const entries = Array.from({ length: 20 }, (_, i) => ({
+			path: `notes/file-${i}.md`,
+			basename: `file-${i}`,
+		}));
+		const deps = makeDeps({ entries });
+		const panel = new RecentPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const rows = container.querySelectorAll(".orbit-recent-row");
+		expect(rows.length).toBe(20);
+	});
+
+	it("renders only the first RENDER_CAP rows (≈100) when list exceeds cap", () => {
+		const entries = Array.from({ length: 120 }, (_, i) => ({
+			path: `notes/file-${i}.md`,
+			basename: `file-${i}`,
+		}));
+		const deps = makeDeps({ entries });
+		const panel = new RecentPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		// Only ~100 rows rendered initially (exact cap may be 100)
+		const rows = container.querySelectorAll(".orbit-recent-row");
+		expect(rows.length).toBeLessThanOrEqual(100);
+	});
+
+	it("renders a 'Show more' button when list exceeds render cap", () => {
+		const entries = Array.from({ length: 120 }, (_, i) => ({
+			path: `notes/file-${i}.md`,
+			basename: `file-${i}`,
+		}));
+		const deps = makeDeps({ entries });
+		const panel = new RecentPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const showMore = container.querySelector(".orbit-show-more");
+		expect(showMore).not.toBeNull();
+	});
+
+	it("does not render a 'Show more' button when list is within cap", () => {
+		const entries = Array.from({ length: 20 }, (_, i) => ({
+			path: `notes/file-${i}.md`,
+			basename: `file-${i}`,
+		}));
+		const deps = makeDeps({ entries });
+		const panel = new RecentPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const showMore = container.querySelector(".orbit-show-more");
+		expect(showMore).toBeNull();
+	});
+
+	it("clicking 'Show more' renders all remaining rows", async () => {
+		const entries = Array.from({ length: 120 }, (_, i) => ({
+			path: `notes/file-${i}.md`,
+			basename: `file-${i}`,
+		}));
+		const deps = makeDeps({ entries });
+		const panel = new RecentPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const showMoreBtn = container.querySelector(".orbit-show-more") as HTMLElement;
+		expect(showMoreBtn).not.toBeNull();
+		showMoreBtn.click();
+
+		// After clicking, all 120 rows should be rendered
+		const rows = container.querySelectorAll(".orbit-recent-row");
+		expect(rows.length).toBe(120);
+	});
+});
