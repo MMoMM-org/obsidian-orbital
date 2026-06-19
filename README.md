@@ -49,13 +49,13 @@ Most-recent-first list of opened notes. Configurable list length and folder excl
 
 ## Prior art and attribution
 
-Orbit consolidates what previously required three separate plugins. It draws inspiration from the following MIT-licensed projects (the code is a complete reimplementation — see ADR-3):
+Orbit consolidates what previously required three separate plugins. It draws inspiration from the following prior art:
 
-- [obsidian-relation-pane](https://github.com/mdelobelle/obsidian-relation-pane) by mdelobelle — relation/connection viewer
-- [obsidian-dangling-links](https://github.com/graydon/obsidian-dangling-links) by graydon — dangling/broken-link viewer
-- [recent-files-obsidian](https://github.com/tgrosinger/recent-files-obsidian) by tgrosinger — recent files list
+- [obsidian-relation-pane](https://github.com/mottox2/obsidian-relation-pane) by mottox2 — relation/connection viewer (MIT)
+- [obsidian-dangling-links](https://github.com/graydon/obsidian-dangling-links) by graydon — dangling/broken-link viewer (MIT)
+- [recent-files-obsidian](https://github.com/tgrosinger/recent-files-obsidian) by tgrosinger — recent files list (GPL-3.0)
 
-All three are MIT licensed. Credit and thanks to their authors.
+The MIT-licensed projects (obsidian-relation-pane, obsidian-dangling-links) informed the implementation; credit and thanks to their authors. recent-files-obsidian is GPL-3.0 licensed — its functionality was reimplemented from scratch using it as a pattern reference only; no GPL code was copied into this MIT-licensed plugin.
 
 ## Development
 
