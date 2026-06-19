@@ -507,20 +507,6 @@ describe("AC3 — Dangling Links tab", () => {
 
 	it("AC3.3: Rename/merge shows preview with occurrences/files count, rewrites on confirm", async () => {
 		// AC: AC3.3
-		const { view } = await buildWiredView({
-			"notes/a.md": { OldTarget: 2 },
-			"notes/b.md": { OldTarget: 1 },
-		});
-
-		let confirmCallback: ((name: string) => void) | undefined;
-		const mockService = {
-			previewRename: vi.fn(async () => ({ occurrences: 3, files: [{ path: "notes/a.md", count: 2 }, { path: "notes/b.md", count: 1 }] })),
-			applyRename: vi.fn(async () => ({ filesSucceeded: 2, filesFailed: [] })),
-			applyAlias: vi.fn(async () => ({ filesSucceeded: 2, filesFailed: [] })),
-			applyDelete: vi.fn(async () => ({ filesSucceeded: 2, filesFailed: [] })),
-		};
-
-		// Override the service on the dangling panel by accessing it through the DanglingDeps
 		// Build a custom wired view with a mock service
 		const app = makeApp();
 		app.metadataCache.unresolvedLinks = { "notes/a.md": { OldTarget: 2 }, "notes/b.md": { OldTarget: 1 } };
@@ -528,8 +514,14 @@ describe("AC3 — Dangling Links tab", () => {
 		const plugin = await makePlugin(app);
 		await plugin.onload();
 
+		// Spy on the real LinkRewriteService.previewRename BEFORE the button click so we
+		// can assert it was invoked with the correct target — this is the key AC3.3 behaviour
+		// (preview is fetched before the modal opens).
+		const { LinkRewriteService } = await import("links/LinkRewriteService");
+		const previewRenameSpy = vi.spyOn(LinkRewriteService.prototype, "previewRename");
+
 		// The real plugin builds its own service — we test through the assembled view
-		// by patching ConfirmRewriteModal to capture and immediately call onConfirm.
+		// by using the real ConfirmRewriteModal (mock Modal fires onOpen synchronously).
 		const factory = vi.mocked(plugin.registerView).mock.calls[0]?.[1] as (leaf: WorkspaceLeaf) => unknown;
 		const { OrbitView } = await import("view/OrbitView");
 		const leaf = new WorkspaceLeaf();
@@ -547,16 +539,14 @@ describe("AC3 — Dangling Links tab", () => {
 		const renameBtn = wiredView.contentEl.querySelector("[aria-label='Rename dangling link']") as HTMLElement;
 		expect(renameBtn).not.toBeNull();
 
-		// Clicking opens ConfirmRewriteModal — modal is real but vault.process is mocked
-		// We can assert the rename button is present and wired (the actual apply is tested in unit tests)
+		// Clicking triggers DanglingPanel._handleRename → service.previewRename → modal.open()
 		renameBtn.click();
 		await tick(20);
 
-		// The preview was requested (service.previewRename was called) — in the assembled
-		// view the real service's previewRename reads from the real index
-		// Observable: ConfirmRewriteModal was opened (it fires onOpen via the mock Modal)
-		// Since the mock Modal.open() calls onOpen() immediately, we just assert no throw.
-		expect(renameBtn).not.toBeNull(); // sanity
+		// Assert the real previewRename was called with the dangling target "OldTarget".
+		// This proves the rename flow reached the service layer (not a no-op).
+		expect(previewRenameSpy).toHaveBeenCalledWith("OldTarget", expect.any(Object));
+		previewRenameSpy.mockRestore();
 	});
 
 	it("AC3.3 end-to-end: preview shows 'X occurrences in Y files' text via modal", async () => {
@@ -619,10 +609,16 @@ describe("AC3 — Dangling Links tab", () => {
 		renameBtn.click();
 		await tick(20);
 
+		// Preview was fetched: assert content shows 3 occurrences across 2 files
 		expect(mockService.previewRename).toHaveBeenCalledWith("OldTarget", expect.any(Object));
 		expect(capturedPreview).not.toBeNull();
 		expect(capturedPreview!.occurrences).toBe(3);
 		expect(capturedPreview!.files).toHaveLength(2);
+
+		// Rewrite fired on confirm: MockConfirmModal.open() immediately calls onConfirm("NewName"),
+		// which triggers DanglingPanel._handleRename to call service.applyRename.
+		// Assert the rewrite was called with the correct target and new name.
+		expect(mockService.applyRename).toHaveBeenCalledWith("OldTarget", "NewName", expect.any(Object));
 	});
 
 	it("AC3.4: Change to alias → picks existing note, rewrites to [[target|alias]]", async () => {
@@ -1066,33 +1062,52 @@ describe("AC4 — Recent Files tab", () => {
 
 	it("AC4.3: desktop drag entry into editor fires dragHelper.onDragStart (inserts [[wikilink]] at drop)", async () => {
 		// AC: AC4.3
-		// NOTE: The actual drop-into-editor insertion is handled by DragInsertHelper
-		// (unit-tested in test/recent/DragInsertHelper.test.ts). Here we assert that
-		// dragstart on a row calls the injected drag helper — which is the observable
-		// boundary RecentPanel owns. jsdom cannot simulate a real drop into an editor.
-		const { plugin, view } = await buildWiredView();
+		// Use the same direct-inject pattern as AC4.4: construct RecentPanel with a mock
+		// dragHelper so we can assert onDragStart is called with the file's path.
+		// jsdom does not implement DragEvent — dispatch a plain 'dragstart' Event.
+		// The actual drop-into-editor insertion is handled by DragInsertHelper
+		// (unit-tested in test/recent/DragInsertHelper.test.ts).
+		const { augmentEl } = await import("../__mocks__/obsidian");
+		const { RecentPanel } = await import("view/panels/RecentPanel");
 
-		await plugin._recentStore.onFileOpen("notes/dragme.md", "dragme");
+		const onDragStart = vi.fn();
+		const insertAtCursor = vi.fn();
+		const store = {
+			list: () => [{ path: "notes/dragme.md", basename: "dragme" }],
+			removeOne: vi.fn(async () => {}),
+			clear: vi.fn(async () => {}),
+			delete: vi.fn(async () => {}),
+		};
 
-		const recentTab = view.contentEl.querySelector("[data-tab-id='recent']") as HTMLElement;
-		recentTab.click();
-		view.refreshActivePanel();
-		await tick();
+		const container = augmentEl(document.createElement("div"));
+		const panel = new RecentPanel({
+			store,
+			app: {
+				workspace: {
+					getLeaf: vi.fn(() => ({ openLinkText: vi.fn(async () => {}) })),
+				},
+				vault: {
+					getAbstractFileByPath: vi.fn(() => null),
+				},
+			},
+			dragHelper: { onDragStart, insertAtCursor },
+			registerDomEvent: (el, type, handler) => el.addEventListener(type, handler as EventListener),
+		});
 
-		// The real DragInsertHelper is wired into the plugin — spy on its onDragStart
-		const dragHelper = (plugin as unknown as { _recentStore: { deps?: unknown }; _buildRecentDeps?: () => unknown })
-			._recentStore;
+		panel.render(container);
 
-		// We verify that the row has draggable=true and that dragstart is wired
-		// (the actual editor drop insertion is tested in DragInsertHelper unit tests).
-		// NOTE: jsdom does not implement DragEvent — use Event with type 'dragstart'.
-		const row = view.contentEl.querySelector(".orbit-recent-row") as HTMLElement;
+		const row = container.querySelector(".orbit-recent-row") as HTMLElement;
 		expect(row).not.toBeNull();
 		expect(row.getAttribute("draggable")).toBe("true");
 
-		// dragstart fires without throwing (real DragInsertHelper handles it)
+		// Dispatch dragstart — jsdom cannot produce DragEvent but the wiring uses the
+		// event object generically (passed through to dragHelper.onDragStart).
+		// RecentPanel wires: registerDomEvent(row, "dragstart", evt => dragHelper.onDragStart(evt, entry.path))
 		const dragEvent = new Event("dragstart", { bubbles: true });
-		expect(() => row.dispatchEvent(dragEvent)).not.toThrow();
+		row.dispatchEvent(dragEvent);
+
+		// Assert the wiring: onDragStart was called with the row's file path.
+		expect(onDragStart).toHaveBeenCalledWith(expect.anything(), "notes/dragme.md");
 	});
 
 	it("AC4.4: mobile (Platform.isMobile) insert action → 'Insert link' button appears and calls insertAtCursor", async () => {
@@ -1172,24 +1187,64 @@ describe("AC4 — Recent Files tab", () => {
 
 	it("AC4.5: tag exclusion — files with excluded tags don't appear", async () => {
 		// AC: AC4.5
-		const { plugin, view } = await buildWiredView();
+		// Wire vault + metadataCache so that "notes/archived.md" resolves to a TFile
+		// with frontmatter tag "archive". The production path is:
+		//   onFileOpen → _isExcluded → ExclusionMatcher.isExcluded
+		//              → getFileCache(file).frontmatter.tags → tag match.
+		const { createMockTFile } = await import("../__mocks__/obsidian");
+
+		const app = makeApp();
+
+		// Create a real TFile instance for the archived note so instanceof TFile passes.
+		const archivedFile = createMockTFile({ path: "notes/archived.md", basename: "archived" });
+		const activeFile = createMockTFile({ path: "notes/active.md", basename: "active" });
+
+		// Vault resolves paths to TFile instances.
+		vi.mocked(app.vault.getAbstractFileByPath).mockImplementation((path: string) => {
+			if (path === "notes/archived.md") return archivedFile;
+			if (path === "notes/active.md") return activeFile;
+			return null;
+		});
+
+		// MetadataCache returns frontmatter tags for the archived file only.
+		vi.mocked(app.metadataCache.getFileCache).mockImplementation((file) => {
+			if (file.path === "notes/archived.md") {
+				return { frontmatter: { tags: ["archive"] } };
+			}
+			return null;
+		});
+
+		const plugin = await makePlugin(app);
+		await plugin.onload();
 
 		plugin.settings.excludeTagPatterns = ["archive"];
 
-		// Open a file without tag (won't be excluded at open time since tag exclusion
-		// checks vault cache — store just records it)
+		// Build and wire the view manually (same pattern as AC3.3 first subtest).
+		const factory = vi.mocked(plugin.registerView).mock.calls[0]?.[1] as (leaf: WorkspaceLeaf) => unknown;
+		const { OrbitView } = await import("view/OrbitView");
+		const leaf = new WorkspaceLeaf();
+		const wiredView = factory(leaf) as InstanceType<typeof OrbitView>;
+		(leaf as unknown as { view: unknown }).view = wiredView;
+		vi.mocked(app.workspace.getLeavesOfType).mockReturnValue([leaf] as WorkspaceLeaf[]);
+		plugin._index.buildFull();
+		await wiredView.onOpen();
+
+		// Open both files: archived.md should be excluded (tag match), active.md should pass.
 		await plugin._recentStore.onFileOpen("notes/archived.md", "archived");
 		await plugin._recentStore.onFileOpen("notes/active.md", "active");
 
-		const recentTab = view.contentEl.querySelector("[data-tab-id='recent']") as HTMLElement;
+		const recentTab = wiredView.contentEl.querySelector("[data-tab-id='recent']") as HTMLElement;
 		recentTab.click();
-		view.refreshActivePanel();
+		wiredView.refreshActivePanel();
 		await tick();
 
-		// Both files appear in recent (tag exclusion happens at open-time via isExcluded;
-		// since the mock vault returns null for getAbstractFileByPath, only path exclusion
-		// is applied). This test verifies tag exclusion patterns ARE stored in settings.
-		expect(plugin.settings.excludeTagPatterns).toContain("archive");
+		const rows = wiredView.contentEl.querySelectorAll(".orbit-recent-row");
+		const paths = Array.from(rows).map((r) => r.getAttribute("data-path"));
+
+		// The archived file was excluded at open-time (tag exclusion exercised the real path).
+		expect(paths).not.toContain("notes/archived.md");
+		// The non-excluded file is present.
+		expect(paths).toContain("notes/active.md");
 	});
 
 	it("AC4.6: file renamed → list updates (rename event updates entry)", async () => {
@@ -1442,6 +1497,12 @@ describe("AC6 — Settings", () => {
 
 	it("AC6.2: change a setting → persisted + reflected in pane without full restart", async () => {
 		// AC: AC6.2
+		// Part 1: verify persistence via the settings tab (existing coverage).
+		// Part 2 (NEW): verify the Recent panel reflects the updated recentListLength
+		//   immediately — without a full plugin reload — when refreshActivePanel() is called.
+		//   This exercises the RecentFilesStore.list() slicing by recentListLength.
+
+		// --- Part 1: persistence ---
 		const app = makeApp();
 		const plugin = await makePlugin(app);
 		await plugin.onload();
@@ -1467,6 +1528,42 @@ describe("AC6 — Settings", () => {
 		// Setting persisted
 		expect(plugin.settings.recentListLength).toBe(42);
 		expect(plugin.saveData).toHaveBeenCalled();
+
+		// --- Part 2: panel reflects the change without restart ---
+		// Build the wired OrbitView (same factory-capture pattern as other tests).
+		const factory = vi.mocked(plugin.registerView).mock.calls[0]?.[1] as (leaf: WorkspaceLeaf) => unknown;
+		const { OrbitView } = await import("view/OrbitView");
+		const leaf = new WorkspaceLeaf();
+		const wiredView = factory(leaf) as InstanceType<typeof OrbitView>;
+		(leaf as unknown as { view: unknown }).view = wiredView;
+		vi.mocked(app.workspace.getLeavesOfType).mockReturnValue([leaf] as WorkspaceLeaf[]);
+		plugin._index.buildFull();
+		await wiredView.onOpen();
+
+		// Reset recentListLength to 20 (default) and populate 25 files directly so the
+		// store holds more entries than the cap.
+		plugin.settings.recentListLength = 20;
+		plugin.settings.recentFiles = Array.from({ length: 25 }, (_, i) => ({
+			path: `notes/file-${i}.md`,
+			basename: `file-${i}`,
+		}));
+
+		// Switch to the recent tab and render — should show 20 rows (capped by recentListLength).
+		const recentTab = wiredView.contentEl.querySelector("[data-tab-id='recent']") as HTMLElement;
+		recentTab.click();
+		wiredView.refreshActivePanel();
+		await tick();
+
+		const rowsBefore = wiredView.contentEl.querySelectorAll(".orbit-recent-row");
+		expect(rowsBefore).toHaveLength(20);
+
+		// Reduce the cap to 5 and re-render — no reload required.
+		plugin.settings.recentListLength = 5;
+		wiredView.refreshActivePanel();
+		await tick();
+
+		const rowsAfter = wiredView.contentEl.querySelectorAll(".orbit-recent-row");
+		expect(rowsAfter).toHaveLength(5);
 	});
 
 	it("AC6.3: settings changed via Sync → onExternalSettingsChange picks up updated settings", async () => {

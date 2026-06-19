@@ -32,9 +32,14 @@ export class RecentFilesStore {
 		this.deps = deps;
 	}
 
-	/** Returns a readonly snapshot of the current recent-files list. */
+	/**
+	 * Returns a readonly snapshot of the current recent-files list, capped to
+	 * the current recentListLength setting. This ensures the panel immediately
+	 * reflects setting changes (e.g. reduced length) without requiring a reload.
+	 */
 	list(): readonly RecentFileEntry[] {
-		return [...this.deps.getSettings().recentFiles];
+		const settings = this.deps.getSettings();
+		return settings.recentFiles.slice(0, settings.recentListLength);
 	}
 
 	/**
