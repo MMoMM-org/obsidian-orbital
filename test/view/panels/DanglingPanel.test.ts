@@ -68,9 +68,14 @@ function makeMockConfirmRewriteModal() {
 	}));
 }
 
-function makeMockNotePickerModal() {
+function makeMockFolderPicker() {
 	return vi.fn().mockImplementation(() => ({
 		pickFolder: vi.fn(async () => ({ path: "Notes" })),
+	}));
+}
+
+function makeMockNotePicker() {
+	return vi.fn().mockImplementation(() => ({
 		pickNote: vi.fn(async () => ({ path: "Notes/SomeNote.md" })),
 	}));
 }
@@ -92,7 +97,8 @@ function makeDeps(overrides: DepsOverrides = {}): DanglingPanelDeps & {
 	appInstance: App;
 	service: ReturnType<typeof makeMockService>;
 	ConfirmRewriteModal: ReturnType<typeof makeMockConfirmRewriteModal>;
-	NotePickerModal: ReturnType<typeof makeMockNotePickerModal>;
+	folderPicker: ReturnType<typeof makeMockFolderPicker>;
+	notePicker: ReturnType<typeof makeMockNotePicker>;
 	createNote: ReturnType<typeof makeMockCreateNote>;
 } {
 	const appInstance = new App();
@@ -103,7 +109,8 @@ function makeDeps(overrides: DepsOverrides = {}): DanglingPanelDeps & {
 	const settings = makeSettings(overrides.settings);
 	const service = makeMockService();
 	const ConfirmRewriteModal = makeMockConfirmRewriteModal();
-	const NotePickerModal = makeMockNotePickerModal();
+	const folderPicker = makeMockFolderPicker();
+	const notePicker = makeMockNotePicker();
 	const createNote = makeMockCreateNote();
 
 	let grouping: DanglingGrouping = overrides.grouping ?? settings.danglingGrouping;
@@ -133,12 +140,13 @@ function makeDeps(overrides: DepsOverrides = {}): DanglingPanelDeps & {
 		clearPendingTarget: () => { pendingTarget = null; },
 		service,
 		ConfirmRewriteModal,
-		NotePickerModal,
+		folderPicker,
+		notePicker,
 		createNote,
 		registerDomEvent,
 	};
 
-	return { ...deps, appInstance, service, ConfirmRewriteModal, NotePickerModal, createNote };
+	return { ...deps, appInstance, service, ConfirmRewriteModal, folderPicker, notePicker, createNote };
 }
 
 // ---------------------------------------------------------------------------
@@ -730,6 +738,25 @@ describe("DanglingPanel pendingTarget deep-link", () => {
 		panel.render(container);
 
 		expect(clearSpy).not.toHaveBeenCalled();
+	});
+
+	it("calls clearPendingTarget even when targets.length === 0 (W1 regression)", () => {
+		// pendingTarget is set but the scope yields no dangling targets — the
+		// early empty-state return must still call clearPendingTarget.
+		const clearSpy = vi.fn();
+		const deps = makeDeps({
+			unresolved: {},
+			pendingTarget: "Orphan",
+		});
+		deps.clearPendingTarget = clearSpy;
+
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		expect(clearSpy).toHaveBeenCalled();
+		// Empty state still renders
+		expect(container.querySelector(".orbit-dangling-empty")).not.toBeNull();
 	});
 });
 

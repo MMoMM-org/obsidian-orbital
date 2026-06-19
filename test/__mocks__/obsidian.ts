@@ -680,6 +680,8 @@ export function normalizePath(path: string): string {
 	return path.replace(/\\/g, "/").replace(/\/+/g, "/");
 }
 
+export const setIcon = vi.fn((_el: HTMLElement, _iconId: string): void => {});
+
 export const getAllTags = vi.fn(
 	(_cache: CachedMetadata): string[] | null => null,
 );

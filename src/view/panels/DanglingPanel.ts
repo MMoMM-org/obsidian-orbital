@@ -17,7 +17,7 @@
  *   to and highlights the matching group row, then calls clearPendingTarget().
  */
 
-import { Notice } from "obsidian";
+import { Notice, setIcon } from "obsidian";
 import type { LinkGraphIndex } from "graph/LinkGraphIndex";
 import type {
 	OrbitSettings,
@@ -59,11 +59,15 @@ interface ConfirmRewriteModalConstructor {
 			kind: RewriteKind;
 			onConfirm: (name: string) => void;
 		},
-	): { open(): void };
+	): { open(): void; onlyInThisNote?: boolean };
 }
 
-interface NotePickerModalConstructor {
-	new (app: DanglingPanelApp): { pickFolder(): Promise<TFolder | null>; pickNote(): Promise<TFile | null> };
+interface FolderPickerConstructor {
+	new (app: DanglingPanelApp): { pickFolder(): Promise<TFolder | null> };
+}
+
+interface NotePickerConstructor {
+	new (app: DanglingPanelApp): { pickNote(): Promise<TFile | null> };
 }
 
 type CreateNoteFn = (
@@ -102,8 +106,10 @@ export interface DanglingPanelDeps {
 	service: ServiceLike;
 	/** ConfirmRewriteModal constructor. */
 	ConfirmRewriteModal: ConfirmRewriteModalConstructor;
-	/** NotePickerModal constructor. */
-	NotePickerModal: NotePickerModalConstructor;
+	/** Folder picker modal constructor (NotePickerModal). */
+	folderPicker: FolderPickerConstructor;
+	/** Note picker modal constructor (NoteFilePicker). */
+	notePicker: NotePickerConstructor;
 	/** createNote function. */
 	createNote: CreateNoteFn;
 	/**
@@ -166,6 +172,10 @@ export class DanglingPanel {
 		// Aria-live region for bulk operation results
 		const liveRegion = this.renderLiveRegion(container);
 
+		if (pendingTarget !== null) {
+			this.deps.clearPendingTarget();
+		}
+
 		if (targets.length === 0) {
 			this.renderEmptyState(container);
 			return;
@@ -175,10 +185,6 @@ export class DanglingPanel {
 			this.renderByTarget(container, targets, scope, settings, liveRegion, pendingTarget);
 		} else {
 			this.renderBySource(container, targets, scope, settings, liveRegion);
-		}
-
-		if (pendingTarget !== null) {
-			this.deps.clearPendingTarget();
 		}
 	}
 
@@ -410,8 +416,6 @@ export class DanglingPanel {
 			this.renderActionButtons(actions, dt.target, scope, liveRegion);
 		}
 
-		// Suppress unused liveRegion warning — it is passed through for consistency
-		void liveRegion;
 	}
 
 	// -------------------------------------------------------------------------
@@ -424,19 +428,19 @@ export class DanglingPanel {
 		scope: RewriteScope,
 		liveRegion: HTMLElement,
 	): void {
-		this.renderActionBtn(container, "Rename dangling link", "lucide-pencil", () => {
+		this.renderActionBtn(container, "Rename dangling link", "pencil", () => {
 			void this.handleRename(target, scope, liveRegion);
 		});
 
-		this.renderActionBtn(container, "Alias to existing note", "lucide-link", () => {
+		this.renderActionBtn(container, "Alias to existing note", "link", () => {
 			void this.handleAlias(target, scope, liveRegion);
 		});
 
-		this.renderActionBtn(container, "Create note", "lucide-file-plus", () => {
+		this.renderActionBtn(container, "Create note", "file-plus", () => {
 			void this.handleCreate(target, liveRegion);
 		});
 
-		this.renderActionBtn(container, "Delete links", "lucide-trash", () => {
+		this.renderActionBtn(container, "Delete links", "trash", () => {
 			void this.handleDelete(target, scope, liveRegion);
 		});
 	}
@@ -444,13 +448,15 @@ export class DanglingPanel {
 	private renderActionBtn(
 		container: HTMLElement,
 		ariaLabel: string,
-		_iconClass: string,
+		iconId: string,
 		onClick: () => void,
 	): void {
 		const btn = (container as unknown as AugmentedEl).createEl("button", {
 			cls: "clickable-icon orbit-dangling-action-btn",
 			attr: { "aria-label": ariaLabel },
 		});
+
+		setIcon(btn, iconId);
 
 		this.deps.registerDomEvent(btn, "click", (evt) => {
 			evt.stopPropagation();
@@ -486,9 +492,9 @@ export class DanglingPanel {
 		scope: RewriteScope,
 		liveRegion: HTMLElement,
 	): Promise<void> {
-		// Pick an existing note via NotePickerModal (ADR-6: alias target must be
+		// Pick an existing note via NoteFilePicker (ADR-6: alias target must be
 		// an existing note, not a folder, so the wikilink resolves correctly).
-		const picker = new this.deps.NotePickerModal(this.deps.app);
+		const picker = new this.deps.notePicker(this.deps.app);
 		const note = await picker.pickNote();
 		if (note === null) return;
 
@@ -511,7 +517,7 @@ export class DanglingPanel {
 		target: string,
 		liveRegion: HTMLElement,
 	): Promise<void> {
-		const picker = new this.deps.NotePickerModal(this.deps.app);
+		const picker = new this.deps.folderPicker(this.deps.app);
 		const folder = await picker.pickFolder();
 		const settings = this.deps.getSettings();
 
@@ -539,7 +545,7 @@ export class DanglingPanel {
 
 		// modalRef holds the instance so onConfirm can read modal.onlyInThisNote,
 		// which is updated by the "Only in this note" checkbox in renderDeleteConfirm.
-		const modalRef: { instance: { open(): void; onlyInThisNote?: boolean } | null } = { instance: null };
+		const modalRef: { instance: InstanceType<ConfirmRewriteModalConstructor> | null } = { instance: null };
 
 		const modal = new this.deps.ConfirmRewriteModal(this.deps.app, {
 			preview,
