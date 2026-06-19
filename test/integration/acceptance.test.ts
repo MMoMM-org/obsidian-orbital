@@ -235,6 +235,10 @@ describe("AC1 — Single tabbed sidebar pane", () => {
 describe("AC2 — Relations tab", () => {
 	// AC: Feature 2
 
+	afterEach(() => {
+		vi.mocked(Keymap.isModEvent).mockReset();
+	});
+
 	it("AC2.1: active note shows collapsible sections Outgoing/Backlinks/2nd-hop/Missing with counts", async () => {
 		// AC: AC2.1
 		const { app, view } = await buildWiredView(
@@ -966,6 +970,10 @@ describe("AC3 — Dangling Links tab", () => {
 describe("AC4 — Recent Files tab", () => {
 	// AC: Feature 4
 
+	afterEach(() => {
+		vi.mocked(Keymap.isModEvent).mockReset();
+	});
+
 	it("AC4.1: recent notes shown most-recent-first, capped at recentListLength (default 20), no duplicates", async () => {
 		// AC: AC4.1
 		const { plugin, view } = await buildWiredView();
@@ -984,8 +992,8 @@ describe("AC4 — Recent Files tab", () => {
 		await tick();
 
 		const rows = view.contentEl.querySelectorAll(".orbit-recent-row");
-		// Capped at 20 (default recentListLength)
-		expect(rows.length).toBeLessThanOrEqual(20);
+		// Capped at exactly 20 (22 files opened, default recentListLength=20)
+		expect(rows.length).toBe(20);
 
 		// Most recent first: file22 should appear before file1
 		const allBasenames = Array.from(rows).map((r) =>
@@ -1408,8 +1416,16 @@ describe("AC5 — Replace three plugins", () => {
 		const secondHop = view.contentEl.querySelector("[data-section='secondHop']");
 		expect(secondHop).not.toBeNull();
 
-		// Hover trigger is wired (workspace.trigger is defined on view.app)
-		expect(view.app.workspace.trigger).toBeDefined();
+		// AC5.1: hover trigger is wired — mirrors AC2.4 pattern
+		// Dispatch mouseover on a relations item and assert the 'hover-link' workspace event fires.
+		const item = view.contentEl.querySelector(".orbit-relations-item") as HTMLElement;
+		expect(item).not.toBeNull();
+		item.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+		await tick();
+		expect(app.workspace.trigger).toHaveBeenCalledWith(
+			"hover-link",
+			expect.objectContaining({ source: "orbit" }),
+		);
 	});
 
 	it("AC5.2: Recent tab covers list, configurable length, exclusions, drag-to-link", async () => {
@@ -1428,7 +1444,8 @@ describe("AC5 — Replace three plugins", () => {
 		await tick();
 
 		const rows = view.contentEl.querySelectorAll(".orbit-recent-row");
-		expect(rows.length).toBeLessThanOrEqual(5);
+		// Capped at exactly 5 (7 files opened, recentListLength set to 5)
+		expect(rows.length).toBe(5);
 
 		// Exclusions wired (path patterns setting is present)
 		expect(plugin.settings.excludePathPatterns).toBeDefined();
