@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { App, Notice, augmentEl } from "../../__mocks__/obsidian";
+import { App, Notice, augmentEl, Keymap } from "../../__mocks__/obsidian";
 import { LinkGraphIndex } from "graph/LinkGraphIndex";
 import type { MetadataCache as IndexMetadataCache } from "graph/LinkGraphIndex";
 import { DanglingPanel } from "view/panels/DanglingPanel";
@@ -225,6 +225,110 @@ describe("DanglingPanel by-target grouping", () => {
 
 		const occurrenceItems = container.querySelectorAll(".orbit-dangling-occurrence");
 		expect(occurrenceItems.length).toBeGreaterThan(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Source-row navigation + target-label collapse (UX polish)
+// ---------------------------------------------------------------------------
+
+describe("DanglingPanel source-row navigation + collapse", () => {
+	beforeEach(() => {
+		Notice._reset();
+		vi.mocked(Keymap.isModEvent).mockReturnValue(false);
+	});
+
+	it("clicking a source occurrence row opens that note in the current pane", () => {
+		const deps = makeDeps({
+			unresolved: { "notes/source-a.md": { "MissingNote": 1 } },
+			grouping: "target",
+		});
+		const mockLeaf = { openLinkText: vi.fn(async () => {}) };
+		(deps.appInstance.workspace.getLeaf as ReturnType<typeof vi.fn>).mockReturnValue(mockLeaf);
+
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const occ = container.querySelector(
+			".orbit-dangling-occurrence[data-path='notes/source-a.md']",
+		) as HTMLElement;
+		expect(occ).not.toBeNull();
+		occ.click();
+
+		expect(deps.appInstance.workspace.getLeaf).toHaveBeenCalledWith(false);
+		expect(mockLeaf.openLinkText).toHaveBeenCalledWith(
+			"notes/source-a.md",
+			"notes/source-a.md",
+			false,
+		);
+	});
+
+	it("Cmd/Ctrl-clicking a source row opens it in a new pane", () => {
+		vi.mocked(Keymap.isModEvent).mockReturnValue(true);
+		const deps = makeDeps({
+			unresolved: { "notes/source-a.md": { "MissingNote": 1 } },
+			grouping: "target",
+		});
+		const mockLeaf = { openLinkText: vi.fn(async () => {}) };
+		(deps.appInstance.workspace.getLeaf as ReturnType<typeof vi.fn>).mockReturnValue(mockLeaf);
+
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		(
+			container.querySelector(
+				".orbit-dangling-occurrence[data-path='notes/source-a.md']",
+			) as HTMLElement
+		).click();
+
+		expect(deps.appInstance.workspace.getLeaf).toHaveBeenCalledWith(true);
+		expect(mockLeaf.openLinkText).toHaveBeenCalledWith(
+			"notes/source-a.md",
+			"notes/source-a.md",
+			true,
+		);
+	});
+
+	it("clicking the target label toggles is-collapsed on the group", () => {
+		const deps = makeDeps({
+			unresolved: { "notes/source-a.md": { "MissingNote": 1 } },
+			grouping: "target",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const group = container.querySelector(
+			".orbit-dangling-group[data-target='MissingNote']",
+		) as HTMLElement;
+		const label = group.querySelector(".orbit-dangling-group-label") as HTMLElement;
+		expect(group.classList.contains("is-collapsed")).toBe(false);
+
+		label.click();
+		expect(group.classList.contains("is-collapsed")).toBe(true);
+
+		label.click();
+		expect(group.classList.contains("is-collapsed")).toBe(false);
+	});
+
+	it("clicking an inline action button does not toggle collapse", () => {
+		const deps = makeDeps({
+			unresolved: { "notes/source-a.md": { "MissingNote": 1 } },
+			grouping: "target",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const group = container.querySelector(
+			".orbit-dangling-group[data-target='MissingNote']",
+		) as HTMLElement;
+		const actionBtn = group.querySelector(".orbit-dangling-action-btn") as HTMLElement;
+		actionBtn.click();
+
+		expect(group.classList.contains("is-collapsed")).toBe(false);
 	});
 });
 

@@ -156,6 +156,118 @@
 	text-align: center;
 }
 
+/* ── RelationsPanel ──────────────────────────────────────────────────────────
+   Four collapsible sections (Outgoing, Backlinks, 2nd hop, Missing). The header
+   reads as a header (semibold, default size, "Label: N"); note rows sit indented
+   beneath a flush-left header and read as clickable.
+   ─────────────────────────────────────────────────────────────────────────*/
+
+.orbit-relations-section {
+	margin-bottom: 6px;
+}
+
+.orbit-relations-section-header {
+	display: flex;
+	align-items: baseline;
+	gap: 0.35em;
+	padding: 2px 4px;
+	cursor: pointer;
+	border-radius: var(--radius-s);
+}
+
+.orbit-relations-section-header:hover {
+	background: var(--background-modifier-hover);
+}
+
+.orbit-relations-section-label {
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
+}
+
+/* Renders "Outgoing:" — the count follows after the flex gap. */
+.orbit-relations-section-label::after {
+	content: ":";
+}
+
+.orbit-relations-count {
+	font-size: var(--font-small);
+	color: var(--text-muted);
+}
+
+.orbit-relations-section-children {
+	padding-left: 1.5em;
+}
+
+.orbit-relations-section.is-collapsed .orbit-relations-section-children {
+	display: none;
+}
+
+.orbit-relations-item {
+	padding: 1px 4px;
+	border-radius: var(--radius-s);
+	cursor: pointer;
+	font-size: var(--font-small);
+	color: var(--text-normal);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.orbit-relations-item:hover {
+	background: var(--background-modifier-hover);
+}
+
+.orbit-relations-via-group {
+	margin: 2px 0;
+}
+
+.orbit-relations-via-label {
+	padding: 1px 4px;
+	font-size: var(--font-small);
+	color: var(--text-muted);
+}
+
+.orbit-relations-via-items {
+	padding-left: 1em;
+}
+
+.orbit-relations-missing-row {
+	display: flex;
+	align-items: center;
+	gap: 0.35em;
+	padding: 1px 4px;
+}
+
+.orbit-relations-missing-target {
+	flex: 1 1 auto;
+	font-size: var(--font-small);
+	color: var(--text-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.orbit-relations-manage-btn {
+	flex: 0 0 auto;
+	padding: 0 4px;
+	font-size: var(--font-small);
+	color: var(--text-accent);
+	background: transparent;
+	border: none;
+	cursor: pointer;
+}
+
+.orbit-relations-manage-btn:hover {
+	text-decoration: underline;
+}
+
+.orbit-relations-truncated,
+.orbit-relations-empty {
+	padding: 8px;
+	font-size: var(--font-small);
+	color: var(--text-faint);
+}
+
 /* ── DanglingPanel ──────────────────────────────────────────────────────────
    Grouped tree of unresolved wikilink targets with inline actions.
    Uses Obsidian tree-item structure; all colors from CSS variables.
@@ -223,11 +335,9 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	min-width: 44px;
-	min-height: 44px;
 	background: transparent;
 	border: none;
-	padding: 2px;
+	padding: 4px;
 	cursor: pointer;
 	color: var(--text-muted);
 	border-radius: var(--radius-s);
@@ -294,6 +404,24 @@
 .orbit-dangling-group.is-highlighted {
 	background: var(--background-modifier-hover);
 	border-left: 2px solid var(--text-accent);
+}
+
+/* Clicking the target label collapses the source list beneath it. */
+.orbit-dangling-group.is-collapsed .orbit-dangling-group-children {
+	display: none;
+}
+
+.orbit-dangling-group-label.is-clickable {
+	cursor: pointer;
+}
+
+/* Source rows open the note; show them as clickable. */
+.orbit-dangling-occurrence.is-clickable {
+	cursor: pointer;
+}
+
+.orbit-dangling-occurrence.is-clickable:hover {
+	background: var(--background-modifier-hover);
 }
 
 /* ── RecentPanel ────────────────────────────────────────────────────────────
@@ -385,15 +513,21 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	min-width: 44px;
-	min-height: 44px;
 	background: transparent;
 	border: none;
-	padding: 2px;
+	padding: 4px;
 	cursor: pointer;
 	color: var(--text-muted);
 	border-radius: var(--radius-s);
 	line-height: 1;
+}
+
+/* Mobile: per-row action buttons get ≥44px touch targets (SDD §485). Desktop
+   keeps them compact (padding only) so list rows stay tight. */
+.is-mobile .orbit-dangling-action-btn,
+.is-mobile .orbit-recent-action-btn {
+	min-width: 44px;
+	min-height: 44px;
 }
 
 .orbit-recent-action-btn:hover {

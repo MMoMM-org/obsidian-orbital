@@ -142,7 +142,10 @@ export default class OrbitPlugin extends Plugin {
 		return {
 			index: this._index,
 			getSettings: () => this.settings,
-			app: this.app,
+			// Cast: DanglingPanelApp is a structural subset of Obsidian App; the
+			// overloaded getLeaf signatures are runtime-compatible but not
+			// nominally assignable (same pattern as RelationsDeps.app).
+			app: this.app as unknown as DanglingDeps["app"],
 			service: new LinkRewriteService(
 				this.app.vault,
 				this.app.fileManager,

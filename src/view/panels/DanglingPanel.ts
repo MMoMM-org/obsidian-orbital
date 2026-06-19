@@ -17,7 +17,7 @@
  *   scrolls to and highlights the matching group row.
  */
 
-import { Notice, setIcon } from "obsidian";
+import { Keymap, Notice, setIcon } from "obsidian";
 import type { LinkGraphIndex } from "graph/LinkGraphIndex";
 import type {
 	OrbitSettings,
@@ -41,6 +41,11 @@ export interface DanglingPanelApp {
 	};
 	fileManager: {
 		getNewFileParent(sourcePath: string): { path: string };
+	};
+	workspace: {
+		getLeaf(newLeaf: boolean | string): {
+			openLinkText(path: string, sourcePath: string, newLeaf: boolean | string): void | Promise<void>;
+		};
 	};
 }
 
@@ -339,9 +344,14 @@ export class DanglingPanel {
 			cls: "orbit-dangling-group-header tree-item-self",
 		});
 
-		(header as unknown as AugmentedEl).createSpan({
-			cls: "orbit-dangling-group-label",
+		// Clicking the target label collapses/expands the source list below it.
+		// Bound to the label only so the inline action buttons keep working.
+		const labelEl = (header as unknown as AugmentedEl).createSpan({
+			cls: "orbit-dangling-group-label is-clickable",
 			text: dt.target,
+		});
+		this.deps.registerDomEvent(labelEl, "click", () => {
+			groupEl.classList.toggle("is-collapsed");
 		});
 
 		if (settings.showCounts) {
@@ -365,11 +375,19 @@ export class DanglingPanel {
 
 		for (const occ of dt.occurrences) {
 			const occRow = (children as unknown as AugmentedEl).createEl("div", {
-				cls: "orbit-dangling-occurrence tree-item",
+				cls: "orbit-dangling-occurrence tree-item is-clickable",
+				attr: { "data-path": occ.sourcePath },
 			});
 			(occRow as unknown as AugmentedEl).createSpan({
 				cls: "orbit-dangling-occurrence-label",
 				text: occ.sourcePath,
+			});
+			// Clicking a source row opens that note (Cmd/Ctrl-click → new pane),
+			// mirroring RelationsPanel.renderResolvedItem.
+			this.deps.registerDomEvent(occRow, "click", (evt) => {
+				const newLeaf = Keymap.isModEvent(evt);
+				const leaf = this.deps.app.workspace.getLeaf(newLeaf);
+				void leaf.openLinkText(occ.sourcePath, occ.sourcePath, newLeaf);
 			});
 			if (settings.showCounts && occ.count > 1) {
 				(occRow as unknown as AugmentedEl).createSpan({
