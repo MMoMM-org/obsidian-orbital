@@ -5,8 +5,8 @@
 | Field | Value |
 |-------|-------|
 | **Created** | 2026-06-18 |
-| **Current Phase** | Ready |
-| **Last Updated** | 2026-06-18 |
+| **Current Phase** | Implemented |
+| **Last Updated** | 2026-06-19 |
 
 ## Documents
 
@@ -38,6 +38,7 @@
 | 2026-06-18 | SDD ADR-8 persistence split (saveData vs view getState/setState) | Settings global+Sync; tab/scope per-leaf |
 | 2026-06-18 | PLAN authored — 5 phases, 22 tasks (TDD) | P1 foundation → P2 graph+Relations → P3 Dangling+rewrite → P4 Recent (∥) → P5 integration+submission; Recent parallel to P2–3 |
 | 2026-06-18 | Spec validation PASS; spec marked Ready | Consistency + AC coverage PASS; fixed AC count (34→33); added T1.0 (extend obsidian test mock + vitest aliases) + per-phase mock-extension notes from drift findings |
+| 2026-06-19 | Implementation complete | Phase 5 shipped (T5.1–T5.4): cross-tab Manage→ filter, a11y/mobile/perf hardening (focus mgmt, narrow-mode label collapse, ~100-row truncation, bulk yield+progress Notice), submission compliance (manifest description + README + corrected MIT/GPL attribution), 33-AC end-to-end acceptance suite. Found+fixed bug: RecentFilesStore.list() now caps to recentListLength at read time. 537 tests green; lint/typecheck/build clean. All 5 phases complete on branch feat/orbit-tabs. |
 
 ## Context
 
