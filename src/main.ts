@@ -1,4 +1,4 @@
-import { Plugin, debounce, TFile, MarkdownView } from "obsidian";
+import { Plugin, debounce, TFile, TAbstractFile, MarkdownView } from "obsidian";
 import type { Debouncer } from "obsidian";
 import { SettingsTab } from "settings/SettingsTab";
 import { DEFAULT_SETTINGS, type OrbitSettings } from "types/index";
@@ -85,10 +85,7 @@ export default class OrbitPlugin extends Plugin {
 	/**
 	 * Build the RelationsDeps bundle the relations panel needs.
 	 *
-	 * isExcluded: path → boolean
-	 *   Resolves the path to a TFile via vault (for tag exclusion); falls back to
-	 *   path-only exclusion for unresolved paths. A fresh ExclusionMatcher is
-	 *   constructed per-call so settings changes propagate without restart.
+	 * isExcluded: delegates to _isExcluded (single source of truth).
 	 *
 	 * onManage: (target) → void
 	 *   Switches the active OrbitView to the 'dangling' tab and stashes the
@@ -103,16 +100,7 @@ export default class OrbitPlugin extends Plugin {
 			// overloaded getLeaf signatures are compatible at runtime but not
 			// assignable without this cast.
 			app: this.app as unknown as RelationsDeps["app"],
-			isExcluded: (path: string): boolean => {
-				const s = this.settings;
-				const matcher = new ExclusionMatcher(s.excludePathPatterns, s.excludeTagPatterns);
-				const abstract = this.app.vault.getAbstractFileByPath(path);
-				if (abstract instanceof TFile) {
-					return matcher.isExcluded(abstract, this.app.metadataCache);
-				}
-				// Unresolved path — path-only exclusion (no TFile to check tags against)
-				return matcher.isPathExcluded(path);
-			},
+			isExcluded: (path: string): boolean => this._isExcluded(path),
 			onManage: (target: string): void => {
 				const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE);
 				for (const leaf of leaves) {
@@ -236,9 +224,11 @@ export default class OrbitPlugin extends Plugin {
 
 	private _wireVaultEvents(): void {
 		this.registerEvent(
-			this.app.vault.on("rename", (file: { path: string; basename?: string }, oldPath: string) => {
+			this.app.vault.on("rename", (file: TAbstractFile, oldPath: string) => {
 				this._index.renameFile(oldPath, file.path);
-				void this._recentStore.rename(oldPath, file.path, file.basename ?? "");
+				if (file instanceof TFile) {
+					void this._recentStore.rename(oldPath, file.path, file.basename);
+				}
 				this._repaintActivePanel();
 			}),
 		);

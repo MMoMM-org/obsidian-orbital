@@ -213,7 +213,7 @@ describe("T2.4 — vault rename and delete events", () => {
 			"_repaintActivePanel",
 		);
 
-		const newFile = { path: "notes/new.md" };
+		const newFile = { path: "notes/new.md", basename: "new" };
 		renameHandler?.(newFile, "notes/old.md");
 
 		expect(renameSpy).toHaveBeenCalledWith("notes/old.md", "notes/new.md");
