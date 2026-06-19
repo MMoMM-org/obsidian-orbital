@@ -321,7 +321,7 @@ describe("OrbitView getState/setState", () => {
 		expect(state.collapsedSections).toEqual([]);
 	});
 
-	it("setState round-trips activeTab, danglingScope, danglingGrouping, collapsedSections", async () => {
+	it("setState round-trips activeTab, danglingScope, danglingGrouping, collapsedSections, activeDanglingFilter", async () => {
 		const view = new OrbitView(makeLeaf());
 		await view.onOpen();
 
@@ -330,6 +330,7 @@ describe("OrbitView getState/setState", () => {
 			danglingScope: "folder",
 			danglingGrouping: "source",
 			collapsedSections: ["section-a"],
+			activeDanglingFilter: null,
 		};
 		await view.setState(newState, makeResult());
 

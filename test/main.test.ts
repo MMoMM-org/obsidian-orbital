@@ -291,3 +291,163 @@ describe("OrbitPlugin onExternalSettingsChange", () => {
 		expect(plugin.settings.recentListLength).toBe(99);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// T5.1 integration: "Manage →" → Dangling filtered deep-link
+// ---------------------------------------------------------------------------
+
+describe("T5.1 integration: Relations Manage → switches to Dangling tab filtered to target", () => {
+	/**
+	 * Build a plugin + OrbitView wired together so onManage can find the view
+	 * via getLeavesOfType. Unresolved links are pre-loaded in the mock metadata
+	 * cache so both RelationsPanel and DanglingPanel see real data.
+	 *
+	 * Important: the view has its own mock App instance (ItemView creates one).
+	 * We patch view.app.workspace.getActiveFile to simulate an active file, and
+	 * plugin.app.metadataCache.unresolvedLinks so relations + dangling data loads.
+	 */
+	async function buildWiredView(unresolvedLinks: Record<string, Record<string, number>>) {
+		const app = makeApp();
+		// Unresolved links for the plugin's index and metadataCache
+		app.metadataCache.unresolvedLinks = unresolvedLinks;
+
+		const plugin = await makePlugin(app);
+		await plugin.onload();
+
+		// Build the view via the registered factory
+		const factory = vi.mocked(plugin.registerView).mock.calls[0]?.[1] as
+			| ((leaf: WorkspaceLeaf) => unknown)
+			| undefined;
+		if (!factory) throw new Error("registerView factory not captured");
+
+		const { OrbitView } = await import("view/OrbitView");
+		const leaf = new WorkspaceLeaf();
+		const view = factory(leaf) as InstanceType<typeof OrbitView>;
+
+		// Wire the leaf so onManage (via getLeavesOfType) can find the view.
+		// The mock WorkspaceLeaf.view is a plain object; we replace it with the real OrbitView.
+		(leaf as unknown as { view: unknown }).view = view;
+		vi.mocked(app.workspace.getLeavesOfType).mockReturnValue([leaf] as WorkspaceLeaf[]);
+
+		// Build the full index from the unresolved links
+		plugin._index.buildFull();
+
+		await view.onOpen();
+		return { plugin, app, view, leaf };
+	}
+
+	/**
+	 * Set up an active file on both apps (plugin's and view's) so RelationsPanel
+	 * renders the Missing section and DanglingPanel resolves the folder path.
+	 */
+	function setActiveFile(
+		app: App,
+		view: { app: App },
+		path: string,
+	): void {
+		const mockFile = { path, basename: path.split("/").pop()?.replace(/\.md$/, "") ?? path, extension: "md", parent: null };
+		const asFile = mockFile as ReturnType<typeof app.workspace.getActiveFile>;
+		vi.mocked(app.workspace.getActiveFile).mockReturnValue(asFile);
+		vi.mocked(view.app.workspace.getActiveFile).mockReturnValue(asFile);
+	}
+
+	it("clicking 'Manage →' on a Missing item switches the active tab to Dangling", async () => {
+		// Source file "notes/source.md" references missing targets "TargetA" and "TargetB"
+		const { app, view } = await buildWiredView({
+			"notes/source.md": { "TargetA": 1, "TargetB": 1 },
+		});
+
+		setActiveFile(app, view, "notes/source.md");
+
+		// Re-render the current (relations) tab to pick up the active file
+		view.refreshActivePanel();
+		await new Promise<void>((r) => setTimeout(r, 10));
+
+		// Find and click the "Manage →" button for TargetA
+		const manageBtn = view.contentEl.querySelector("[aria-label='Manage missing link']") as HTMLElement;
+		expect(manageBtn).not.toBeNull();
+		manageBtn.click();
+		await new Promise<void>((r) => setTimeout(r, 10));
+
+		// The dangling tab should now be active
+		const activeTab = view.contentEl.querySelector("[role='tab'][aria-selected='true']");
+		expect(activeTab?.getAttribute("data-tab-id")).toBe("dangling");
+	});
+
+	it("clicking 'Manage →' filters Dangling list to only the target's group", async () => {
+		const { app, view } = await buildWiredView({
+			"notes/source.md": { "TargetA": 1, "TargetB": 1 },
+		});
+
+		setActiveFile(app, view, "notes/source.md");
+		view.refreshActivePanel();
+		await new Promise<void>((r) => setTimeout(r, 10));
+
+		const manageBtn = view.contentEl.querySelector("[aria-label='Manage missing link']") as HTMLElement;
+		expect(manageBtn).not.toBeNull();
+		manageBtn.click();
+		await new Promise<void>((r) => setTimeout(r, 10));
+
+		// Only the managed target group should be visible; the other should not
+		const targetARow = view.contentEl.querySelector(".orbit-dangling-group[data-target='TargetA']");
+		const targetBRow = view.contentEl.querySelector(".orbit-dangling-group[data-target='TargetB']");
+		expect(targetARow).not.toBeNull();
+		expect(targetBRow).toBeNull();
+	});
+
+	it("clicking 'Show all' in Dangling tab restores the full list", async () => {
+		const { app, view } = await buildWiredView({
+			"notes/source.md": { "TargetA": 1, "TargetB": 1 },
+		});
+
+		setActiveFile(app, view, "notes/source.md");
+		view.refreshActivePanel();
+		await new Promise<void>((r) => setTimeout(r, 10));
+
+		// Click Manage → to activate filter
+		const manageBtn = view.contentEl.querySelector("[aria-label='Manage missing link']") as HTMLElement;
+		expect(manageBtn).not.toBeNull();
+		manageBtn.click();
+		await new Promise<void>((r) => setTimeout(r, 10));
+
+		// Filter is active — click "Show all"
+		const showAllBtn = view.contentEl.querySelector("[data-action='clear-filter']") as HTMLElement;
+		expect(showAllBtn).not.toBeNull();
+		showAllBtn.click();
+		await new Promise<void>((r) => setTimeout(r, 10));
+
+		// Both targets should now be visible
+		const targetARow = view.contentEl.querySelector(".orbit-dangling-group[data-target='TargetA']");
+		const targetBRow = view.contentEl.querySelector(".orbit-dangling-group[data-target='TargetB']");
+		expect(targetARow).not.toBeNull();
+		expect(targetBRow).not.toBeNull();
+	});
+
+	it("filter state persists across re-renders until cleared", async () => {
+		const { app, view } = await buildWiredView({
+			"notes/source.md": { "TargetA": 1, "TargetB": 1 },
+		});
+
+		setActiveFile(app, view, "notes/source.md");
+		view.refreshActivePanel();
+		await new Promise<void>((r) => setTimeout(r, 10));
+
+		// Click Manage → to activate filter
+		const manageBtn = view.contentEl.querySelector("[aria-label='Manage missing link']") as HTMLElement;
+		expect(manageBtn).not.toBeNull();
+		manageBtn.click();
+		await new Promise<void>((r) => setTimeout(r, 10));
+
+		// Simulate a re-render by calling refreshActivePanel (e.g. vault change)
+		view.refreshActivePanel();
+		await new Promise<void>((r) => setTimeout(r, 10));
+
+		// Filter should still be active (TargetB not visible)
+		const targetBRow = view.contentEl.querySelector(".orbit-dangling-group[data-target='TargetB']");
+		expect(targetBRow).toBeNull();
+
+		// And "Show all" is still visible
+		const showAllBtn = view.contentEl.querySelector("[data-action='clear-filter']");
+		expect(showAllBtn).not.toBeNull();
+	});
+});

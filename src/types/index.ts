@@ -38,6 +38,8 @@ export interface OrbitViewState {
 	danglingScope: DanglingScope;
 	danglingGrouping: DanglingGrouping;
 	collapsedSections: string[];
+	/** Active dangling filter target set by "Manage →" deep-link. Null means show all. */
+	activeDanglingFilter: string | null;
 }
 
 // Relations query result types

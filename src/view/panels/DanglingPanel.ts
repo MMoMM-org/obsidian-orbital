@@ -98,10 +98,20 @@ export interface DanglingPanelDeps {
 	setScope: (s: DanglingScope) => void;
 	/** Returns the current active folder path (for folder scope). */
 	getFolderPath: () => string;
-	/** Returns the pending "Manage →" target from Relations, or null. */
+	/** Returns the one-shot pending "Manage →" target from Relations, or null. */
 	getPendingTarget: () => string | null;
-	/** Clears the pending target after it has been applied. */
+	/** Clears the one-shot pending target after it has been applied. */
 	clearPendingTarget: () => void;
+	/**
+	 * Returns the persistent active dangling filter target, or null (show all).
+	 * Set by setActiveFilter when a pendingTarget arrives; persists across re-renders
+	 * until clearActiveFilter is called (e.g. user clicks "Show all").
+	 */
+	getActiveFilter: () => string | null;
+	/** Persists the active filter target in OrbitView state. */
+	setActiveFilter: (target: string) => void;
+	/** Clears the active filter and restores the full list. */
+	clearActiveFilter: () => void;
 	/** LinkRewriteService instance (or compatible mock). */
 	service: ServiceLike;
 	/** ConfirmRewriteModal constructor. */
@@ -162,27 +172,38 @@ export class DanglingPanel {
 
 		const settings = this.deps.getSettings();
 		const scope = this.buildScope();
-		const targets = this.deps.index.danglingTargets(scope);
+		const allTargets = this.deps.index.danglingTargets(scope);
 		const grouping = this.deps.getGrouping();
 		const pendingTarget = this.deps.getPendingTarget();
 
-		// Toolbar: grouping + scope toggles
-		this.renderToolbar(container);
+		// Consume the one-shot pending target: persist as active filter, then clear it.
+		if (pendingTarget !== null) {
+			this.deps.setActiveFilter(pendingTarget);
+			this.deps.clearPendingTarget();
+		}
+
+		// Read the persistent active filter (may have been set by the line above
+		// or from a previous render cycle).
+		const activeFilter = this.deps.getActiveFilter();
+
+		// Toolbar: grouping + scope toggles, plus "Show all" when filter active
+		this.renderToolbar(container, activeFilter);
 
 		// Aria-live region for bulk operation results
 		const liveRegion = this.renderLiveRegion(container);
 
-		if (pendingTarget !== null) {
-			this.deps.clearPendingTarget();
-		}
-
-		if (targets.length === 0) {
+		if (allTargets.length === 0) {
 			this.renderEmptyState(container);
 			return;
 		}
 
+		// Apply active filter: show only the matching target group when set
+		const targets = activeFilter !== null
+			? allTargets.filter((dt) => dt.target === activeFilter)
+			: allTargets;
+
 		if (grouping === "target") {
-			this.renderByTarget(container, targets, scope, settings, liveRegion, pendingTarget);
+			this.renderByTarget(container, targets, scope, settings, liveRegion, activeFilter);
 		} else {
 			this.renderBySource(container, targets, scope, settings, liveRegion);
 		}
@@ -192,7 +213,7 @@ export class DanglingPanel {
 	// Private — toolbar
 	// -------------------------------------------------------------------------
 
-	private renderToolbar(container: HTMLElement): void {
+	private renderToolbar(container: HTMLElement, activeFilter: string | null): void {
 		const toolbar = (container as unknown as AugmentedEl).createDiv({
 			cls: "orbit-dangling-toolbar",
 		});
@@ -229,6 +250,23 @@ export class DanglingPanel {
 		this.deps.registerDomEvent(scopeBtn, "click", () => {
 			this.deps.setScope(scope === "vault" ? "folder" : "vault");
 		});
+
+		// "Show all" button — visible only when a filter is active
+		if (activeFilter !== null) {
+			const showAllLabel = "Show all";
+			const showAllBtn = (toolbar as unknown as AugmentedEl).createEl("button", {
+				text: showAllLabel,
+				cls: "orbit-dangling-toggle-btn orbit-dangling-show-all-btn",
+				attr: {
+					"data-action": "clear-filter",
+					"aria-label": showAllLabel,
+				},
+			});
+
+			this.deps.registerDomEvent(showAllBtn, "click", () => {
+				this.deps.clearActiveFilter();
+			});
+		}
 	}
 
 	// -------------------------------------------------------------------------
@@ -253,10 +291,10 @@ export class DanglingPanel {
 		scope: RewriteScope,
 		settings: OrbitSettings,
 		liveRegion: HTMLElement,
-		pendingTarget: string | null,
+		activeFilter: string | null,
 	): void {
 		for (const dt of targets) {
-			this.renderTargetGroup(container, dt, scope, settings, liveRegion, pendingTarget);
+			this.renderTargetGroup(container, dt, scope, settings, liveRegion, activeFilter);
 		}
 	}
 
@@ -266,9 +304,9 @@ export class DanglingPanel {
 		scope: RewriteScope,
 		settings: OrbitSettings,
 		liveRegion: HTMLElement,
-		pendingTarget: string | null,
+		activeFilter: string | null,
 	): void {
-		const isHighlighted = pendingTarget === dt.target;
+		const isHighlighted = activeFilter === dt.target;
 
 		const groupEl = (container as unknown as AugmentedEl).createEl("div", {
 			cls: `orbit-dangling-group tree-item${isHighlighted ? " is-highlighted" : ""}`,

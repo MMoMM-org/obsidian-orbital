@@ -53,7 +53,8 @@ export type RelationsDeps = Omit<RelationsPanelDeps, "getCollapsed" | "setCollap
 /**
  * Dependencies the plugin supplies for building the Dangling panel.
  * OrbitView fills the view-owned deps: getGrouping/setGrouping, getScope/setScope,
- * getFolderPath, getPendingTarget/clearPendingTarget, and registerDomEvent.
+ * getFolderPath, getPendingTarget/clearPendingTarget,
+ * getActiveFilter/setActiveFilter/clearActiveFilter, and registerDomEvent.
  */
 export type DanglingDeps = Omit<
 	DanglingPanelDeps,
@@ -64,6 +65,9 @@ export type DanglingDeps = Omit<
 	| "getFolderPath"
 	| "getPendingTarget"
 	| "clearPendingTarget"
+	| "getActiveFilter"
+	| "setActiveFilter"
+	| "clearActiveFilter"
 	| "registerDomEvent"
 >;
 
@@ -91,6 +95,7 @@ export class OrbitView extends ItemView {
 		danglingScope: "vault",
 		danglingGrouping: "target",
 		collapsedSections: [],
+		activeDanglingFilter: null,
 	};
 
 	private tabBar: TabBar | null = null;
@@ -219,6 +224,7 @@ export class OrbitView extends ItemView {
 			danglingScope: this.state.danglingScope,
 			danglingGrouping: this.state.danglingGrouping,
 			collapsedSections: this.state.collapsedSections,
+			activeDanglingFilter: this.state.activeDanglingFilter,
 		};
 	}
 
@@ -236,6 +242,9 @@ export class OrbitView extends ItemView {
 			danglingScope: incoming.danglingScope ?? this.state.danglingScope,
 			danglingGrouping: incoming.danglingGrouping ?? this.state.danglingGrouping,
 			collapsedSections: incoming.collapsedSections ?? this.state.collapsedSections,
+			activeDanglingFilter: incoming.activeDanglingFilter !== undefined
+				? incoming.activeDanglingFilter
+				: this.state.activeDanglingFilter,
 		};
 
 		// Update TabBar and panel to reflect new state
@@ -294,8 +303,8 @@ export class OrbitView extends ItemView {
 	 * Build the PanelRenderer closure for the 'dangling' tab.
 	 * Constructs a new DanglingPanel on each render call so the panel always
 	 * reflects the latest deps state (settings, index) without stale closures.
-	 * View-owned deps (grouping, scope, folderPath, pendingTarget) are read from
-	 * OrbitView's own state at render time.
+	 * View-owned deps (grouping, scope, folderPath, pendingTarget, activeFilter) are
+	 * read from OrbitView's own state at render time.
 	 */
 	private _buildDanglingRenderer(deps: DanglingDeps): PanelRenderer {
 		// activePath is intentionally omitted: DanglingPanel resolves its own path via getFolderPath/getActiveFile.
@@ -316,6 +325,14 @@ export class OrbitView extends ItemView {
 				getPendingTarget: () => this.pendingManageTarget,
 				clearPendingTarget: () => {
 					this.pendingManageTarget = null;
+				},
+				getActiveFilter: () => this.state.activeDanglingFilter,
+				setActiveFilter: (target: string) => {
+					this.state = { ...this.state, activeDanglingFilter: target };
+				},
+				clearActiveFilter: () => {
+					this.state = { ...this.state, activeDanglingFilter: null };
+					this.renderPanel("dangling");
 				},
 				registerDomEvent: (el, type, handler) => {
 					this.registerDomEvent(el, type, handler);

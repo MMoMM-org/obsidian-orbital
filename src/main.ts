@@ -108,7 +108,7 @@ export default class OrbitPlugin extends Plugin {
 					if (view instanceof OrbitView) {
 						view.pendingManageTarget = target;
 						void view.setState(
-							{ ...view.getState(), activeTab: "dangling" },
+							{ ...view.getState(), activeTab: "dangling", activeDanglingFilter: target },
 							{ history: false },
 						);
 					}
