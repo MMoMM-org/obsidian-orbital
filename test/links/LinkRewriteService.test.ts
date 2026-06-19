@@ -7,7 +7,7 @@
  * Coverage:
  *   - previewRename: returns occurrences/files from index (scoped)
  *   - applyRename (dangling target): offset-splice descending, part preservation
- *   - applyRename (real note path): merge path via renameFile/generateMarkdownLink
+ *   - applyRename (real note path): merge path via vault.process + generateMarkdownLink
  *   - applyAlias: rewrites to [[note|orig]] for chosen existing note
  *   - applyDelete: removes links; onlyInActiveNote filter; frontmatter via processFrontMatter
  *   - Frontmatter links rewritten via processFrontMatter, not body splice
@@ -17,7 +17,7 @@
  *   - Multi-link-per-file ordering (descending offset)
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { App, TFile, createMockTFile } from "../__mocks__/obsidian";
 import { LinkGraphIndex } from "graph/LinkGraphIndex";
 import { LinkRewriteService } from "links/LinkRewriteService";
@@ -152,8 +152,6 @@ describe("applyRename — dangling target (offset-splice)", () => {
 
 		// vault.getAbstractFileByPath returns null — not a real note
 		vi.mocked(app.vault.getAbstractFileByPath).mockReturnValue(null);
-		// getFirstLinkpathDest returns null — OldName is dangling
-		vi.mocked(app.metadataCache.getFirstLinkpathDest).mockReturnValue(null);
 		// vault.getFileByPath returns the TFile for the source
 		vi.mocked(app.vault.getFileByPath).mockImplementation((path) =>
 			path === "notes/A.md" ? sourceFile : null,
@@ -186,7 +184,6 @@ describe("applyRename — dangling target (offset-splice)", () => {
 		seedDangling(app, index, "notes/A.md", "OldName", 2);
 
 		vi.mocked(app.vault.getAbstractFileByPath).mockReturnValue(null);
-		vi.mocked(app.metadataCache.getFirstLinkpathDest).mockReturnValue(null);
 		vi.mocked(app.vault.getFileByPath).mockImplementation((path) =>
 			path === "notes/A.md" ? sourceFile : null,
 		);
@@ -224,7 +221,6 @@ describe("applyRename — dangling target (offset-splice)", () => {
 		index.buildFull();
 
 		vi.mocked(app.vault.getAbstractFileByPath).mockReturnValue(null);
-		vi.mocked(app.metadataCache.getFirstLinkpathDest).mockReturnValue(null);
 		vi.mocked(app.vault.getFileByPath).mockImplementation((path) =>
 			path === "notes/A.md" ? sourceFile : null,
 		);
@@ -260,7 +256,7 @@ describe("applyRename — dangling target (offset-splice)", () => {
 // ---------------------------------------------------------------------------
 
 describe("applyRename — real note target (merge path)", () => {
-	it("routes via fileManager.renameFile when newName resolves to an existing note", async () => {
+	it("routes via vault.process + generateMarkdownLink when newName resolves to an existing note", async () => {
 		const app = makeApp();
 		const index = makeIndex(app);
 		const sourceFile = createMockTFile({ path: "notes/A.md" });
@@ -276,7 +272,6 @@ describe("applyRename — real note target (merge path)", () => {
 			path === "notes/A.md" ? sourceFile : null,
 		);
 
-		vi.mocked(app.fileManager.renameFile).mockResolvedValue(undefined);
 		vi.mocked(app.fileManager.generateMarkdownLink).mockReturnValue("[[RealNote]]");
 
 		vi.mocked(app.vault.process).mockImplementation(
@@ -316,7 +311,6 @@ describe("applyAlias", () => {
 		vi.mocked(app.vault.getFileByPath).mockImplementation((path) =>
 			path === "notes/A.md" ? sourceFile : null,
 		);
-		vi.mocked(app.metadataCache.getFirstLinkpathDest).mockReturnValue(realNote);
 
 		const content = "See [[Target]] here.";
 		vi.mocked(app.metadataCache.getFileCache).mockReturnValue(
@@ -354,7 +348,6 @@ describe("applyAlias", () => {
 		vi.mocked(app.vault.getFileByPath).mockImplementation((path) =>
 			path === "notes/A.md" ? sourceFile : null,
 		);
-		vi.mocked(app.metadataCache.getFirstLinkpathDest).mockReturnValue(realNote);
 
 		const content = "[[Target|Existing]]";
 		vi.mocked(app.metadataCache.getFileCache).mockReturnValue(
@@ -448,6 +441,36 @@ describe("applyDelete", () => {
 		expect(vi.mocked(app.vault.process)).toHaveBeenCalledWith(fileB, expect.any(Function));
 		expect(result.filesSucceeded).toBe(1);
 	});
+
+	it("onlyInActiveNote=true + no active file → affects nothing (vault.process never called)", async () => {
+		const app = makeApp();
+		const index = makeIndex(app);
+
+		seedDangling(app, index, "notes/A.md", "Gone", 1);
+		seedDangling(app, index, "notes/B.md", "Gone", 1);
+
+		// No active file
+		vi.mocked(app.workspace.getActiveFile).mockReturnValue(null);
+		vi.mocked(app.vault.getFileByPath).mockImplementation((path) => {
+			if (path === "notes/A.md") return createMockTFile({ path: "notes/A.md" });
+			if (path === "notes/B.md") return createMockTFile({ path: "notes/B.md" });
+			return null;
+		});
+		vi.mocked(app.metadataCache.getFileCache).mockReturnValue(
+			makeCacheWithLinks([{ start: 0, end: 8 }]),
+		);
+		vi.mocked(app.vault.process).mockImplementation(
+			async (_file: TFile, transform: (data: string) => string) => transform("[[Gone]]"),
+		);
+
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const result = await svc.applyDelete("Gone", {}, true);
+
+		// No active note → nothing touched
+		expect(result.filesSucceeded).toBe(0);
+		expect(result.filesFailed).toEqual([]);
+		expect(vi.mocked(app.vault.process)).not.toHaveBeenCalled();
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -463,7 +486,6 @@ describe("frontmatter link rewriting", () => {
 		seedDangling(app, index, "notes/A.md", "OldFM", 1);
 
 		vi.mocked(app.vault.getAbstractFileByPath).mockReturnValue(null);
-		vi.mocked(app.metadataCache.getFirstLinkpathDest).mockReturnValue(null);
 		vi.mocked(app.vault.getFileByPath).mockImplementation((path) =>
 			path === "notes/A.md" ? sourceFile : null,
 		);
@@ -509,7 +531,6 @@ describe("frontmatter link rewriting", () => {
 		seedDangling(app, index, "notes/A.md", "BodyOnly", 1);
 
 		vi.mocked(app.vault.getAbstractFileByPath).mockReturnValue(null);
-		vi.mocked(app.metadataCache.getFirstLinkpathDest).mockReturnValue(null);
 		vi.mocked(app.vault.getFileByPath).mockImplementation((path) =>
 			path === "notes/A.md" ? sourceFile : null,
 		);
@@ -544,7 +565,6 @@ describe("BulkResult — partial failure handling", () => {
 		index.buildFull();
 
 		vi.mocked(app.vault.getAbstractFileByPath).mockReturnValue(null);
-		vi.mocked(app.metadataCache.getFirstLinkpathDest).mockReturnValue(null);
 		vi.mocked(app.vault.getFileByPath).mockImplementation((path) => {
 			if (path === "notes/A.md") return fileA;
 			if (path === "notes/B.md") return fileB;
@@ -585,7 +605,6 @@ describe("BulkResult — partial failure handling", () => {
 		seedDangling(app, index, "notes/Missing.md", "Target", 1);
 
 		vi.mocked(app.vault.getAbstractFileByPath).mockReturnValue(null);
-		vi.mocked(app.metadataCache.getFirstLinkpathDest).mockReturnValue(null);
 		// Source file not found in vault
 		vi.mocked(app.vault.getFileByPath).mockReturnValue(null);
 		vi.mocked(app.metadataCache.getFileCache).mockReturnValue(
@@ -620,7 +639,6 @@ describe("sequential execution", () => {
 		index.buildFull();
 
 		vi.mocked(app.vault.getAbstractFileByPath).mockReturnValue(null);
-		vi.mocked(app.metadataCache.getFirstLinkpathDest).mockReturnValue(null);
 		vi.mocked(app.vault.getFileByPath).mockImplementation((path) => {
 			const f = createMockTFile({ path });
 			return f;
@@ -660,7 +678,6 @@ describe("counts re-resolved before applying", () => {
 		seedDangling(app, index, "notes/A.md", "Stale", 1);
 
 		vi.mocked(app.vault.getAbstractFileByPath).mockReturnValue(null);
-		vi.mocked(app.metadataCache.getFirstLinkpathDest).mockReturnValue(null);
 		vi.mocked(app.vault.getFileByPath).mockImplementation((path) => {
 			if (path === "notes/A.md") return createMockTFile({ path: "notes/A.md" });
 			if (path === "notes/B.md") return createMockTFile({ path: "notes/B.md" });

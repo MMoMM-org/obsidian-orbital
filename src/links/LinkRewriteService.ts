@@ -92,7 +92,6 @@ interface FileManager {
 
 interface MetadataCacheMinimal {
 	getFileCache(file: TFileMinimal): FileCache | null;
-	getFirstLinkpathDest(linkpath: string, sourcePath: string): TFileMinimal | null;
 }
 
 interface WorkspaceMinimal {
@@ -263,7 +262,7 @@ export class LinkRewriteService {
 			const cache = this.metadataCache.getFileCache(file);
 			if (cache === null) return data;
 
-			const hits = collectBodyHits(cache, target);
+			const hits = collectBodyEntries(cache);
 			// Descending order so later offsets remain valid after each splice
 			hits.sort((a, b) => b.position.start.offset - a.position.start.offset);
 
@@ -293,7 +292,7 @@ export class LinkRewriteService {
 			const cache = this.metadataCache.getFileCache(file);
 			if (cache === null) return data;
 
-			const hits = collectBodyHits(cache, target);
+			const hits = collectBodyEntries(cache);
 			hits.sort((a, b) => b.position.start.offset - a.position.start.offset);
 
 			let out = data;
@@ -387,10 +386,11 @@ export class LinkRewriteService {
 
 	/**
 	 * Filter sourcePaths to the currently active note only.
+	 * No active note → nothing in scope (returning all would unsafely rewrite the whole vault).
 	 */
 	private filterToActiveNote(sourcePaths: string[]): string[] {
 		const activeFile = this.workspace.getActiveFile();
-		if (activeFile === null) return sourcePaths;
+		if (activeFile === null) return [];
 		return sourcePaths.filter((p) => p === activeFile.path);
 	}
 }
@@ -410,9 +410,8 @@ function filterOccurrences(
 	return occurrences.filter((o) => o.sourcePath.startsWith(prefix));
 }
 
-function collectBodyHits(
+function collectBodyEntries(
 	cache: FileCache,
-	_target: string,
 ): Array<{ position: { start: { offset: number }; end: { offset: number } } }> {
 	const links = cache.links ?? [];
 	const embeds = cache.embeds ?? [];
