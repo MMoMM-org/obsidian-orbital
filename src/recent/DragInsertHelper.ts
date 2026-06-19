@@ -74,7 +74,7 @@ export class DragInsertHelper {
 	 * Used as the mobile tap-to-insert fallback. Safe no-op when there is no
 	 * active MarkdownView (e.g. no note open, non-markdown leaf active).
 	 */
-	insertAtCursor(_path: string, linktext: string): void {
+	insertAtCursor(linktext: string): void {
 		const view = this.deps.getActiveMarkdownView();
 		if (view === null) return;
 

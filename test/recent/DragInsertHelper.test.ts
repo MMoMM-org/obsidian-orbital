@@ -156,7 +156,7 @@ describe("DragInsertHelper — insertAtCursor()", () => {
 		const deps = makeDeps({ markdownView: view });
 		const helper = new DragInsertHelper(deps);
 
-		helper.insertAtCursor("notes/MyNote.md", "MyNote");
+		helper.insertAtCursor("MyNote");
 
 		expect(view.editor.replaceSelection).toHaveBeenCalledWith("[[MyNote]]");
 	});
@@ -166,7 +166,7 @@ describe("DragInsertHelper — insertAtCursor()", () => {
 		const deps = makeDeps({ markdownView: view });
 		const helper = new DragInsertHelper(deps);
 
-		helper.insertAtCursor("deep/folder/ActualNote.md", "ActualNote");
+		helper.insertAtCursor("ActualNote");
 
 		expect(view.editor.replaceSelection).toHaveBeenCalledWith("[[ActualNote]]");
 	});
@@ -175,7 +175,7 @@ describe("DragInsertHelper — insertAtCursor()", () => {
 		const deps = makeDeps({ markdownView: null });
 		const helper = new DragInsertHelper(deps);
 
-		expect(() => helper.insertAtCursor("notes/MyNote.md", "MyNote")).not.toThrow();
+		expect(() => helper.insertAtCursor("MyNote")).not.toThrow();
 	});
 
 	it("does not call replaceSelection when there is no active markdown view", () => {
@@ -183,7 +183,7 @@ describe("DragInsertHelper — insertAtCursor()", () => {
 		const deps = makeDeps({ markdownView: null });
 		const helper = new DragInsertHelper(deps);
 
-		helper.insertAtCursor("notes/MyNote.md", "MyNote");
+		helper.insertAtCursor("MyNote");
 
 		// The view was never returned by getActiveMarkdownView, so it shouldn't be called.
 		expect(view.editor.replaceSelection).not.toHaveBeenCalled();
