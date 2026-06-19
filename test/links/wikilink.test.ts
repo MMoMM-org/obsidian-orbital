@@ -104,6 +104,14 @@ describe("parseLinkAtOffset — [[target#heading]]", () => {
 		const link = parseLinkAtOffset(text, start, end);
 		expect(link.subpath).toBe("#Section 2");
 	});
+
+	it("absorbs a second '#' in the body into the subpath (target is text before first '#')", () => {
+		const { text, start, end } = embed("", "[[a#b#c]]");
+		const link = parseLinkAtOffset(text, start, end);
+		expect(link.target).toBe("a");
+		expect(link.subpath).toBe("#b#c");
+		expect(link.alias).toBe("");
+	});
 });
 
 describe("parseLinkAtOffset — [[target#^block]]", () => {
