@@ -1,6 +1,6 @@
 ---
 title: "Phase 5: Cross-tab integration, accessibility & submission validation"
-status: in_progress
+status: completed
 version: "1.0"
 phase: 5
 ---
@@ -56,12 +56,12 @@ Integrates the tabs into one coherent pane, hardens accessibility/mobile/perform
   - Success:
     - [x] Passes the obsidian-plugin submission checklist `[ref: SDD/CON-3]`
 
-- [ ] **T5.4 End-to-end acceptance validation** `[activity: validate]` `[ref: PRD/all ACs; SDD/Acceptance Criteria]`
+- [x] **T5.4 End-to-end acceptance validation** `[activity: validate]` `[ref: PRD/all ACs; SDD/Acceptance Criteria]`
 
   1. Prime: Re-read the PRD acceptance criteria and SDD EARS criteria.
   2. Test: an integration test suite (against the obsidian mock) exercising each tab's primary flow end-to-end — open pane → Relations sections/navigation/hover/Missing→Manage → Dangling rename(merge)/alias/create/delete with preview/partial-failure → Recent open/drag/remove/clear; persistence across simulated reload; settings reactivity + `onExternalSettingsChange`.
   3. Implement: `test/` integration specs mapping 1:1 to the 34 PRD ACs (traceability comments `// AC: Feature N`).
   4. Validate: full `npm test`, `npm run lint`, `npm run typecheck`, `npm run build` green; every PRD AC has a passing test.
   - Success:
-    - [ ] All 33 PRD acceptance criteria covered by passing tests `[ref: PRD/Feature 1–6]`
-    - [ ] Build + lint + typecheck clean for release `[ref: SDD/Quality Requirements]`
+    - [x] All 33 PRD acceptance criteria covered by passing tests `[ref: PRD/Feature 1–6]`
+    - [x] Build + lint + typecheck clean for release `[ref: SDD/Quality Requirements]`
