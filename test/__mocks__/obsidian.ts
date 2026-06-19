@@ -140,6 +140,12 @@ export class App {
 		generateMarkdownLink: vi.fn(
 			(_file: TFile, _sourcePath: string, _subpath?: string, _alias?: string): string => "",
 		),
+		/**
+		 * getNewFileParent — mirrors Obsidian's FileManager.getNewFileParent.
+		 * Returns the default folder for new notes. Tests can override via
+		 * vi.mocked(app.fileManager.getNewFileParent).mockReturnValue(folder).
+		 */
+		getNewFileParent: vi.fn((_sourcePath: string): TFolder => new TFolder()),
 	};
 	workspace = {
 		getActiveViewOfType: vi.fn(),
@@ -234,6 +240,31 @@ export class Modal {
 	});
 	onOpen(): void {}
 	onClose(): void {}
+}
+
+/**
+ * FuzzySuggestModal<T> — minimal mock for fuzzy suggestion dialogs.
+ * Subclasses override getItems(), getItemText(), and onChooseItem().
+ * Tests can call these methods directly to simulate item selection
+ * without needing a real Obsidian runtime.
+ */
+export class FuzzySuggestModal<T> extends Modal {
+	constructor(app: App) {
+		super(app);
+	}
+
+	/** Sets the placeholder text of the search input (no-op in tests). */
+	setPlaceholder(_placeholder: string): void {}
+
+	getItems(): T[] {
+		return [];
+	}
+
+	getItemText(_item: T): string {
+		return "";
+	}
+
+	onChooseItem(_item: T, _evt?: MouseEvent | KeyboardEvent): void {}
 }
 
 export class Notice {
