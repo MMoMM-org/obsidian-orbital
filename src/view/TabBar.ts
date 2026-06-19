@@ -134,7 +134,10 @@ export class TabBar {
 				"aria-controls": `${this.idPrefix}-panel-${def.id}`,
 			},
 		});
-		btn.textContent = def.label;
+		(btn as unknown as AugmentedEl).createEl("span", {
+			cls: "orbit-tab-label",
+			text: def.label,
+		});
 
 		this.buttons.set(def.id, btn);
 

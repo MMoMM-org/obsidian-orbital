@@ -438,7 +438,7 @@ describe("DanglingPanel inline actions", () => {
 		expect(deps.service.applyRename).toHaveBeenCalledWith("MissingTarget", "NewName", expect.any(Object));
 	});
 
-	it("rename action: bulk result shown via Notice", async () => {
+	it("rename action: bulk result announced via aria-live region (not a Notice from DanglingPanel)", async () => {
 		const deps = makeDeps({
 			unresolved: { "notes/a.md": { "MissingTarget": 1 } },
 			grouping: "target",
@@ -451,8 +451,11 @@ describe("DanglingPanel inline actions", () => {
 		renameBtn.click();
 		await new Promise((r) => setTimeout(r, 0));
 
-		expect(Notice._instances.length).toBeGreaterThan(0);
-		expect(Notice._instances[0]!.message).toMatch(/2/);
+		// DanglingPanel must NOT emit a Notice (that's LinkRewriteService's job)
+		expect(Notice._instances.length).toBe(0);
+		// But the aria-live region must be populated with the result message
+		const liveRegion = container.querySelector("[aria-live='polite']") as HTMLElement;
+		expect(liveRegion.textContent).toMatch(/2/);
 	});
 
 	it("delete action opens ConfirmRewriteModal with 'delete' kind", async () => {
@@ -990,5 +993,134 @@ describe("DanglingPanel list truncation (Gap D)", () => {
 
 		const groups = container.querySelectorAll(".orbit-dangling-group");
 		expect(groups.length).toBe(110);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// T5.2 spec-compliance — by-source truncation (Finding 2)
+// ---------------------------------------------------------------------------
+
+describe("DanglingPanel by-source truncation", () => {
+	/** Build unresolved links with `count` distinct source files each linking one target. */
+	function buildManySources(count: number): Record<string, Record<string, number>> {
+		const result: Record<string, Record<string, number>> = {};
+		for (let i = 0; i < count; i++) {
+			result[`notes/source-${i}.md`] = { [`Target${i}`]: 1 };
+		}
+		return result;
+	}
+
+	it("renders all source groups when count is within RENDER_CAP (≤100)", () => {
+		const deps = makeDeps({
+			unresolved: buildManySources(5),
+			grouping: "source",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const groups = container.querySelectorAll("[data-source]");
+		expect(groups.length).toBe(5);
+	});
+
+	it("renders only first RENDER_CAP (~100) source groups when list exceeds cap", () => {
+		const deps = makeDeps({
+			unresolved: buildManySources(110),
+			grouping: "source",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const groups = container.querySelectorAll("[data-source]");
+		expect(groups.length).toBeLessThanOrEqual(100);
+	});
+
+	it("renders a 'Show more' control when source groups exceed RENDER_CAP", () => {
+		const deps = makeDeps({
+			unresolved: buildManySources(110),
+			grouping: "source",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const showMore = container.querySelector(".orbit-show-more");
+		expect(showMore).not.toBeNull();
+	});
+
+	it("does not render 'Show more' when source groups are within cap", () => {
+		const deps = makeDeps({
+			unresolved: buildManySources(5),
+			grouping: "source",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const showMore = container.querySelector(".orbit-show-more");
+		expect(showMore).toBeNull();
+	});
+
+	it("clicking 'Show more' reveals all source groups", () => {
+		const deps = makeDeps({
+			unresolved: buildManySources(110),
+			grouping: "source",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const showMoreBtn = container.querySelector(".orbit-show-more") as HTMLElement;
+		showMoreBtn.click();
+
+		const groups = container.querySelectorAll("[data-source]");
+		expect(groups.length).toBe(110);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// T5.2 spec-compliance — double Notice on bulk ops (Finding 3)
+// ---------------------------------------------------------------------------
+
+describe("DanglingPanel bulk result Notice behaviour", () => {
+	beforeEach(() => {
+		Notice._reset();
+	});
+
+	it("surfaceResult does NOT emit a Notice (Notice comes from LinkRewriteService only)", async () => {
+		// The mock service resolves without calling surfaceBulkProgress (that's on the real service).
+		// After the fix, DanglingPanel.surfaceResult must not call new Notice().
+		const deps = makeDeps({
+			unresolved: { "notes/a.md": { "MissingTarget": 1 } },
+			grouping: "target",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const renameBtn = container.querySelector("[aria-label='Rename dangling link']") as HTMLElement;
+		renameBtn.click();
+		await new Promise((r) => setTimeout(r, 0));
+
+		// DanglingPanel itself must not emit any Notice for bulk results
+		expect(Notice._instances.length).toBe(0);
+	});
+
+	it("surfaceResult still updates the aria-live region after a bulk operation", async () => {
+		const deps = makeDeps({
+			unresolved: { "notes/a.md": { "MissingTarget": 1 } },
+			grouping: "target",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const renameBtn = container.querySelector("[aria-label='Rename dangling link']") as HTMLElement;
+		renameBtn.click();
+		await new Promise((r) => setTimeout(r, 0));
+
+		const liveRegion = container.querySelector("[aria-live='polite']") as HTMLElement;
+		expect(liveRegion.textContent?.length).toBeGreaterThan(0);
 	});
 });

@@ -220,6 +220,11 @@
 }
 
 .orbit-dangling-action-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 44px;
+	min-height: 44px;
 	background: transparent;
 	border: none;
 	padding: 2px;

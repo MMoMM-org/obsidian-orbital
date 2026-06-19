@@ -398,9 +398,20 @@ export class DanglingPanel {
 	): void {
 		// Invert: build Map<sourcePath → DanglingTarget[]>
 		const bySource = this.invertToSource(targets);
+		const entries = Array.from(bySource.entries());
 
-		for (const [sourcePath, sourceTargets] of bySource) {
+		const visible = entries.slice(0, RENDER_CAP);
+		for (const [sourcePath, sourceTargets] of visible) {
 			this.renderSourceGroup(container, sourcePath, sourceTargets, scope, settings, liveRegion);
+		}
+
+		if (entries.length > RENDER_CAP) {
+			const overflow = entries.slice(RENDER_CAP);
+			this.renderShowMore(container, overflow.length, () => {
+				for (const [sourcePath, sourceTargets] of overflow) {
+					this.renderSourceGroup(container, sourcePath, sourceTargets, scope, settings, liveRegion);
+				}
+			});
 		}
 	}
 
@@ -632,7 +643,7 @@ export class DanglingPanel {
 			? `Updated ${result.filesSucceeded} of ${total} files.`
 			: `Updated ${result.filesSucceeded} of ${total} files; ${failed} failed.`;
 
-		new Notice(msg);
+		// Notice is emitted by LinkRewriteService.surfaceBulkProgress — do not duplicate here.
 		this.updateLiveRegion(liveRegion, msg);
 	}
 

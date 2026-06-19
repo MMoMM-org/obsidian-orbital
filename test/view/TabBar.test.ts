@@ -270,4 +270,29 @@ describe("TabBar is-narrow class toggle (Gap C)", () => {
 			bar.setNarrow(true);
 		}).not.toThrow();
 	});
+
+	it("each tab button contains a .orbit-tab-label child span with the label text", () => {
+		const el = makeContainer();
+		makeTabBar(el);
+
+		const tabs = el.querySelectorAll("[role='tab']");
+		for (const tab of Array.from(tabs)) {
+			const labelSpan = tab.querySelector(".orbit-tab-label");
+			expect(labelSpan).not.toBeNull();
+			expect(labelSpan?.textContent?.length).toBeGreaterThan(0);
+		}
+	});
+
+	it("with is-narrow applied the .orbit-tab-label child span is present in the DOM (CSS hides it)", () => {
+		const el = makeContainer();
+		const bar = makeTabBar(el);
+		bar.setNarrow(true);
+
+		const tablist = el.querySelector("[role='tablist']");
+		expect(tablist?.classList.contains("is-narrow")).toBe(true);
+
+		// The span must exist in the DOM — CSS display:none is what hides it
+		const labelSpans = el.querySelectorAll(".orbit-tab-label");
+		expect(labelSpans.length).toBe(3);
+	});
 });
