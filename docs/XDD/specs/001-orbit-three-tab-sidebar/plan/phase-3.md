@@ -52,15 +52,15 @@ Delivers the Dangling Links tab and the vault-wide bulk-rewrite engine — the p
     - [x] Vault-wide rewrites preserve all link forms and keep editors in sync via `vault.process` `[ref: PRD/Feature 3; SDD/ADR-5]`
     - [x] Real-target rename routes through merge path; partial failures reported `[ref: PRD/Detailed Feature Spec]`
 
-- [ ] **T3.3 Create-missing-note + modals (confirm preview, note/folder picker)** `[activity: frontend-ui]` `[parallel: true]` `[ref: SDD/modals; PRD/Feature 3]`
+- [x] **T3.3 Create-missing-note + modals (confirm preview, note/folder picker)** `[activity: frontend-ui]` `[parallel: true]` `[ref: SDD/modals; PRD/Feature 3]`
 
   1. Prime: Review `ConfirmRewriteModal` (preview "X occurrences in Y files" + non-reversible warning + backup recommendation) and `NotePickerModal` (FuzzySuggest over notes/folders); `getNewFileParent`/`vault.create`/`normalizePath`.
   2. Test (mock): ConfirmRewriteModal shows occurrence/file counts, blocks confirm on empty/invalid name, surfaces a merge notice when name matches an existing note, requires explicit confirm for delete; NotePickerModal lists candidates and returns selection; `createNote` resolves destination via picker/default folder and calls `vault.create` with a normalized path; collision handled.
   3. Implement: `src/modals/ConfirmRewriteModal.ts`, `src/modals/NotePickerModal.ts`, `src/links/createNote.ts`.
   4. Validate: unit tests; sentence-case UI; aria-labels on icon buttons; typecheck; lint.
   - Success:
-    - [ ] Preview + confirmation gate every vault-wide op with a no-undo warning `[ref: SDD/CON-7; PRD/Detailed Feature Spec]`
-    - [ ] Create-missing-note lets the user pick the path `[ref: PRD/Feature 3 — create]`
+    - [x] Preview + confirmation gate every vault-wide op with a no-undo warning `[ref: SDD/CON-7; PRD/Detailed Feature Spec]`
+    - [x] Create-missing-note lets the user pick the path `[ref: PRD/Feature 3 — create]`
 
 - [ ] **T3.4 DanglingPanel (grouped tree, scope/grouping toggles, inline actions)** `[activity: frontend-ui]` `[ref: SDD/User Interface & UX; ADR-4; PRD/Feature 3]`
 
