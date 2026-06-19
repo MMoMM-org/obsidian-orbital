@@ -77,6 +77,7 @@ export class NotePickerModal extends FuzzySuggestModal<TFolder> {
  */
 export class NoteFilePicker extends FuzzySuggestModal<TFile> {
 	private resolveNote: ((file: TFile | null) => void) | null = null;
+	private chosen: TFile | null = null;
 
 	constructor(app: App) {
 		super(app);
@@ -87,6 +88,7 @@ export class NoteFilePicker extends FuzzySuggestModal<TFile> {
 	pickNote(): Promise<TFile | null> {
 		return new Promise<TFile | null>((res) => {
 			this.resolveNote = res;
+			this.chosen = null;
 			this.open();
 		});
 	}
@@ -99,18 +101,24 @@ export class NoteFilePicker extends FuzzySuggestModal<TFile> {
 		return item.path;
 	}
 
+	/**
+	 * Record the choice (first wins) but DON'T resolve here — resolution happens
+	 * in onClose, after the modal has fully closed. This lets the caller open a
+	 * follow-up modal (e.g. the confirm dialog in handleAlias) without it being
+	 * clobbered by this picker's teardown (modal-stacking fix).
+	 */
 	onChooseItem(item: TFile, _evt?: MouseEvent | KeyboardEvent): void {
-		if (this.resolveNote !== null) {
-			this.resolveNote(item);
-			this.resolveNote = null;
-		}
+		if (this.chosen === null) this.chosen = item;
 	}
 
 	onClose(): void {
 		super.onClose();
 		if (this.resolveNote !== null) {
-			this.resolveNote(null);
+			const resolve = this.resolveNote;
+			const chosen = this.chosen;
 			this.resolveNote = null;
+			this.chosen = null;
+			resolve(chosen);
 		}
 	}
 }

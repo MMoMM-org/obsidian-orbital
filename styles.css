@@ -318,6 +318,7 @@
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	font-size: var(--font-small);
+	font-weight: var(--font-semibold);
 	color: var(--text-normal);
 }
 
