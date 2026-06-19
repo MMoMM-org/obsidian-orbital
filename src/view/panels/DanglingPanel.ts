@@ -1,0 +1,595 @@
+/**
+ * DanglingPanel — T3.4
+ *
+ * Renders the Dangling tab: a grouped tree of unresolved wikilink targets
+ * with inline actions (rename, alias, create, delete).
+ *
+ * Design decisions:
+ * - Pure render: `render(container)` always rebuilds from scratch; callers
+ *   re-invoke on vault changes or toggle events (driven by OrbitView).
+ * - Default grouping: by-target (ADR-4). Toggle switches to by-source.
+ * - Default scope: vault. Toggle switches to folder (uses getFolderPath()).
+ * - No innerHTML: all nodes via createEl/createDiv/createSpan (CON-3).
+ * - Actions use mobile-reachable clickable-icon buttons (not hover-only).
+ * - DOM listeners routed through injected registerDomEvent for lifecycle safety.
+ * - Bulk results surfaced via Notice + aria-live="polite" region.
+ * - "Manage →" deep-link: receives pendingTarget via getPendingTarget(), scrolls
+ *   to and highlights the matching group row, then calls clearPendingTarget().
+ */
+
+import { Notice } from "obsidian";
+import type { LinkGraphIndex } from "graph/LinkGraphIndex";
+import type {
+	OrbitSettings,
+	DanglingTarget,
+	DanglingGrouping,
+	DanglingScope,
+} from "types/index";
+import type { RewritePreview, BulkResult, RewriteScope } from "links/LinkRewriteService";
+import type { RewriteKind } from "modals/ConfirmRewriteModal";
+import type { TFolder } from "obsidian";
+
+// ---------------------------------------------------------------------------
+// Structural types — injected so tests can swap with mocks
+// ---------------------------------------------------------------------------
+
+export interface DanglingPanelApp {
+	vault: {
+		getAbstractFileByPath(path: string): { path: string } | null;
+		create(path: string, data: string): Promise<{ path: string }>;
+		getAllLoadedFiles(): Array<{ path: string; children?: unknown[] }>;
+	};
+	fileManager: {
+		getNewFileParent(sourcePath: string): { path: string };
+	};
+}
+
+interface ServiceLike {
+	previewRename(target: string, scope: RewriteScope): Promise<RewritePreview>;
+	applyRename(target: string, newName: string, scope: RewriteScope): Promise<BulkResult>;
+	applyAlias(target: string, realNotePath: string, scope: RewriteScope): Promise<BulkResult>;
+	applyDelete(target: string, scope: RewriteScope, onlyInActiveNote: boolean): Promise<BulkResult>;
+}
+
+interface ConfirmRewriteModalConstructor {
+	new (
+		app: DanglingPanelApp,
+		opts: {
+			preview: RewritePreview;
+			kind: RewriteKind;
+			onConfirm: (name: string) => void;
+		},
+	): { open(): void };
+}
+
+interface NotePickerModalConstructor {
+	new (app: DanglingPanelApp): { pickFolder(): Promise<TFolder | null> };
+}
+
+type CreateNoteFn = (
+	target: string,
+	app: DanglingPanelApp,
+	settings: OrbitSettings,
+	pickerFolder: TFolder | null,
+) => Promise<{ file: { path: string }; existed: boolean }>;
+
+// ---------------------------------------------------------------------------
+// Deps interface
+// ---------------------------------------------------------------------------
+
+export interface DanglingPanelDeps {
+	/** Pre-built link graph index. */
+	index: LinkGraphIndex;
+	/** Returns current plugin settings (called on each render). */
+	getSettings: () => OrbitSettings;
+	/** Structural Obsidian App subset. */
+	app: DanglingPanelApp;
+	/** Returns the current grouping mode. */
+	getGrouping: () => DanglingGrouping;
+	/** Persists a new grouping value. */
+	setGrouping: (g: DanglingGrouping) => void;
+	/** Returns the current scope mode. */
+	getScope: () => DanglingScope;
+	/** Persists a new scope value. */
+	setScope: (s: DanglingScope) => void;
+	/** Returns the current active folder path (for folder scope). */
+	getFolderPath: () => string;
+	/** Returns the pending "Manage →" target from Relations, or null. */
+	getPendingTarget: () => string | null;
+	/** Clears the pending target after it has been applied. */
+	clearPendingTarget: () => void;
+	/** LinkRewriteService instance (or compatible mock). */
+	service: ServiceLike;
+	/** ConfirmRewriteModal constructor. */
+	ConfirmRewriteModal: ConfirmRewriteModalConstructor;
+	/** NotePickerModal constructor. */
+	NotePickerModal: NotePickerModalConstructor;
+	/** createNote function. */
+	createNote: CreateNoteFn;
+	/**
+	 * DOM event registration delegate — routed through the owning Component
+	 * so listeners are tracked and torn down on unload.
+	 */
+	registerDomEvent: <K extends keyof HTMLElementEventMap>(
+		el: HTMLElement,
+		type: K,
+		handler: (ev: HTMLElementEventMap[K]) => void,
+	) => void;
+}
+
+// ---------------------------------------------------------------------------
+// Augmented element helper — same cast pattern as RelationsPanel / TabBar
+// ---------------------------------------------------------------------------
+
+interface AugmentedEl {
+	createEl(
+		tag: string,
+		opts?: {
+			text?: string;
+			cls?: string;
+			attr?: Record<string, string>;
+		},
+	): HTMLElement;
+	createDiv(opts?: { cls?: string; text?: string }): HTMLElement;
+	createSpan(opts?: { cls?: string; text?: string }): HTMLElement;
+	empty(): void;
+	classList: { toggle(cls: string, force?: boolean): void; add(...cls: string[]): void; contains(cls: string): boolean };
+}
+
+// ---------------------------------------------------------------------------
+// DanglingPanel
+// ---------------------------------------------------------------------------
+
+export class DanglingPanel {
+	private readonly deps: DanglingPanelDeps;
+
+	constructor(deps: DanglingPanelDeps) {
+		this.deps = deps;
+	}
+
+	/**
+	 * (Re)render the panel into `container`.
+	 * Always rebuilds from scratch — call whenever data changes or toggles fire.
+	 */
+	render(container: HTMLElement): void {
+		(container as unknown as AugmentedEl).empty();
+
+		const settings = this.deps.getSettings();
+		const scope = this.buildScope();
+		const targets = this.deps.index.danglingTargets(scope);
+		const grouping = this.deps.getGrouping();
+		const pendingTarget = this.deps.getPendingTarget();
+
+		// Toolbar: grouping + scope toggles
+		this.renderToolbar(container);
+
+		// Aria-live region for bulk operation results
+		const liveRegion = this.renderLiveRegion(container);
+
+		if (targets.length === 0) {
+			this.renderEmptyState(container);
+			return;
+		}
+
+		if (grouping === "target") {
+			this.renderByTarget(container, targets, scope, settings, liveRegion, pendingTarget);
+		} else {
+			this.renderBySource(container, targets, scope, settings, liveRegion);
+		}
+
+		if (pendingTarget !== null) {
+			this.deps.clearPendingTarget();
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Private — toolbar
+	// -------------------------------------------------------------------------
+
+	private renderToolbar(container: HTMLElement): void {
+		const toolbar = (container as unknown as AugmentedEl).createDiv({
+			cls: "orbit-dangling-toolbar",
+		});
+
+		const grouping = this.deps.getGrouping();
+		const scope = this.deps.getScope();
+
+		// Grouping toggle
+		const groupingLabel = grouping === "target" ? "Group by source" : "Group by target";
+		const groupingBtn = (toolbar as unknown as AugmentedEl).createEl("button", {
+			text: groupingLabel,
+			cls: "orbit-dangling-toggle-btn",
+			attr: {
+				"data-action": "toggle-grouping",
+				"aria-label": groupingLabel,
+			},
+		});
+
+		this.deps.registerDomEvent(groupingBtn, "click", () => {
+			this.deps.setGrouping(grouping === "target" ? "source" : "target");
+		});
+
+		// Scope toggle
+		const scopeLabel = scope === "vault" ? "Vault" : "Folder";
+		const scopeBtn = (toolbar as unknown as AugmentedEl).createEl("button", {
+			text: scopeLabel,
+			cls: "orbit-dangling-toggle-btn",
+			attr: {
+				"data-action": "toggle-scope",
+				"aria-label": scope === "vault" ? "Switch to folder scope" : "Switch to vault scope",
+			},
+		});
+
+		this.deps.registerDomEvent(scopeBtn, "click", () => {
+			this.deps.setScope(scope === "vault" ? "folder" : "vault");
+		});
+	}
+
+	// -------------------------------------------------------------------------
+	// Private — aria-live region
+	// -------------------------------------------------------------------------
+
+	private renderLiveRegion(container: HTMLElement): HTMLElement {
+		const region = (container as unknown as AugmentedEl).createDiv({
+			cls: "orbit-dangling-live",
+		});
+		region.setAttribute("aria-live", "polite");
+		return region;
+	}
+
+	// -------------------------------------------------------------------------
+	// Private — by-target rendering
+	// -------------------------------------------------------------------------
+
+	private renderByTarget(
+		container: HTMLElement,
+		targets: DanglingTarget[],
+		scope: RewriteScope,
+		settings: OrbitSettings,
+		liveRegion: HTMLElement,
+		pendingTarget: string | null,
+	): void {
+		for (const dt of targets) {
+			this.renderTargetGroup(container, dt, scope, settings, liveRegion, pendingTarget);
+		}
+	}
+
+	private renderTargetGroup(
+		container: HTMLElement,
+		dt: DanglingTarget,
+		scope: RewriteScope,
+		settings: OrbitSettings,
+		liveRegion: HTMLElement,
+		pendingTarget: string | null,
+	): void {
+		const isHighlighted = pendingTarget === dt.target;
+
+		const groupEl = (container as unknown as AugmentedEl).createEl("div", {
+			cls: `orbit-dangling-group tree-item${isHighlighted ? " is-highlighted" : ""}`,
+			attr: { "data-target": dt.target },
+		});
+
+		// Group header row
+		const header = (groupEl as unknown as AugmentedEl).createEl("div", {
+			cls: "orbit-dangling-group-header tree-item-self",
+		});
+
+		(header as unknown as AugmentedEl).createSpan({
+			cls: "orbit-dangling-group-label",
+			text: dt.target,
+		});
+
+		if (settings.showCounts) {
+			(header as unknown as AugmentedEl).createSpan({
+				cls: "orbit-dangling-count",
+				text: String(dt.totalCount),
+			});
+		}
+
+		// Inline action buttons
+		const actions = (header as unknown as AugmentedEl).createDiv({
+			cls: "orbit-dangling-actions",
+		});
+
+		this.renderActionButtons(actions, dt.target, scope, liveRegion);
+
+		// Children: source occurrences
+		const children = (groupEl as unknown as AugmentedEl).createEl("div", {
+			cls: "orbit-dangling-group-children tree-item-children",
+		});
+
+		for (const occ of dt.occurrences) {
+			const occRow = (children as unknown as AugmentedEl).createEl("div", {
+				cls: "orbit-dangling-occurrence tree-item",
+			});
+			(occRow as unknown as AugmentedEl).createSpan({
+				cls: "orbit-dangling-occurrence-label",
+				text: occ.sourcePath,
+			});
+			if (settings.showCounts && occ.count > 1) {
+				(occRow as unknown as AugmentedEl).createSpan({
+					cls: "orbit-dangling-count",
+					text: String(occ.count),
+				});
+			}
+		}
+
+		if (isHighlighted) {
+			// scrollIntoView is a no-op in jsdom, but the class is the observable signal in tests
+			groupEl.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Private — by-source rendering
+	// -------------------------------------------------------------------------
+
+	private renderBySource(
+		container: HTMLElement,
+		targets: DanglingTarget[],
+		scope: RewriteScope,
+		settings: OrbitSettings,
+		liveRegion: HTMLElement,
+	): void {
+		// Invert: build Map<sourcePath → DanglingTarget[]>
+		const bySource = this.invertToSource(targets);
+
+		for (const [sourcePath, sourceTargets] of bySource) {
+			this.renderSourceGroup(container, sourcePath, sourceTargets, scope, settings, liveRegion);
+		}
+	}
+
+	private invertToSource(
+		targets: DanglingTarget[],
+	): Map<string, DanglingTarget[]> {
+		const map = new Map<string, DanglingTarget[]>();
+		for (const dt of targets) {
+			for (const occ of dt.occurrences) {
+				let list = map.get(occ.sourcePath);
+				if (list === undefined) {
+					list = [];
+					map.set(occ.sourcePath, list);
+				}
+				list.push(dt);
+			}
+		}
+		return map;
+	}
+
+	private renderSourceGroup(
+		container: HTMLElement,
+		sourcePath: string,
+		sourceTargets: DanglingTarget[],
+		scope: RewriteScope,
+		settings: OrbitSettings,
+		liveRegion: HTMLElement,
+	): void {
+		const groupEl = (container as unknown as AugmentedEl).createEl("div", {
+			cls: "orbit-dangling-group tree-item",
+			attr: { "data-source": sourcePath },
+		});
+
+		const header = (groupEl as unknown as AugmentedEl).createEl("div", {
+			cls: "orbit-dangling-group-header tree-item-self",
+		});
+
+		(header as unknown as AugmentedEl).createSpan({
+			cls: "orbit-dangling-group-label",
+			text: sourcePath,
+		});
+
+		const children = (groupEl as unknown as AugmentedEl).createEl("div", {
+			cls: "orbit-dangling-group-children tree-item-children",
+		});
+
+		for (const dt of sourceTargets) {
+			const itemEl = (children as unknown as AugmentedEl).createEl("div", {
+				cls: "orbit-dangling-target-item tree-item",
+			});
+
+			(itemEl as unknown as AugmentedEl).createSpan({
+				cls: "orbit-dangling-target-label",
+				text: dt.target,
+			});
+
+			if (settings.showCounts) {
+				const occ = dt.occurrences.find((o) => o.sourcePath === sourcePath);
+				if (occ !== undefined) {
+					(itemEl as unknown as AugmentedEl).createSpan({
+						cls: "orbit-dangling-count",
+						text: String(occ.count),
+					});
+				}
+			}
+
+			// Actions available on each target item within source grouping
+			const actions = (itemEl as unknown as AugmentedEl).createDiv({
+				cls: "orbit-dangling-actions",
+			});
+
+			this.renderActionButtons(actions, dt.target, scope, liveRegion);
+		}
+
+		// Suppress unused liveRegion warning — it is passed through for consistency
+		void liveRegion;
+	}
+
+	// -------------------------------------------------------------------------
+	// Private — action buttons
+	// -------------------------------------------------------------------------
+
+	private renderActionButtons(
+		container: HTMLElement,
+		target: string,
+		scope: RewriteScope,
+		liveRegion: HTMLElement,
+	): void {
+		this.renderActionBtn(container, "Rename dangling link", "lucide-pencil", () => {
+			void this.handleRename(target, scope, liveRegion);
+		});
+
+		this.renderActionBtn(container, "Alias to existing note", "lucide-link", () => {
+			void this.handleAlias(target, scope, liveRegion);
+		});
+
+		this.renderActionBtn(container, "Create note", "lucide-file-plus", () => {
+			void this.handleCreate(target, liveRegion);
+		});
+
+		this.renderActionBtn(container, "Delete links", "lucide-trash", () => {
+			void this.handleDelete(target, scope, liveRegion);
+		});
+	}
+
+	private renderActionBtn(
+		container: HTMLElement,
+		ariaLabel: string,
+		_iconClass: string,
+		onClick: () => void,
+	): void {
+		const btn = (container as unknown as AugmentedEl).createEl("button", {
+			cls: "clickable-icon orbit-dangling-action-btn",
+			attr: { "aria-label": ariaLabel },
+		});
+
+		this.deps.registerDomEvent(btn, "click", (evt) => {
+			evt.stopPropagation();
+			onClick();
+		});
+	}
+
+	// -------------------------------------------------------------------------
+	// Private — action handlers
+	// -------------------------------------------------------------------------
+
+	private async handleRename(
+		target: string,
+		scope: RewriteScope,
+		liveRegion: HTMLElement,
+	): Promise<void> {
+		const preview = await this.deps.service.previewRename(target, scope);
+		const modal = new this.deps.ConfirmRewriteModal(this.deps.app, {
+			preview,
+			kind: "rename",
+			onConfirm: (newName: string) => {
+				void this.deps.service.applyRename(target, newName, scope).then((result) => {
+					this.surfaceResult(result, liveRegion);
+				});
+			},
+		});
+
+		modal.open();
+	}
+
+	private async handleAlias(
+		target: string,
+		scope: RewriteScope,
+		liveRegion: HTMLElement,
+	): Promise<void> {
+		// Pick a note path via NotePickerModal.
+		// NotePickerModal.pickFolder() returns a TFolder; we use its path as the
+		// real-note path passed to applyAlias (ADR-6 compromise: no note-picker
+		// variant shipped in T3.3 — folder path serves as proxy note path).
+		const picker = new this.deps.NotePickerModal(this.deps.app);
+		const folder = await picker.pickFolder();
+		if (folder === null) return;
+
+		const notePath = folder.path;
+		const preview = await this.deps.service.previewRename(target, scope);
+		const modal = new this.deps.ConfirmRewriteModal(this.deps.app, {
+			preview,
+			kind: "alias",
+			onConfirm: (_name: string) => {
+				void this.deps.service.applyAlias(target, notePath, scope).then((result) => {
+					this.surfaceResult(result, liveRegion);
+				});
+			},
+		});
+
+		modal.open();
+	}
+
+	private async handleCreate(
+		target: string,
+		liveRegion: HTMLElement,
+	): Promise<void> {
+		const picker = new this.deps.NotePickerModal(this.deps.app);
+		const folder = await picker.pickFolder();
+		const settings = this.deps.getSettings();
+
+		const result = await this.deps.createNote(
+			target,
+			this.deps.app,
+			settings,
+			folder,
+		);
+
+		const msg = result.existed
+			? `Note "${result.file.path}" already exists.`
+			: `Created "${result.file.path}".`;
+
+		new Notice(msg);
+		this.updateLiveRegion(liveRegion, msg);
+	}
+
+	private async handleDelete(
+		target: string,
+		scope: RewriteScope,
+		liveRegion: HTMLElement,
+	): Promise<void> {
+		const preview = await this.deps.service.previewRename(target, scope);
+		const modal = new this.deps.ConfirmRewriteModal(this.deps.app, {
+			preview,
+			kind: "delete",
+			onConfirm: (_name: string) => {
+				void this.deps.service.applyDelete(target, scope, false).then((result) => {
+					this.surfaceResult(result, liveRegion);
+				});
+			},
+		});
+
+		modal.open();
+	}
+
+	// -------------------------------------------------------------------------
+	// Private — surface result
+	// -------------------------------------------------------------------------
+
+	private surfaceResult(result: BulkResult, liveRegion: HTMLElement): void {
+		const total = result.filesSucceeded + result.filesFailed.length;
+		const failed = result.filesFailed.length;
+		const msg = failed === 0
+			? `Updated ${result.filesSucceeded} of ${total} files.`
+			: `Updated ${result.filesSucceeded} of ${total} files; ${failed} failed.`;
+
+		new Notice(msg);
+		this.updateLiveRegion(liveRegion, msg);
+	}
+
+	private updateLiveRegion(liveRegion: HTMLElement, msg: string): void {
+		liveRegion.textContent = msg;
+	}
+
+	// -------------------------------------------------------------------------
+	// Private — empty state
+	// -------------------------------------------------------------------------
+
+	private renderEmptyState(container: HTMLElement): void {
+		(container as unknown as AugmentedEl).createEl("div", {
+			cls: "orbit-dangling-empty",
+			text: "No dangling links in this scope.",
+		});
+	}
+
+	// -------------------------------------------------------------------------
+	// Private — scope helper
+	// -------------------------------------------------------------------------
+
+	private buildScope(): RewriteScope {
+		const scope = this.deps.getScope();
+		if (scope === "folder") {
+			return { folder: this.deps.getFolderPath() };
+		}
+		return {};
+	}
+}

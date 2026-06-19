@@ -136,3 +136,138 @@
 	font-size: var(--font-small);
 	text-align: center;
 }
+
+/* ── DanglingPanel ──────────────────────────────────────────────────────────
+   Grouped tree of unresolved wikilink targets with inline actions.
+   Uses Obsidian tree-item structure; all colors from CSS variables.
+   ─────────────────────────────────────────────────────────────────────────*/
+
+.orbit-dangling-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.orbit-dangling-toggle-btn {
+	font-size: var(--font-small);
+	color: var(--text-muted);
+	background: transparent;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 2px 6px;
+	cursor: pointer;
+}
+
+.orbit-dangling-toggle-btn:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.orbit-dangling-group {
+	padding: 0;
+}
+
+.orbit-dangling-group-header {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 8px;
+	cursor: default;
+}
+
+.orbit-dangling-group-label {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: var(--font-small);
+	color: var(--text-normal);
+}
+
+.orbit-dangling-count {
+	font-size: var(--font-small);
+	color: var(--text-faint);
+	flex: 0 0 auto;
+}
+
+.orbit-dangling-actions {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	flex: 0 0 auto;
+}
+
+.orbit-dangling-action-btn {
+	background: transparent;
+	border: none;
+	padding: 2px;
+	cursor: pointer;
+	color: var(--text-muted);
+	border-radius: var(--radius-s);
+	line-height: 1;
+}
+
+.orbit-dangling-action-btn:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
+.orbit-dangling-group-children {
+	padding-left: 16px;
+}
+
+.orbit-dangling-occurrence {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 1px 8px;
+}
+
+.orbit-dangling-occurrence-label {
+	flex: 1 1 auto;
+	font-size: var(--font-small);
+	color: var(--text-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.orbit-dangling-target-item {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 8px;
+}
+
+.orbit-dangling-target-label {
+	flex: 1 1 auto;
+	font-size: var(--font-small);
+	color: var(--text-normal);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.orbit-dangling-empty {
+	padding: 16px 8px;
+	color: var(--text-faint);
+	font-size: var(--font-small);
+	text-align: center;
+}
+
+.orbit-dangling-live {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+}
+
+.orbit-dangling-group.is-highlighted {
+	background: var(--background-modifier-hover);
+	border-left: 2px solid var(--text-accent);
+}
