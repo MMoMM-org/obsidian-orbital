@@ -31,11 +31,6 @@ export interface TabBarOptions {
 	/** DOM id prefix for tab buttons — used by aria-controls. */
 	idPrefix?: string;
 	/**
-	 * Called whenever the narrow state changes (true = is-narrow class added).
-	 * Allows the host to react to the collapse/expand without polling the DOM.
-	 */
-	onNarrowChange?: (isNarrow: boolean) => void;
-	/**
 	 * DOM event registration delegate. Supply `this.registerDomEvent` from
 	 * the owning ItemView/Component so that tab-button listeners are tracked
 	 * in Obsidian's cleanup chain and torn down on view unload.

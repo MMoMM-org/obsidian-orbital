@@ -628,4 +628,40 @@ describe("RelationsPanel list truncation (Gap D)", () => {
 		const items = outgoing?.querySelectorAll(".orbit-relations-item") ?? [];
 		expect(items.length).toBe(110);
 	});
+
+	it("renders a 'Show more' control in backlinks section when backlink count exceeds cap", () => {
+		// Build a graph where 110 different files each link TO active.md (backlinks).
+		const resolved: Record<string, Record<string, number>> = {};
+		for (let i = 0; i < 110; i++) {
+			resolved[`notes/source-${i}.md`] = { "notes/active.md": 1 };
+		}
+		const deps = makeDeps({ resolved });
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const backlinks = container.querySelector(".orbit-relations-section[data-section='backlinks']");
+		expect(backlinks).not.toBeNull();
+		const showMore = backlinks?.querySelector(".orbit-show-more");
+		expect(showMore).not.toBeNull();
+	});
+
+	it("clicking 'Show more' in backlinks section reveals all items", () => {
+		const resolved: Record<string, Record<string, number>> = {};
+		for (let i = 0; i < 110; i++) {
+			resolved[`notes/source-${i}.md`] = { "notes/active.md": 1 };
+		}
+		const deps = makeDeps({ resolved });
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const backlinks = container.querySelector(".orbit-relations-section[data-section='backlinks']");
+		const showMoreBtn = backlinks?.querySelector(".orbit-show-more") as HTMLElement | null;
+		expect(showMoreBtn).not.toBeNull();
+		showMoreBtn!.click();
+
+		const items = backlinks?.querySelectorAll(".orbit-relations-item") ?? [];
+		expect(items.length).toBe(110);
+	});
 });

@@ -228,15 +228,6 @@ describe("TabBar keyboard navigation", () => {
 // ---------------------------------------------------------------------------
 
 describe("TabBar is-narrow class toggle (Gap C)", () => {
-	it("TabBar accepts an onNarrowChange callback option", () => {
-		const onNarrowChange = vi.fn();
-		const el = makeContainer();
-		// Should construct without throwing
-		expect(() => {
-			makeTabBar(el, { onNarrowChange });
-		}).not.toThrow();
-	});
-
 	it("setNarrow(true) adds is-narrow class to the tablist element", () => {
 		const el = makeContainer();
 		const bar = makeTabBar(el);

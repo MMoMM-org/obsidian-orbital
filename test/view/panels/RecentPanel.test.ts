@@ -578,18 +578,30 @@ describe("RecentPanel focus management after row removal (Gap B)", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		// Click remove on the last (second) row
-		const removeBtns = container.querySelectorAll("[aria-label='Remove from recent list']");
-		(removeBtns[1] as HTMLElement).click();
+		// Capture focus() calls to assert which row receives focus.
+		const focusedPaths: string[] = [];
+		const origFocus = HTMLElement.prototype.focus;
+		HTMLElement.prototype.focus = function (this: HTMLElement) {
+			const path = this.getAttribute("data-path");
+			if (path !== null) focusedPaths.push(path);
+			origFocus.call(this);
+		};
 
-		await vi.waitFor(() => {
-			const rows = container.querySelectorAll(".orbit-recent-row");
-			expect(rows.length).toBe(1);
-		});
+		try {
+			// Click remove on the last (second) row — the prev-sibling fallback path fires.
+			const removeBtns = container.querySelectorAll("[aria-label='Remove from recent list']");
+			(removeBtns[1] as HTMLElement).click();
 
-		// The single remaining row (alpha) should exist
-		const rows = container.querySelectorAll(".orbit-recent-row");
-		expect(rows[0]?.getAttribute("data-path")).toBe("notes/alpha.md");
+			await vi.waitFor(() => {
+				const rows = container.querySelectorAll(".orbit-recent-row");
+				expect(rows.length).toBe(1);
+			});
+
+			// Focus should have moved to the previous row (alpha)
+			expect(focusedPaths).toContain("notes/alpha.md");
+		} finally {
+			HTMLElement.prototype.focus = origFocus;
+		}
 	});
 });
 
