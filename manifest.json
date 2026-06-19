@@ -3,7 +3,7 @@
 	"name": "Orbit",
 	"version": "0.0.0",
 	"minAppVersion": "1.5.7",
-	"description": "Orbit plugin.",
+	"description": "Explore note relations, fix dangling links in bulk, and track recent files — all in one sidebar pane.",
 	"author": "Marcus Breiden",
 	"authorUrl": "https://www.mmomm.org",
 	"fundingUrl": {

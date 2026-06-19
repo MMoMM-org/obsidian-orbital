@@ -1,6 +1,6 @@
 # Orbit
 
-Orbit plugin.
+Orbit consolidates three sidebar workflows into one pane: explore note relations (outgoing links, backlinks, 2nd-hop related notes, and missing links), fix dangling links in bulk (rename, merge, change to alias, create, or delete), and browse recent files with drag-to-link and tap-to-insert support.
 
 ## Installation
 
@@ -21,7 +21,41 @@ Orbit plugin.
 
 ## Usage
 
-<!-- Describe how to use the plugin -->
+Open the Orbit sidebar pane (click the ribbon icon or use the command palette). The pane has three tabs:
+
+### Relations tab
+
+Shows the relations of the active note:
+
+- **Outgoing links** — all links the current note makes to other notes.
+- **Backlinks** — notes that link back to the current note.
+- **Related** — deduplicated 2nd-hop notes (notes linked by your links or backlinks), filtered so only notes you haven't directly linked appear.
+- **Missing** — unresolved link targets in the current note. A "Manage →" deep-link opens the Dangling tab pre-filtered to the same targets.
+
+### Dangling tab
+
+Vault-wide (or folder-scoped) list of unresolved link targets. Each target shows a preview of the notes that reference it. Bulk operations available per target:
+
+- **Rename** — rewrite every referencing link to a new, confirmed target (merge-safe: if the target already exists, all references collapse onto it).
+- **Change to alias** — replace the link with an alias on an existing note.
+- **Create note** — create a new note for the target and resolve all references.
+- **Delete** — remove all references to the target across the vault.
+
+Operations are preview-confirmed before writing.
+
+### Recent tab
+
+Most-recent-first list of opened notes. Configurable list length and folder exclusions (set in Settings → Orbit). Drag a row to another editor to insert a link, or tap/click to open the note.
+
+## Prior art and attribution
+
+Orbit consolidates what previously required three separate plugins. It draws inspiration from the following MIT-licensed projects (the code is a complete reimplementation — see ADR-3):
+
+- [obsidian-relation-pane](https://github.com/mdelobelle/obsidian-relation-pane) by mdelobelle — relation/connection viewer
+- [obsidian-dangling-links](https://github.com/graydon/obsidian-dangling-links) by graydon — dangling/broken-link viewer
+- [recent-files-obsidian](https://github.com/tgrosinger/recent-files-obsidian) by tgrosinger — recent files list
+
+All three are MIT licensed. Credit and thanks to their authors.
 
 ## Development
 
