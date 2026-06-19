@@ -12,8 +12,7 @@
  * interface so tests can pass plain mocks without a real Obsidian runtime.
  */
 
-import type { TFile } from "obsidian";
-import type { MarkdownView } from "obsidian";
+import type { TFile, MarkdownView } from "obsidian";
 
 // ---------------------------------------------------------------------------
 // Dependency injection interface
@@ -21,8 +20,8 @@ import type { MarkdownView } from "obsidian";
 
 /** Shape of app.dragManager — optional so callers can pass undefined to test degradation. */
 export interface DragManagerShape {
-	dragFile(event: DragEvent, file: TFile): void;
-	onDragStart(event: DragEvent, file: TFile): void;
+	dragFile(event: DragEvent, file: TFile): unknown;
+	onDragStart(event: DragEvent, dragData: unknown): void;
 }
 
 /**
@@ -65,7 +64,8 @@ export class DragInsertHelper {
 		const dm = this.deps.dragManager;
 		if (dm === undefined) return;
 
-		dm.dragFile(event, file);
+		const dragData = dm.dragFile(event, file);
+		dm.onDragStart(event, dragData);
 	}
 
 	/**

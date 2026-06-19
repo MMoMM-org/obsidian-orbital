@@ -13,8 +13,14 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { DragInsertHelper } from "recent/DragInsertHelper";
-import type { DragInsertHelperDeps } from "recent/DragInsertHelper";
+import type { DragInsertHelperDeps, DragManagerShape } from "recent/DragInsertHelper";
 import { TFile, MarkdownView, WorkspaceLeaf } from "obsidian";
+import type { App } from "obsidian";
+
+// W3: compile-time guard — DragManagerShape and App["dragManager"] must stay in sync.
+// This fails to compile if either shape changes without the other being updated.
+type _DragManagerInSync = DragManagerShape extends NonNullable<App["dragManager"]> ? true : never;
+void (true as _DragManagerInSync);
 
 // jsdom does not implement DragEvent — provide a minimal structural stand-in.
 function makeDragEvent(): DragEvent {
@@ -36,6 +42,8 @@ function makeMarkdownView(): MarkdownView {
 	return new MarkdownView(new WorkspaceLeaf());
 }
 
+const SENTINEL_DRAG_DATA = { __sentinel: "drag-data" } as const;
+
 type MockDragManager = {
 	dragFile: ReturnType<typeof vi.fn>;
 	onDragStart: ReturnType<typeof vi.fn>;
@@ -43,7 +51,7 @@ type MockDragManager = {
 
 function makeDragManager(): MockDragManager {
 	return {
-		dragFile: vi.fn(),
+		dragFile: vi.fn(() => SENTINEL_DRAG_DATA),
 		onDragStart: vi.fn(),
 	};
 }
@@ -97,7 +105,7 @@ describe("DragInsertHelper — onDragStart()", () => {
 		expect(deps.getFirstLinkpathDest).toHaveBeenCalledWith("notes/MyNote.md", "");
 	});
 
-	it("calls dragManager.dragFile with the event and resolved TFile", () => {
+	it("calls dragFile then onDragStart with the event, resolved TFile, and drag-data", () => {
 		const file = makeTFile({ path: "notes/MyNote.md", basename: "MyNote" });
 		const dragManager = makeDragManager();
 		const deps = makeDeps({ tfile: file, dragManager });
@@ -106,6 +114,7 @@ describe("DragInsertHelper — onDragStart()", () => {
 		helper.onDragStart(event, "notes/MyNote.md");
 
 		expect(dragManager.dragFile).toHaveBeenCalledWith(event, file);
+		expect(dragManager.onDragStart).toHaveBeenCalledWith(event, SENTINEL_DRAG_DATA);
 	});
 
 	it("does not throw when dragManager is absent (feature-detect: graceful degrade)", () => {
@@ -118,14 +127,18 @@ describe("DragInsertHelper — onDragStart()", () => {
 
 	it("does not call any drag method when dragManager is absent", () => {
 		const file = makeTFile();
-		const deps = makeDeps({ tfile: file, dragManager: undefined });
+		// Build a spy dragManager, capture the spies, then remove it from deps.
+		const dragManager = makeDragManager();
+		const dragFileSpy = dragManager.dragFile;
+		const onDragStartSpy = dragManager.onDragStart;
+		const deps = makeDeps({ tfile: file, dragManager });
+		deps.dragManager = undefined;
 		const helper = new DragInsertHelper(deps);
 
 		helper.onDragStart(event, "notes/MyNote.md");
 
-		// No dragManager — nothing to assert other than no throw (above).
-		// Verify file resolution still happens.
-		expect(deps.getFirstLinkpathDest).toHaveBeenCalled();
+		expect(dragFileSpy).not.toHaveBeenCalled();
+		expect(onDragStartSpy).not.toHaveBeenCalled();
 	});
 
 	it("is a no-op (no throw) when the file cannot be resolved (TFile is null)", () => {

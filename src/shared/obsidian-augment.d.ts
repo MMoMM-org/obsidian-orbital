@@ -11,7 +11,6 @@
  */
 
 import "obsidian";
-import type { TFile } from "obsidian";
 
 declare module "obsidian" {
 	interface App {
@@ -22,15 +21,17 @@ declare module "obsidian" {
 		 */
 		dragManager?: {
 			/**
-			 * Initiates a native file drag from a drag event.
+			 * Initiates a native file drag and returns a drag-data object.
+			 * The returned value must be passed to onDragStart to register the session.
 			 * @internal
 			 */
-			dragFile(event: DragEvent, file: TFile): void;
+			dragFile(event: DragEvent, file: import("obsidian").TFile): unknown;
 			/**
-			 * Hook called when a drag starts (may be needed for some Obsidian versions).
+			 * Registers the drag session with Obsidian's drag subsystem.
+			 * Must be called with the drag-data returned by dragFile.
 			 * @internal
 			 */
-			onDragStart(event: DragEvent, file: TFile): void;
+			onDragStart(event: DragEvent, dragData: unknown): void;
 		};
 	}
 }
