@@ -52,15 +52,15 @@ Delivers the Recent Files tab at parity with `recent-files-obsidian`, enabling i
   - Success:
     - [x] Desktop drag inserts a wikilink; mobile tap-insert works; absent drag API degrades gracefully `[ref: PRD/Feature 4]`
 
-- [ ] **T4.3 RecentPanel (list, click/cmd-click, remove, clear)** `[activity: frontend-ui]` `[ref: SDD/User Interface & UX; PRD/Feature 4]`
+- [x] **T4.3 RecentPanel (list, click/cmd-click, remove, clear)** `[activity: frontend-ui]` `[ref: SDD/User Interface & UX; PRD/Feature 4]`
 
   1. Prime: Read UI list rendering (reuse `nav-file` classes), click semantics, per-item remove, clear-list action.
   2. Test (mock): renders MRU rows (basename + muted path on collision); click opens current leaf, `Keymap.isModEvent` opens new leaf; per-row remove + clear-list update the store and re-render; rows are draggable (wired to DragInsertHelper) with a mobile insert action; clicking a now-missing file shows a Notice and self-heals; empty state when list empty.
   3. Implement: `src/view/panels/RecentPanel.ts`.
   4. Validate: unit tests; ≥44px touch targets / no hover-only actions; no `innerHTML`; typecheck; lint.
   - Success:
-    - [ ] Recent list opens/drags/removes/clears correctly with graceful missing-file handling `[ref: PRD/Feature 4]`
-    - [ ] Recent-files-obsidian parity reached (removal unblocked) `[ref: PRD/Feature 5; ADR-7]`
+    - [x] Recent list opens/drags/removes/clears correctly with graceful missing-file handling `[ref: PRD/Feature 4]`
+    - [x] Recent-files-obsidian parity reached (removal unblocked) `[ref: PRD/Feature 5; ADR-7]` *(panel-level; live parity verified after T4.3b wiring + T4.4)*
 
 - [ ] **T4.4 Phase Validation** `[activity: validate]`
 
