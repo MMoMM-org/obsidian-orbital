@@ -191,6 +191,7 @@
 
 .orbit-relations-count {
 	font-size: var(--font-small);
+	font-weight: var(--font-semibold);
 	color: var(--text-muted);
 }
 
@@ -298,6 +299,8 @@
 
 .orbit-dangling-group {
 	padding: 0;
+	/* Separate each target+sources cluster from the next. */
+	margin-bottom: 10px;
 }
 
 .orbit-dangling-group-header {
@@ -337,7 +340,7 @@
 	justify-content: center;
 	background: transparent;
 	border: none;
-	padding: 4px;
+	padding: 2px;
 	cursor: pointer;
 	color: var(--text-muted);
 	border-radius: var(--radius-s);
@@ -467,7 +470,7 @@
 	display: flex;
 	align-items: center;
 	gap: 4px;
-	padding: 2px 8px;
+	padding: 1px 8px;
 	cursor: pointer;
 }
 
@@ -515,7 +518,7 @@
 	justify-content: center;
 	background: transparent;
 	border: none;
-	padding: 4px;
+	padding: 2px;
 	cursor: pointer;
 	color: var(--text-muted);
 	border-radius: var(--radius-s);
