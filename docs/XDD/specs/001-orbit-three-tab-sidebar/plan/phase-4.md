@@ -34,14 +34,14 @@ Delivers the Recent Files tab at parity with `recent-files-obsidian`, enabling i
 
 > **Mock extension (do first):** add to `test/__mocks__/obsidian.ts` — `Platform.isMobile` and an `app.dragManager` stub (`dragFile`/`onDragStart`); type the latter via `src/shared/obsidian-augment.d.ts`. Part of T4.2 setup.
 
-- [ ] **T4.1 RecentFilesStore (MRU, dedup, prune, persist, sync)** `[activity: domain-modeling]` `[ref: SDD/recent/RecentFilesStore; ADR-8]`
+- [x] **T4.1 RecentFilesStore (MRU, dedup, prune, persist, sync)** `[activity: domain-modeling]` `[ref: SDD/recent/RecentFilesStore; ADR-8]`
 
   1. Prime: Read the persistence model (`{path, basename}[]`) and recent-files research (dedup via filter+unshift, prune to length, rename/delete sync).
   2. Test: `file-open` prepends MRU and dedupes existing path; list pruned to `recentListLength`; excluded files (via ExclusionMatcher) never added; `rename` updates path/basename in place; `delete` removes entry; remove-one and clear mutate + persist; list survives reload (saveData); changing `recentListLength` re-prunes.
   3. Implement: `src/recent/RecentFilesStore.ts` (reads settings live, persists via plugin `saveSettings`).
   4. Validate: unit tests; typecheck; lint.
   - Success:
-    - [ ] MRU list deduped, capped, exclusion-aware, persistent, rename/delete-synced `[ref: PRD/Feature 4]`
+    - [x] MRU list deduped, capped, exclusion-aware, persistent, rename/delete-synced `[ref: PRD/Feature 4]`
 
 - [ ] **T4.2 DragInsertHelper (drag-to-link + mobile fallback)** `[activity: frontend-ui]` `[ref: SDD/Implementation Gotchas; PRD/Feature 4]`
 
