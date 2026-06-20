@@ -808,8 +808,8 @@ describe("AC3 — Dangling Links tab", () => {
 			expect.any(Object),
 			expect.objectContaining({ kind: "delete" }),
 		);
-		// applyDelete was called
-		expect(mockService.applyDelete).toHaveBeenCalledWith("GhostLink", expect.any(Object), false);
+		// applyDelete was called (by-target grouping → no source scoping)
+		expect(mockService.applyDelete).toHaveBeenCalledWith("GhostLink", expect.any(Object), null);
 	});
 
 	it("AC3.7: all wikilink forms preserved — bulk op changes only the target (via unit-tested LinkRewriteService, tagged AC3.7)", async () => {

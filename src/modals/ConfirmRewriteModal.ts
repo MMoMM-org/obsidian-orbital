@@ -43,6 +43,14 @@ export interface ConfirmRewriteModalOptions {
 	 * input (and triggers the merge notice). Resolving null is a no-op.
 	 */
 	pickExisting?: () => Promise<string | null>;
+	/**
+	 * Delete kind only. The display name of the source note the delete was
+	 * triggered from (by-source grouping). When provided, an "Only in note: <name>"
+	 * checkbox is rendered and pre-checked, scoping the delete to that note.
+	 * When omitted (by-target grouping) no such checkbox is shown and the delete
+	 * spans every source in scope.
+	 */
+	deleteSourceNote?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -70,9 +78,11 @@ export class ConfirmRewriteModal extends Modal {
 	private readonly opts: ConfirmRewriteModalOptions;
 
 	/**
-	 * For the delete kind only: tracks whether the "Only in this note" checkbox
+	 * For the delete kind only: tracks whether the "Only in note: <name>" checkbox
 	 * is checked at the time the user confirms. Callers read this value inside
-	 * their onConfirm callback. Defaults to false (vault-wide delete).
+	 * their onConfirm callback to decide whether to scope the delete to the source
+	 * note. Pre-checked (true) when a deleteSourceNote is supplied (by-source
+	 * grouping); otherwise the checkbox is not rendered and this stays false.
 	 */
 	public onlyInThisNote = false;
 
@@ -209,20 +219,32 @@ export class ConfirmRewriteModal extends Modal {
 			attr: { for: "orbit-confirm-delete-checkbox" },
 		});
 
-		// "Only in this note" option — limits delete to the active note only
-		const onlyInNoteRow = el.createDiv({ cls: "orbit-confirm-checkbox-row" });
-		const onlyInNoteCheckbox = (onlyInNoteRow as unknown as AugmentedEl).createEl("input", {
-			attr: {
-				type: "checkbox",
-				id: "orbit-confirm-delete-only-note",
-				"aria-label": "Only delete links in this note",
-			},
-		}) as HTMLInputElement;
+		// "Only in note: <name>" option — scopes the delete to the source note the
+		// action was triggered from (by-source grouping). Rendered and pre-checked
+		// only when a source note name is supplied; in by-target grouping there is
+		// no single source, so the option is omitted entirely.
+		const sourceNote = this.opts.deleteSourceNote;
+		if (sourceNote !== undefined) {
+			const onlyInNoteRow = el.createDiv({ cls: "orbit-confirm-checkbox-row" });
+			const onlyInNoteCheckbox = (onlyInNoteRow as unknown as AugmentedEl).createEl("input", {
+				attr: {
+					type: "checkbox",
+					id: "orbit-confirm-delete-only-note",
+					"aria-label": `Only delete links in ${sourceNote}`,
+				},
+			}) as HTMLInputElement;
+			onlyInNoteCheckbox.checked = true;
+			this.onlyInThisNote = true;
 
-		(onlyInNoteRow as unknown as AugmentedEl).createEl("label", {
-			text: "Only in this note",
-			attr: { for: "orbit-confirm-delete-only-note" },
-		});
+			(onlyInNoteRow as unknown as AugmentedEl).createEl("label", {
+				text: `Only in note: ${sourceNote}`,
+				attr: { for: "orbit-confirm-delete-only-note" },
+			});
+
+			onlyInNoteCheckbox.addEventListener("change", () => {
+				this.onlyInThisNote = onlyInNoteCheckbox.checked;
+			});
+		}
 
 		const confirmBtn = el.createEl("button", {
 			text: "Confirm",
@@ -233,10 +255,6 @@ export class ConfirmRewriteModal extends Modal {
 
 		checkboxEl.addEventListener("change", () => {
 			confirmBtn.disabled = !checkboxEl.checked;
-		});
-
-		onlyInNoteCheckbox.addEventListener("change", () => {
-			this.onlyInThisNote = onlyInNoteCheckbox.checked;
 		});
 
 		confirmBtn.addEventListener("click", () => {

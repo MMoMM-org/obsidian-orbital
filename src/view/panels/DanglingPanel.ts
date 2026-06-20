@@ -55,7 +55,7 @@ interface ServiceLike {
 	previewRename(target: string, scope: RewriteScope): Promise<RewritePreview>;
 	applyRename(target: string, newName: string, scope: RewriteScope): Promise<BulkResult>;
 	applyAlias(target: string, realNotePath: string, scope: RewriteScope): Promise<BulkResult>;
-	applyDelete(target: string, scope: RewriteScope, onlyInActiveNote: boolean): Promise<BulkResult>;
+	applyDelete(target: string, scope: RewriteScope, restrictToSource?: string | null): Promise<BulkResult>;
 }
 
 interface ConfirmRewriteModalConstructor {
@@ -67,6 +67,7 @@ interface ConfirmRewriteModalConstructor {
 			onConfirm: (name: string) => void;
 			existingNoteNames?: string[];
 			pickExisting?: () => Promise<string | null>;
+			deleteSourceNote?: string;
 		},
 	): { open(): void; onlyInThisNote?: boolean };
 }
@@ -513,12 +514,13 @@ export class DanglingPanel {
 				}
 			}
 
-			// Actions available on each target item within source grouping
+			// Actions available on each target item within source grouping.
+			// Pass sourcePath so delete can offer "Only in note: <name>" scoping.
 			const actions = (itemEl as unknown as AugmentedEl).createDiv({
 				cls: "orbit-dangling-actions",
 			});
 
-			this.renderActionButtons(actions, dt.target, scope, liveRegion);
+			this.renderActionButtons(actions, dt.target, scope, liveRegion, sourcePath);
 		}
 
 	}
@@ -532,6 +534,7 @@ export class DanglingPanel {
 		target: string,
 		scope: RewriteScope,
 		liveRegion: HTMLElement,
+		sourcePath?: string,
 	): void {
 		this.renderActionBtn(container, "Rename dangling link", "pencil", () => {
 			void this.handleRename(target, scope, liveRegion);
@@ -546,7 +549,7 @@ export class DanglingPanel {
 		});
 
 		this.renderActionBtn(container, "Delete links", "trash", () => {
-			void this.handleDelete(target, scope, liveRegion);
+			void this.handleDelete(target, scope, liveRegion, sourcePath);
 		});
 	}
 
@@ -686,20 +689,32 @@ export class DanglingPanel {
 		target: string,
 		scope: RewriteScope,
 		liveRegion: HTMLElement,
+		sourcePath?: string,
 	): Promise<void> {
 		try {
 			const preview = await this.deps.service.previewRename(target, scope);
 
+			// In by-source grouping the delete is triggered from a specific source
+			// note, so offer an "Only in note: <name>" checkbox (pre-checked). In
+			// by-target grouping there is no single source, so no checkbox is shown.
+			const sourceNoteName = sourcePath !== undefined ? noteName(sourcePath) : undefined;
+
 			// modalRef holds the instance so onConfirm can read modal.onlyInThisNote,
-			// which is updated by the "Only in this note" checkbox in renderDeleteConfirm.
+			// which is updated by the "Only in note" checkbox in renderDeleteConfirm.
 			const modalRef: { instance: InstanceType<ConfirmRewriteModalConstructor> | null } = { instance: null };
 
 			const modal = new this.deps.ConfirmRewriteModal(this.deps.app, {
 				preview,
 				kind: "delete",
+				deleteSourceNote: sourceNoteName,
 				onConfirm: (_name: string) => {
-					const onlyInNote = modalRef.instance?.onlyInThisNote ?? false;
-					void this.deps.service.applyDelete(target, scope, onlyInNote)
+					// Scope to the source note only when it exists and the checkbox is
+					// still checked; otherwise delete across every source in scope.
+					const restrictToSource =
+						sourcePath !== undefined && (modalRef.instance?.onlyInThisNote ?? false)
+							? sourcePath
+							: null;
+					void this.deps.service.applyDelete(target, scope, restrictToSource)
 						.then((result) => { this.surfaceResult(result, liveRegion); })
 						.catch((err) => { this.notifyError("Delete", err); });
 				},
@@ -760,4 +775,18 @@ export class DanglingPanel {
 		}
 		return {};
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Module-level helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Derive a friendly note name from a vault path for display in UI labels —
+ * strips the directory and a trailing ".md" extension (e.g.
+ * "notes/Slip Box.md" → "Slip Box"). Falls back to the raw path if empty.
+ */
+function noteName(path: string): string {
+	const base = path.split("/").pop() ?? path;
+	return base.replace(/\.md$/i, "") || path;
 }

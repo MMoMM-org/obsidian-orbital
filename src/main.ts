@@ -184,7 +184,6 @@ export default class OrbitPlugin extends Plugin {
 				this.app.fileManager,
 				this.app.metadataCache as unknown as McArg,
 				this._index,
-				this.app.workspace,
 			),
 			// Cast: real App constructors are supersets of DanglingPanelApp —
 			// runtime-compatible but not nominally assignable.

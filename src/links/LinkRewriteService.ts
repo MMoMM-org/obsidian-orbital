@@ -95,10 +95,6 @@ interface MetadataCacheMinimal {
 	getFileCache(file: TFileMinimal): FileCache | null;
 }
 
-interface WorkspaceMinimal {
-	getActiveFile(): TFileMinimal | null;
-}
-
 // ---------------------------------------------------------------------------
 // LinkRewriteService
 // ---------------------------------------------------------------------------
@@ -122,7 +118,6 @@ export class LinkRewriteService {
 	private readonly fileManager: FileManager;
 	private readonly metadataCache: MetadataCacheMinimal;
 	private readonly index: LinkGraphIndex;
-	private readonly workspace: WorkspaceMinimal;
 	private readonly chunkSize: number;
 
 	constructor(
@@ -130,14 +125,12 @@ export class LinkRewriteService {
 		fileManager: FileManager,
 		metadataCache: MetadataCacheMinimal,
 		index: LinkGraphIndex,
-		workspace: WorkspaceMinimal,
 		options?: LinkRewriteServiceOptions,
 	) {
 		this.vault = vault;
 		this.fileManager = fileManager;
 		this.metadataCache = metadataCache;
 		this.index = index;
-		this.workspace = workspace;
 		this.chunkSize = options?.chunkSize ?? DEFAULT_CHUNK_SIZE;
 	}
 
@@ -245,12 +238,16 @@ export class LinkRewriteService {
 	async applyDelete(
 		target: string,
 		scope: RewriteScope,
-		onlyInActiveNote: boolean,
+		restrictToSource?: string | null,
 	): Promise<BulkResult> {
 		let sourcePaths = this.resolveSourcePaths(target, scope);
 
-		if (onlyInActiveNote) {
-			sourcePaths = this.filterToActiveNote(sourcePaths);
+		// When a source note is supplied (by-source grouping), delete only the
+		// links to `target` that live in that note. Otherwise delete across every
+		// source in scope (by-target grouping). There is intentionally no coupling
+		// to the active editor note — Dangling has no relationship to it.
+		if (restrictToSource != null && restrictToSource !== "") {
+			sourcePaths = sourcePaths.filter((p) => p === restrictToSource);
 		}
 
 		const result: BulkResult = { filesSucceeded: 0, filesFailed: [] };
@@ -436,16 +433,6 @@ export class LinkRewriteService {
 		const dangling = this.index.danglingFor(target);
 		if (dangling === null) return [];
 		return filterOccurrences(dangling.occurrences, scope).map((o) => o.sourcePath);
-	}
-
-	/**
-	 * Filter sourcePaths to the currently active note only.
-	 * No active note → nothing in scope (returning all would unsafely rewrite the whole vault).
-	 */
-	private filterToActiveNote(sourcePaths: string[]): string[] {
-		const activeFile = this.workspace.getActiveFile();
-		if (activeFile === null) return [];
-		return sourcePaths.filter((p) => p === activeFile.path);
 	}
 }
 

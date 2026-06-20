@@ -60,7 +60,10 @@ function makeMockService() {
 }
 
 function makeMockConfirmRewriteModal() {
-	return vi.fn().mockImplementation((_app: unknown, opts: { onConfirm: (name: string) => void }) => ({
+	return vi.fn().mockImplementation((_app: unknown, opts: { onConfirm: (name: string) => void; deleteSourceNote?: string }) => ({
+		// Mirror the real modal: the "Only in note" checkbox is pre-checked (true)
+		// whenever a source note is supplied (by-source grouping), and absent otherwise.
+		onlyInThisNote: opts.deleteSourceNote !== undefined,
 		open: vi.fn(() => {
 			// Simulate immediate confirm for testing
 			opts.onConfirm("NewName");
@@ -615,13 +618,11 @@ describe("DanglingPanel inline actions", () => {
 		);
 	});
 
-	it("delete action: onConfirm calls applyDelete with false when 'only in this note' is unchecked (default)", async () => {
+	it("delete action (by-target): applyDelete is called with null — no source scoping and no checkbox", async () => {
 		const deps = makeDeps({
 			unresolved: { "notes/a.md": { "MissingTarget": 1 } },
 			grouping: "target",
 		});
-		// Default ConfirmRewriteModal mock calls onConfirm("NewName") immediately on open,
-		// simulating the user confirming without checking "only in this note".
 		const panel = new DanglingPanel(deps);
 		const container = makeContainer();
 		panel.render(container);
@@ -630,19 +631,46 @@ describe("DanglingPanel inline actions", () => {
 		deleteBtn.click();
 		await new Promise((r) => setTimeout(r, 0));
 
-		// onlyInThisNote defaults to false (vault-wide delete)
-		expect(deps.service.applyDelete).toHaveBeenCalledWith("MissingTarget", expect.any(Object), false);
+		// By-target grouping has no single source, so no deleteSourceNote is passed
+		// and the delete spans every source in scope (restrictToSource = null).
+		expect(deps.ConfirmRewriteModal).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({ kind: "delete", deleteSourceNote: undefined }),
+		);
+		expect(deps.service.applyDelete).toHaveBeenCalledWith("MissingTarget", expect.any(Object), null);
 	});
 
-	it("delete action: applyDelete receives true when 'only in this note' is checked", async () => {
+	it("delete action (by-source): checkbox pre-checked → applyDelete scopes to that source note", async () => {
 		const deps = makeDeps({
 			unresolved: { "notes/a.md": { "MissingTarget": 1 } },
-			grouping: "target",
+			grouping: "source",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const deleteBtn = container.querySelector("[aria-label='Delete links']") as HTMLElement;
+		deleteBtn.click();
+		await new Promise((r) => setTimeout(r, 0));
+
+		// The modal is told the source note name ("a"); the default mock pre-checks
+		// the box, so the delete is scoped to that source path.
+		expect(deps.ConfirmRewriteModal).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({ kind: "delete", deleteSourceNote: "a" }),
+		);
+		expect(deps.service.applyDelete).toHaveBeenCalledWith("MissingTarget", expect.any(Object), "notes/a.md");
+	});
+
+	it("delete action (by-source): unchecking the box falls back to a scope-wide delete (null)", async () => {
+		const deps = makeDeps({
+			unresolved: { "notes/a.md": { "MissingTarget": 1 } },
+			grouping: "source",
 		});
 
-		// Override the ConfirmRewriteModal mock to set onlyInThisNote = true before calling onConfirm
+		// Simulate the user unchecking "Only in note" before confirming.
 		deps.ConfirmRewriteModal = vi.fn().mockImplementation((_app: unknown, opts: { onConfirm: (name: string) => void }) => ({
-			onlyInThisNote: true,
+			onlyInThisNote: false,
 			open: vi.fn(function (this: { onlyInThisNote: boolean }) {
 				opts.onConfirm("NewName");
 			}),
@@ -656,7 +684,7 @@ describe("DanglingPanel inline actions", () => {
 		deleteBtn.click();
 		await new Promise((r) => setTimeout(r, 0));
 
-		expect(deps.service.applyDelete).toHaveBeenCalledWith("MissingTarget", expect.any(Object), true);
+		expect(deps.service.applyDelete).toHaveBeenCalledWith("MissingTarget", expect.any(Object), null);
 	});
 
 	it("alias action calls previewRename and opens ConfirmRewriteModal with 'alias' kind", async () => {

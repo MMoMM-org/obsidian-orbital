@@ -9,7 +9,7 @@
  *   - applyRename (dangling target): offset-splice descending, part preservation
  *   - applyRename (real note path): merge path via vault.process + generateMarkdownLink
  *   - applyAlias: rewrites to [[note|orig]] for chosen existing note
- *   - applyDelete: removes links; onlyInActiveNote filter; frontmatter via processFrontMatter
+ *   - applyDelete: removes links; restrictToSource filter; frontmatter via processFrontMatter
  *   - Frontmatter links rewritten via processFrontMatter, not body splice
  *   - Per-file failures accumulate; batch continues
  *   - Sequential execution (never parallel)
@@ -85,7 +85,7 @@ describe("previewRename", () => {
 		const app = makeApp();
 		const index = makeIndex(app);
 		index.buildFull();
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
 
 		const result = await svc.previewRename("UnknownNote", {});
 		expect(result.occurrences).toBe(0);
@@ -98,7 +98,7 @@ describe("previewRename", () => {
 		seedDangling(app, index, "notes/A.md", "Foo", 3);
 		seedDangling(app, index, "notes/B.md", "Foo", 1);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
 		const result = await svc.previewRename("Foo", {});
 
 		expect(result.occurrences).toBe(4);
@@ -115,7 +115,7 @@ describe("previewRename", () => {
 		seedDangling(app, index, "folder/X.md", "Bar", 2);
 		seedDangling(app, index, "other/Y.md", "Bar", 5);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
 		const result = await svc.previewRename("Bar", { folder: "folder" });
 
 		expect(result.occurrences).toBe(2);
@@ -131,7 +131,7 @@ describe("previewRename", () => {
 		// Index stores the target text exactly as it appears in the unresolved links
 		seedDangling(app, index, "notes/A.md", "myNote", 2);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
 		// danglingFor uses exact match on the index key
 		const result = await svc.previewRename("myNote", {});
 		expect(result.occurrences).toBe(2);
@@ -167,7 +167,7 @@ describe("applyRename — dangling target (offset-splice)", () => {
 			async (_file: TFile, transform: (data: string) => string) => transform(content),
 		);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
 		const result = await svc.applyRename("OldName", "NewName", {});
 
 		expect(vi.mocked(app.vault.process)).toHaveBeenCalledTimes(1);
@@ -204,7 +204,7 @@ describe("applyRename — dangling target (offset-splice)", () => {
 			},
 		);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
 		await svc.applyRename("OldName", "NewName", {});
 
 		// Both links rewritten; alias/subpath/embed preserved
@@ -244,7 +244,7 @@ describe("applyRename — dangling target (offset-splice)", () => {
 			},
 		);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
 		await svc.applyRename("Foo", "Bar", {});
 
 		expect(capturedResult).toBe("[[Bar]] then [[Bar]] then [[Bar]] end");
@@ -281,7 +281,7 @@ describe("applyRename — real note target (merge path)", () => {
 			makeCacheWithLinks([{ start: 0, end: 11 }]),
 		);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
 		const result = await svc.applyRename("OldName", "notes/RealNote.md", {});
 
 		// Should use vault.process with generated link text, not rename the vault file
@@ -325,7 +325,7 @@ describe("applyAlias", () => {
 			},
 		);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
 		const result = await svc.applyAlias("Target", "notes/Real.md", {});
 
 		// [[Target]] → [[Real|Target]]  (realNote basename = "Real" from path)
@@ -362,7 +362,7 @@ describe("applyAlias", () => {
 			},
 		);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
 		await svc.applyAlias("Target", "notes/Real.md", {});
 
 		expect(capturedResult).toBe("[[Real|Existing]]");
@@ -398,8 +398,8 @@ describe("applyDelete", () => {
 			},
 		);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
-		const result = await svc.applyDelete("Gone", {}, false);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
+		const result = await svc.applyDelete("Gone", {}, null);
 
 		// [[Gone]] → "Gone" (removeLink uses target when no alias)
 		expect(capturedResult).toBe("Read Gone here.");
@@ -407,7 +407,7 @@ describe("applyDelete", () => {
 		expect(result.filesFailed).toEqual([]);
 	});
 
-	it("onlyInActiveNote=true restricts to active file path", async () => {
+	it("restrictToSource limits the delete to the given source note", async () => {
 		const app = makeApp();
 		const index = makeIndex(app);
 		const fileA = createMockTFile({ path: "notes/A.md" });
@@ -418,8 +418,6 @@ describe("applyDelete", () => {
 		app.metadataCache.unresolvedLinks["notes/B.md"] = { Gone: 1 };
 		index.buildFull();
 
-		// Active file is B.md
-		vi.mocked(app.workspace.getActiveFile).mockReturnValue(fileB);
 		vi.mocked(app.vault.getFileByPath).mockImplementation((path) => {
 			if (path === "notes/A.md") return fileA;
 			if (path === "notes/B.md") return fileB;
@@ -433,8 +431,8 @@ describe("applyDelete", () => {
 			async (_file: TFile, transform: (data: string) => string) => transform("[[Gone]]"),
 		);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
-		const result = await svc.applyDelete("Gone", {}, true);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
+		const result = await svc.applyDelete("Gone", {}, "notes/B.md");
 
 		// Only B.md should be processed
 		expect(vi.mocked(app.vault.process)).toHaveBeenCalledTimes(1);
@@ -442,15 +440,13 @@ describe("applyDelete", () => {
 		expect(result.filesSucceeded).toBe(1);
 	});
 
-	it("onlyInActiveNote=true + no active file → affects nothing (vault.process never called)", async () => {
+	it("restrictToSource pointing at a non-source path → affects nothing", async () => {
 		const app = makeApp();
 		const index = makeIndex(app);
 
 		seedDangling(app, index, "notes/A.md", "Gone", 1);
 		seedDangling(app, index, "notes/B.md", "Gone", 1);
 
-		// No active file
-		vi.mocked(app.workspace.getActiveFile).mockReturnValue(null);
 		vi.mocked(app.vault.getFileByPath).mockImplementation((path) => {
 			if (path === "notes/A.md") return createMockTFile({ path: "notes/A.md" });
 			if (path === "notes/B.md") return createMockTFile({ path: "notes/B.md" });
@@ -463,13 +459,40 @@ describe("applyDelete", () => {
 			async (_file: TFile, transform: (data: string) => string) => transform("[[Gone]]"),
 		);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
-		const result = await svc.applyDelete("Gone", {}, true);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
+		const result = await svc.applyDelete("Gone", {}, "notes/Z.md");
 
-		// No active note → nothing touched
+		// No matching source → nothing touched
 		expect(result.filesSucceeded).toBe(0);
 		expect(result.filesFailed).toEqual([]);
 		expect(vi.mocked(app.vault.process)).not.toHaveBeenCalled();
+	});
+
+	it("no restrictToSource (null) deletes across every source in scope", async () => {
+		const app = makeApp();
+		const index = makeIndex(app);
+
+		seedDangling(app, index, "notes/A.md", "Gone", 1);
+		seedDangling(app, index, "notes/B.md", "Gone", 1);
+
+		vi.mocked(app.vault.getFileByPath).mockImplementation((path) => {
+			if (path === "notes/A.md") return createMockTFile({ path: "notes/A.md" });
+			if (path === "notes/B.md") return createMockTFile({ path: "notes/B.md" });
+			return null;
+		});
+		vi.mocked(app.metadataCache.getFileCache).mockReturnValue(
+			makeCacheWithLinks([{ start: 0, end: 8 }]),
+		);
+		vi.mocked(app.vault.process).mockImplementation(
+			async (_file: TFile, transform: (data: string) => string) => transform("[[Gone]]"),
+		);
+
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
+		const result = await svc.applyDelete("Gone", {}, null);
+
+		// Both A.md and B.md processed
+		expect(vi.mocked(app.vault.process)).toHaveBeenCalledTimes(2);
+		expect(result.filesSucceeded).toBe(2);
 	});
 });
 
@@ -514,7 +537,7 @@ describe("frontmatter link rewriting", () => {
 			},
 		);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
 		await svc.applyRename("OldFM", "NewFM", {});
 
 		expect(vi.mocked(app.fileManager.processFrontMatter)).toHaveBeenCalledWith(
@@ -542,7 +565,7 @@ describe("frontmatter link rewriting", () => {
 				transform("[[BodyOnly]]"),
 		);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
 		await svc.applyRename("BodyOnly", "NewName", {});
 
 		expect(vi.mocked(app.fileManager.processFrontMatter)).not.toHaveBeenCalled();
@@ -585,7 +608,7 @@ describe("BulkResult — partial failure handling", () => {
 			return transform("[[Broken]]");
 		});
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
 		const result = await svc.applyRename("Broken", "Fixed", {});
 
 		expect(result.filesSucceeded).toBe(1);
@@ -611,7 +634,7 @@ describe("BulkResult — partial failure handling", () => {
 			makeCacheWithLinks([{ start: 0, end: 10 }]),
 		);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
 		const result = await svc.applyRename("Target", "NewTarget", {});
 
 		expect(result.filesSucceeded).toBe(0);
@@ -655,7 +678,7 @@ describe("sequential execution", () => {
 			},
 		);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
 		await svc.applyRename("Seq", "Done", {});
 
 		// All three files processed
@@ -690,7 +713,7 @@ describe("counts re-resolved before applying", () => {
 			async (_file: TFile, transform: (data: string) => string) => transform("[[Stale]]"),
 		);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
 
 		// Preview at T1: 1 file
 		const preview = await svc.previewRename("Stale", {});
@@ -731,8 +754,8 @@ describe("applyDelete — scope folder filter", () => {
 			async (_file: TFile, transform: (data: string) => string) => transform("[[Gone]]"),
 		);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
-		const result = await svc.applyDelete("Gone", { folder: "folder" }, false);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
+		const result = await svc.applyDelete("Gone", { folder: "folder" }, null);
 
 		expect(result.filesSucceeded).toBe(1);
 		expect(vi.mocked(app.vault.process)).toHaveBeenCalledTimes(1);
@@ -786,7 +809,7 @@ describe("BulkResult — periodic yield and progress Notice (Gap E)", () => {
 			async (_file: TFile, transform: (data: string) => string) => transform("[[Target]]"),
 		);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
 		await svc.applyRename("Target", "NewTarget", {});
 
 		// At least one Notice should have been emitted (progress or final)
@@ -813,7 +836,7 @@ describe("BulkResult — periodic yield and progress Notice (Gap E)", () => {
 			async (_file: TFile, transform: (data: string) => string) => transform("[[Target]]"),
 		);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
 		await svc.applyAlias("Target", "notes/RealNote.md", {});
 
 		expect(Notice._instances.length).toBeGreaterThan(0);
@@ -835,8 +858,8 @@ describe("BulkResult — periodic yield and progress Notice (Gap E)", () => {
 			async (_file: TFile, transform: (data: string) => string) => transform("[[Target]]"),
 		);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
-		await svc.applyDelete("Target", {}, false);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
+		await svc.applyDelete("Target", {}, null);
 
 		expect(Notice._instances.length).toBeGreaterThan(0);
 	});
@@ -865,7 +888,6 @@ describe("BulkResult — periodic yield and progress Notice (Gap E)", () => {
 			app.fileManager,
 			app.metadataCache,
 			index,
-			app.workspace,
 			{ chunkSize: 1 },
 		);
 		const result = await svc.applyRename("Target", "NewTarget", {});
@@ -902,7 +924,7 @@ describe("BulkResult — periodic yield and progress Notice (Gap E)", () => {
 			},
 		);
 
-		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index, app.workspace);
+		const svc = new LinkRewriteService(app.vault, app.fileManager, app.metadataCache, index);
 		const result = await svc.applyRename("Target", "NewTarget", {});
 
 		expect(result.filesSucceeded).toBe(2);
