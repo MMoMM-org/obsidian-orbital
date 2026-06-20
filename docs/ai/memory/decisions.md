@@ -34,3 +34,26 @@ Reinforcing point: the Dangling panel groups by bare target name (Obsidian's
 `unresolvedLinks` keys carry no subpath), so the anchor is never shown in the UI
 anyway — users see "Fleeting Notes", never "Fleeting Notes#Capture". Dropping it
 on alias is consistent with what the panel already presents.
+
+## Unlinked mentions: separate async service + lazy scan (not the pure/sync path)
+
+Added 2026-06-20. Unlinked mentions need note *contents* (`vault.cachedRead`,
+async) and plain-text offsets, which don't fit `computeRelations()` (pure,
+sync, metadata-only) or `LinkRewriteService` (locates links via metadataCache
+positions). So:
+- `graph/unlinkedMentions.ts` — pure scanner (no obsidian import), unit-tested.
+- `links/MentionLinkService.ts` — plugin-scoped async orchestrator, memoized per
+  active path (`peek`/`computeGroups`/`invalidate`). main.ts calls `invalidate()`
+  on metadataCache 'changed', vault create/delete/rename, and the 'resolved'
+  rebuild.
+
+The RelationsPanel section is **default-collapsed** and scans only on expand:
+collapsed → no scan; expanded + cached → render synchronously from `peek`;
+expanded + uncached → "Scanning…" placeholder, kick `computeGroups`, then
+`requestRefresh` re-renders from the now-warm cache (service de-dupes in-flight
+scans so it terminates in one round-trip). Default-collapsed is seeded in
+`OrbitView` initial `collapsedSections: ["unlinkedMentions"]`.
+
+Deliberate v1 limits: no global "Link all" (only per-note / per-occurrence);
+click opens the file but does not jump to the match offset; match options
+(whole-word, case) are hardcoded to Obsidian defaults (no setting).

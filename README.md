@@ -30,6 +30,7 @@ Shows the relations of the active note:
 - **Outgoing links** — all links the current note makes to other notes.
 - **Backlinks** — notes that link back to the current note.
 - **Related** — deduplicated 2nd-hop notes (notes linked by your links or backlinks), filtered so only notes you haven't directly linked appear.
+- **Unlinked mentions** — other notes that mention the current note's name (or one of its aliases) in plain text without linking it. Collapsed by default; it scans note contents on demand when you expand it. Each note shows the number of mentions, a 🔗 badge when it *already* links the current note, and context snippets. Convert mentions to links inline — **Link** on a note links every mention in it, **Link** on a single snippet links just that one. Clicking a note or snippet opens it (in a new tab with Mod-click, or always when the setting below is on).
 - **Missing** — unresolved link targets in the current note. A "Manage →" deep-link opens the Dangling tab pre-filtered to the same targets.
 
 ### Dangling tab

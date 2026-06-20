@@ -18,8 +18,19 @@ Spec 001-orbit-three-tab-sidebar fully implemented and finalized (Implemented,
 `RecentFilesStore.list()` now slices to `recentListLength` at read time (previously
 only capped on write), so lowering the setting shrinks the rendered list without a reload.
 
+## Unlinked mentions feature — added 2026-06-20
+New "Unlinked mentions" section in the Relations tab (between 2nd hop and Missing),
+replicating Obsidian's Backlinks→Unlinked-mentions plus two improvements: inline
+linking (per-note + per-occurrence) and a 🔗 badge when the note already links the
+active one. New modules `graph/unlinkedMentions.ts` (pure scanner) and
+`links/MentionLinkService.ts` (async, memoized). Default-collapsed, lazy-scanned.
+Two settings added (unlinkedMentionsEnabled, unlinkedOpenInNewTab). See
+domain.md + decisions.md for rules/rationale.
+
 ## State
-537 tests pass; lint/typecheck/build clean. Test vault `test/Orbit/` now holds a
-smoke-test corpus (18 PKM notes + `_Orbit Test Guide.md`) covering every tab/action.
-Next: real-vault smoke session (hover preview, desktop drag, mobile tap-insert, Sync
-settings) before community-directory submission, then PR feat/orbit-tabs → main.
+602 tests pass; lint/typecheck/build clean. Test vault `test/Orbit/` holds a
+smoke-test corpus (18 PKM notes + `_Orbit Test Guide.md`) covering every tab/action,
+including Zettelkasten unlinked-mention fixtures.
+Next: real-vault smoke session for unlinked mentions (lazy scan on a large vault,
+link-all/link-one writes, already-linked badge) before community-directory
+submission, then PR feat/orbit-tabs → main.
