@@ -54,7 +54,7 @@ export type PanelRenderer = (container: HTMLElement, activePath: string | null) 
  * Everything except `getCollapsed`, `setCollapsed`, and `registerDomEvent`
  * (those are owned by OrbitView itself).
  */
-export type RelationsDeps = Omit<RelationsPanelDeps, "getCollapsed" | "setCollapsed" | "registerDomEvent">;
+export type RelationsDeps = Omit<RelationsPanelDeps, "getCollapsed" | "setCollapsed" | "registerDomEvent" | "requestRefresh">;
 
 /**
  * Dependencies the plugin supplies for building the Dangling panel.
@@ -97,7 +97,9 @@ export class OrbitView extends ItemView {
 		activeTab: "relations",
 		danglingScope: "vault",
 		danglingGrouping: "target",
-		collapsedSections: [],
+		// "unlinkedMentions" starts collapsed: its content is scanned lazily on
+		// first expand (potentially an O(vault) read), so it must not auto-scan.
+		collapsedSections: ["unlinkedMentions"],
 		activeDanglingFilter: null,
 	};
 
@@ -291,6 +293,7 @@ export class OrbitView extends ItemView {
 				setCollapsed: (keys: string[]) => {
 					this.state = { ...this.state, collapsedSections: keys };
 				},
+				requestRefresh: () => this.refreshActivePanel(),
 				registerDomEvent: (el, type, handler) => {
 					this.registerDomEvent(el, type, handler);
 				},

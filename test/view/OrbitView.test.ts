@@ -319,7 +319,8 @@ describe("OrbitView getState/setState", () => {
 		expect(state.activeTab).toBe("relations");
 		expect(state.danglingScope).toBe("vault");
 		expect(state.danglingGrouping).toBe("target");
-		expect(state.collapsedSections).toEqual([]);
+		// "unlinkedMentions" defaults to collapsed (lazy-scanned on first expand).
+		expect(state.collapsedSections).toEqual(["unlinkedMentions"]);
 		// S1: activeDanglingFilter starts null
 		expect(state.activeDanglingFilter).toBeNull();
 	});
@@ -544,6 +545,11 @@ function makeRelationsDeps(opts: RelationsDepsOptions = {}): RelationsDeps & { d
 		app: app as unknown as RelationsDeps["app"],
 		isExcluded: () => false,
 		onManage,
+		mentions: {
+			peek: () => null,
+			computeGroups: async () => [],
+			linkMentions: async () => 0,
+		},
 		depsApp: app,
 	};
 }

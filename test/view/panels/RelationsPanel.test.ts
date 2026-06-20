@@ -21,8 +21,42 @@ import { LinkGraphIndex } from "graph/LinkGraphIndex";
 import type { MetadataCache as IndexMetadataCache } from "graph/LinkGraphIndex";
 import { RelationsPanel } from "view/panels/RelationsPanel";
 import type { RelationsPanelDeps, RelationsPanelApp } from "view/panels/RelationsPanel";
+import type { UnlinkedMentionGroup } from "graph/unlinkedMentions";
 import type { OrbitSettings } from "types/index";
 import { DEFAULT_SETTINGS } from "types/index";
+
+// ---------------------------------------------------------------------------
+// Unlinked-mentions fixtures + a no-op mentions dep for tests that ignore it
+// ---------------------------------------------------------------------------
+
+function makeGroup(
+	path: string,
+	overrides?: Partial<UnlinkedMentionGroup>,
+): UnlinkedMentionGroup {
+	const display = path.replace(/^.*\//, "").replace(/\.md$/, "");
+	return {
+		path,
+		display,
+		alreadyLinks: false,
+		matches: [
+			{
+				start: 0,
+				end: 4,
+				matchedText: "Note",
+				snippet: { before: "see ", hit: "Note", after: " here" },
+			},
+		],
+		...overrides,
+	};
+}
+
+function nullMentions(): RelationsPanelDeps["mentions"] {
+	return {
+		peek: () => null,
+		computeGroups: async () => [],
+		linkMentions: async () => 0,
+	};
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -63,12 +97,20 @@ type MakeDepsOptions = {
 	isExcluded?: (path: string) => boolean;
 	onManage?: (target: string) => void;
 	collapsed?: string[];
+	/** Pre-seeded cached unlinked-mention groups (peek returns these). */
+	mentionGroups?: UnlinkedMentionGroup[];
 };
 
 function makeDeps(opts: MakeDepsOptions = {}): RelationsPanelDeps & {
 	appInstance: App;
 	collapsedState: string[];
 	onManageFn: ReturnType<typeof vi.fn>;
+	mentionsMock: {
+		peek: ReturnType<typeof vi.fn>;
+		computeGroups: ReturnType<typeof vi.fn>;
+		linkMentions: ReturnType<typeof vi.fn>;
+	};
+	requestRefreshFn: ReturnType<typeof vi.fn>;
 } {
 	const appInstance = new App();
 	const resolved = opts.resolved ?? {};
@@ -90,12 +132,22 @@ function makeDeps(opts: MakeDepsOptions = {}): RelationsPanelDeps & {
 		},
 	);
 
+	const cachedGroups = opts.mentionGroups;
+	const mentionsMock = {
+		peek: vi.fn(() => cachedGroups ?? null),
+		computeGroups: vi.fn(async () => cachedGroups ?? []),
+		linkMentions: vi.fn(async () => 1),
+	};
+	const requestRefreshFn = vi.fn();
+
 	const deps: RelationsPanelDeps = {
 		index,
 		getSettings: () => settings,
 		app: appInstance as unknown as RelationsPanelApp,
 		isExcluded: opts.isExcluded ?? ((_path: string) => false),
 		onManage: onManageFn,
+		mentions: mentionsMock,
+		requestRefresh: requestRefreshFn,
 		getCollapsed: () => [...collapsedState],
 		setCollapsed: (keys: string[]) => {
 			collapsedState.length = 0;
@@ -104,7 +156,7 @@ function makeDeps(opts: MakeDepsOptions = {}): RelationsPanelDeps & {
 		registerDomEvent,
 	};
 
-	return { ...deps, appInstance, collapsedState, onManageFn };
+	return { ...deps, appInstance, collapsedState, onManageFn, mentionsMock, requestRefreshFn };
 }
 
 // ---------------------------------------------------------------------------
@@ -112,7 +164,7 @@ function makeDeps(opts: MakeDepsOptions = {}): RelationsPanelDeps & {
 // ---------------------------------------------------------------------------
 
 describe("RelationsPanel section rendering", () => {
-	it("renders four sections when active note has links", () => {
+	it("renders five sections when active note has links", () => {
 		const { ...deps } = makeDeps({
 			resolved: {
 				"notes/active.md": { "notes/target.md": 1 },
@@ -124,10 +176,10 @@ describe("RelationsPanel section rendering", () => {
 		panel.render(container, "notes/active.md");
 
 		const sections = container.querySelectorAll(".orbit-relations-section");
-		expect(sections.length).toBe(4);
+		expect(sections.length).toBe(5);
 	});
 
-	it("section headers are labelled Outgoing, Backlinks, 2nd hop, Missing", () => {
+	it("section headers are labelled Outgoing, Backlinks, 2nd hop, Unlinked mentions, Missing", () => {
 		const { ...deps } = makeDeps({
 			resolved: {
 				"notes/active.md": { "notes/target.md": 1 },
@@ -145,7 +197,28 @@ describe("RelationsPanel section rendering", () => {
 		expect(labels).toContain("Outgoing");
 		expect(labels).toContain("Backlinks");
 		expect(labels.some((l) => l.includes("2nd hop"))).toBe(true);
+		expect(labels).toContain("Unlinked mentions");
 		expect(labels).toContain("Missing");
+	});
+
+	it("places Unlinked mentions between 2nd hop and Missing", () => {
+		const { ...deps } = makeDeps({
+			resolved: { "notes/active.md": { "notes/target.md": 1 } },
+		});
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const order = Array.from(
+			container.querySelectorAll(".orbit-relations-section"),
+		).map((el) => el.getAttribute("data-section"));
+		expect(order).toEqual([
+			"outgoing",
+			"backlinks",
+			"secondHop",
+			"unlinkedMentions",
+			"missing",
+		]);
 	});
 
 	it("count badges are rendered when showCounts=true", () => {
@@ -220,7 +293,7 @@ describe("RelationsPanel empty states", () => {
 		expect(sections.length).toBe(0);
 	});
 
-	it("still renders 4 sections (with 0 counts) when note has no links", () => {
+	it("still renders 5 sections (with 0 counts) when note has no links", () => {
 		const { ...deps } = makeDeps({
 			resolved: {},
 			unresolved: {},
@@ -230,7 +303,23 @@ describe("RelationsPanel empty states", () => {
 		panel.render(container, "notes/empty.md");
 
 		const sections = container.querySelectorAll(".orbit-relations-section");
-		expect(sections.length).toBe(4);
+		expect(sections.length).toBe(5);
+	});
+
+	it("omits the Unlinked mentions section when the setting is disabled", () => {
+		const { ...deps } = makeDeps({
+			settings: { unlinkedMentionsEnabled: false },
+			resolved: { "notes/active.md": { "notes/target.md": 1 } },
+		});
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const unlinked = container.querySelector(
+			".orbit-relations-section[data-section='unlinkedMentions']",
+		);
+		expect(unlinked).toBeNull();
+		expect(container.querySelectorAll(".orbit-relations-section").length).toBe(4);
 	});
 });
 
@@ -257,6 +346,8 @@ describe("RelationsPanel click navigation", () => {
 			app: appInstance as unknown as RelationsPanelApp,
 			isExcluded: () => false,
 			onManage: vi.fn(),
+			mentions: nullMentions(),
+			requestRefresh: vi.fn(),
 			getCollapsed: () => [...collapsedState],
 			setCollapsed: (keys) => { collapsedState.length = 0; collapsedState.push(...keys); },
 			registerDomEvent: vi.fn((el, type, handler) => {
@@ -300,6 +391,8 @@ describe("RelationsPanel click navigation", () => {
 			app: appInstance as unknown as RelationsPanelApp,
 			isExcluded: () => false,
 			onManage: vi.fn(),
+			mentions: nullMentions(),
+			requestRefresh: vi.fn(),
 			getCollapsed: () => [...collapsedState],
 			setCollapsed: (keys) => { collapsedState.length = 0; collapsedState.push(...keys); },
 			registerDomEvent: vi.fn((el, type, handler) => {
@@ -344,6 +437,8 @@ describe("RelationsPanel hover", () => {
 			app: appInstance as unknown as RelationsPanelApp,
 			isExcluded: () => false,
 			onManage: vi.fn(),
+			mentions: nullMentions(),
+			requestRefresh: vi.fn(),
 			getCollapsed: () => [...collapsedState],
 			setCollapsed: (keys) => { collapsedState.length = 0; collapsedState.push(...keys); },
 			registerDomEvent: vi.fn((el, type, handler) => {
@@ -663,5 +758,173 @@ describe("RelationsPanel list truncation (Gap D)", () => {
 
 		const items = backlinks?.querySelectorAll(".orbit-relations-item") ?? [];
 		expect(items.length).toBe(110);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Unlinked mentions section
+// ---------------------------------------------------------------------------
+
+describe("RelationsPanel unlinked mentions", () => {
+	function unlinkedSection(container: HTMLElement): HTMLElement | null {
+		return container.querySelector(
+			".orbit-relations-section[data-section='unlinkedMentions']",
+		);
+	}
+
+	it("does not scan while collapsed (the default)", () => {
+		const deps = makeDeps({
+			collapsed: ["unlinkedMentions"],
+			resolved: { "notes/active.md": { "notes/target.md": 1 } },
+		});
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const section = unlinkedSection(container);
+		expect(section?.classList.contains("is-collapsed")).toBe(true);
+		expect(deps.mentionsMock.computeGroups).not.toHaveBeenCalled();
+		expect(section?.querySelector(".orbit-relations-mention-group")).toBeNull();
+	});
+
+	it("shows a scanning placeholder and kicks the scan when expanded without a cached result", () => {
+		const deps = makeDeps({
+			collapsed: [],
+			resolved: { "notes/active.md": { "notes/target.md": 1 } },
+		});
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const section = unlinkedSection(container);
+		expect(section?.querySelector(".orbit-relations-mention-loading")).not.toBeNull();
+		expect(deps.mentionsMock.computeGroups).toHaveBeenCalledWith("notes/active.md");
+	});
+
+	it("renders a group with name, count and highlighted snippet from the cache", () => {
+		const deps = makeDeps({
+			collapsed: [],
+			mentionGroups: [makeGroup("notes/Hub.md")],
+			resolved: { "notes/active.md": { "notes/target.md": 1 } },
+		});
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const section = unlinkedSection(container)!;
+		expect(section.querySelector(".orbit-relations-mention-name")?.textContent).toBe("Hub");
+		expect(section.querySelector(".orbit-relations-mention-highlight")?.textContent).toBe("Note");
+		expect(deps.mentionsMock.computeGroups).not.toHaveBeenCalled();
+	});
+
+	it("shows a 🔗 badge when the note already links the active note", () => {
+		const deps = makeDeps({
+			collapsed: [],
+			mentionGroups: [makeGroup("notes/Hub.md", { alreadyLinks: true })],
+		});
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const badge = unlinkedSection(container)!.querySelector(
+			".orbit-relations-mention-linked-badge",
+		);
+		expect(badge).not.toBeNull();
+	});
+
+	it("shows the total mention count in the header when cached", () => {
+		const group = makeGroup("notes/Hub.md", {
+			matches: [
+				{ start: 0, end: 4, matchedText: "Note", snippet: { before: "", hit: "Note", after: "" } },
+				{ start: 9, end: 13, matchedText: "Note", snippet: { before: "", hit: "Note", after: "" } },
+			],
+		});
+		const deps = makeDeps({ collapsed: [], mentionGroups: [group] });
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const count = unlinkedSection(container)!
+			.querySelector(".orbit-relations-section-header .orbit-relations-count")?.textContent;
+		expect(count).toBe("2");
+	});
+
+	it("clicking the note name opens it (new tab honouring the setting / mod key)", () => {
+		vi.mocked(Keymap.isModEvent).mockReturnValue(false);
+		const deps = makeDeps({
+			collapsed: [],
+			settings: { unlinkedOpenInNewTab: true },
+			mentionGroups: [makeGroup("notes/Hub.md")],
+		});
+		const mockLeaf = { openLinkText: vi.fn(async () => {}) };
+		(deps.appInstance.workspace.getLeaf as ReturnType<typeof vi.fn>).mockReturnValue(mockLeaf);
+
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const name = unlinkedSection(container)!.querySelector(
+			".orbit-relations-mention-name",
+		) as HTMLElement;
+		name.click();
+
+		expect(deps.appInstance.workspace.getLeaf).toHaveBeenCalledWith(true);
+		expect(mockLeaf.openLinkText).toHaveBeenCalledWith("notes/Hub.md", "notes/active.md", true);
+		vi.mocked(Keymap.isModEvent).mockReset();
+	});
+
+	it("clicking the per-note Link button links all mentions in that note", () => {
+		const deps = makeDeps({
+			collapsed: [],
+			mentionGroups: [makeGroup("notes/Hub.md")],
+		});
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const btn = unlinkedSection(container)!.querySelector(
+			".orbit-relations-mention-group-header .orbit-relations-mention-link-btn",
+		) as HTMLElement;
+		btn.click();
+
+		expect(deps.mentionsMock.linkMentions).toHaveBeenCalledWith("notes/active.md", "notes/Hub.md");
+	});
+
+	it("clicking a snippet Link button links only that occurrence", () => {
+		const group = makeGroup("notes/Hub.md", {
+			matches: [
+				{ start: 7, end: 11, matchedText: "Note", snippet: { before: "", hit: "Note", after: "" } },
+			],
+		});
+		const deps = makeDeps({ collapsed: [], mentionGroups: [group] });
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const btn = unlinkedSection(container)!.querySelector(
+			".orbit-relations-mention-snippet .orbit-relations-mention-link-btn",
+		) as HTMLElement;
+		btn.click();
+
+		expect(deps.mentionsMock.linkMentions).toHaveBeenCalledWith(
+			"notes/active.md",
+			"notes/Hub.md",
+			[7],
+		);
+	});
+
+	it("clicking the section header toggles collapse and requests a refresh", () => {
+		const deps = makeDeps({ collapsed: ["unlinkedMentions"] });
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const header = unlinkedSection(container)!.querySelector(
+			".orbit-relations-section-header",
+		) as HTMLElement;
+		header.click();
+
+		expect(deps.collapsedState).not.toContain("unlinkedMentions");
+		expect(deps.requestRefreshFn).toHaveBeenCalled();
 	});
 });

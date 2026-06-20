@@ -20,6 +20,7 @@ import { Keymap } from "obsidian";
 import { computeRelations } from "graph/relations";
 import type { RelationsMetadataCache } from "graph/relations";
 import type { LinkGraphIndex } from "graph/LinkGraphIndex";
+import type { UnlinkedMentionGroup, UnlinkedMentionItem } from "graph/unlinkedMentions";
 import type { OrbitSettings, RelationItem, MissingItem, SecondHopGroup } from "types/index";
 
 // ---------------------------------------------------------------------------
@@ -40,6 +41,18 @@ export interface RelationsPanelApp {
 // Deps interface
 // ---------------------------------------------------------------------------
 
+/**
+ * Async unlinked-mentions provider (MentionLinkService subset).
+ * `peek` is a synchronous look at the memoized result so the panel can render
+ * cached rows without re-triggering a scan; `computeGroups` runs (or returns the
+ * in-flight) scan; `linkMentions` converts mentions to wikilinks.
+ */
+export interface RelationsMentionsDep {
+	peek(activePath: string): UnlinkedMentionGroup[] | null;
+	computeGroups(activePath: string): Promise<UnlinkedMentionGroup[]>;
+	linkMentions(activePath: string, sourcePath: string, offsets?: number[]): Promise<number>;
+}
+
 export interface RelationsPanelDeps {
 	/** Pre-built link graph index. */
 	index: LinkGraphIndex;
@@ -57,6 +70,10 @@ export interface RelationsPanelDeps {
 	 * Wired to tab-switch in T5.1; for now it is a plain callback.
 	 */
 	onManage: (target: string) => void;
+	/** Async provider for the "Unlinked mentions" section. */
+	mentions: RelationsMentionsDep;
+	/** Re-render the whole panel (used after an async scan resolves or a link op). */
+	requestRefresh: () => void;
 	/** Returns the current set of collapsed section keys. */
 	getCollapsed: () => string[];
 	/** Persists the new collapsed section keys. */
@@ -81,6 +98,7 @@ const SECTIONS = [
 	{ key: "outgoing", label: "Outgoing" },
 	{ key: "backlinks", label: "Backlinks" },
 	{ key: "secondHop", label: "2nd hop" },
+	{ key: "unlinkedMentions", label: "Unlinked mentions" },
 	{ key: "missing", label: "Missing" },
 ] as const;
 
@@ -186,6 +204,10 @@ export class RelationsPanel {
 			},
 		);
 
+		if (settings.unlinkedMentionsEnabled) {
+			this.renderUnlinkedSection(container, activePath, collapsed, settings);
+		}
+
 		this.renderSection(container, "missing", result.missing.length, collapsed,
 			(children) => {
 				for (const item of result.missing) {
@@ -193,6 +215,220 @@ export class RelationsPanel {
 				}
 			},
 		);
+	}
+
+	// -------------------------------------------------------------------------
+	// Private — unlinked mentions section (async / lazy)
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Render the "Unlinked mentions" section. Unlike the metadata-driven
+	 * sections this one is async: it scans note contents on demand.
+	 *
+	 * - Collapsed (the default) → no scan is performed.
+	 * - Expanded with a cached result → rows render synchronously from the memo.
+	 * - Expanded without a cached result → a "Scanning…" placeholder renders and
+	 *   the scan is kicked; when it resolves, `requestRefresh` re-renders and the
+	 *   now-cached result is shown. The service de-dupes concurrent scans, so the
+	 *   loop terminates after one round-trip.
+	 */
+	private renderUnlinkedSection(
+		container: HTMLElement,
+		activePath: string,
+		collapsed: string[],
+		settings: OrbitSettings,
+	): void {
+		const key = "unlinkedMentions";
+		const isCollapsed = collapsed.includes(key);
+		const cached = this.deps.mentions.peek(activePath);
+
+		const section = (container as unknown as AugmentedEl).createEl("div", {
+			cls: `orbit-relations-section${isCollapsed ? " is-collapsed" : ""}`,
+			attr: { "data-section": key },
+		});
+
+		const header = (section as unknown as AugmentedEl).createEl("div", {
+			cls: "orbit-relations-section-header tree-item-self is-clickable",
+		});
+		const label = SECTIONS.find((s) => s.key === key)?.label ?? key;
+		(header as unknown as AugmentedEl).createSpan({ cls: "orbit-relations-section-label", text: label });
+
+		if (settings.showCounts && cached !== null) {
+			const total = cached.reduce((sum, g) => sum + g.matches.length, 0);
+			(header as unknown as AugmentedEl).createSpan({
+				cls: "orbit-relations-count",
+				text: String(total),
+			});
+		}
+
+		const children = (section as unknown as AugmentedEl).createEl("div", {
+			cls: "orbit-relations-section-children tree-item-children",
+		});
+
+		if (!isCollapsed) {
+			if (cached === null) {
+				(children as unknown as AugmentedEl).createEl("div", {
+					cls: "orbit-relations-mention-loading",
+					text: "Scanning…",
+				});
+				void this.deps.mentions
+					.computeGroups(activePath)
+					.then(() => this.deps.requestRefresh());
+			} else if (cached.length === 0) {
+				(children as unknown as AugmentedEl).createEl("div", {
+					cls: "orbit-relations-empty",
+					text: "No unlinked mentions.",
+				});
+			} else {
+				this.renderItemsWithCap(
+					children,
+					cached,
+					(group) => this.renderMentionGroup(children, group, activePath, settings),
+				);
+			}
+		}
+
+		this.deps.registerDomEvent(header, "click", () => {
+			this.toggleCollapsed(key);
+			this.deps.requestRefresh();
+		});
+	}
+
+	private renderMentionGroup(
+		container: HTMLElement,
+		group: UnlinkedMentionGroup,
+		activePath: string,
+		settings: OrbitSettings,
+	): void {
+		const groupEl = (container as unknown as AugmentedEl).createEl("div", {
+			cls: "orbit-relations-mention-group",
+		});
+
+		const headerEl = (groupEl as unknown as AugmentedEl).createEl("div", {
+			cls: "orbit-relations-mention-group-header tree-item-self is-clickable",
+		});
+
+		const caret = (headerEl as unknown as AugmentedEl).createSpan({
+			cls: "orbit-relations-mention-caret",
+			text: "›",
+		});
+
+		const nameEl = (headerEl as unknown as AugmentedEl).createSpan({
+			cls: "orbit-relations-mention-name",
+			text: group.display,
+		});
+
+		(headerEl as unknown as AugmentedEl).createSpan({
+			cls: "orbit-relations-count",
+			text: String(group.matches.length),
+		});
+
+		if (group.alreadyLinks) {
+			(headerEl as unknown as AugmentedEl).createEl("span", {
+				cls: "orbit-relations-mention-linked-badge",
+				text: "🔗",
+				attr: { "aria-label": "Already links to the active note" },
+			});
+		}
+
+		const linkAllBtn = (headerEl as unknown as AugmentedEl).createEl("button", {
+			cls: "orbit-relations-mention-link-btn",
+			text: "Link",
+			attr: { "aria-label": "Link all mentions in this note" },
+		});
+
+		const snippetsEl = (groupEl as unknown as AugmentedEl).createEl("div", {
+			cls: "orbit-relations-mention-snippets is-collapsed",
+		});
+		for (const item of group.matches) {
+			this.renderMentionSnippet(snippetsEl, group, item, activePath, settings);
+		}
+
+		// Caret toggles the snippet list locally (ephemeral — no re-render).
+		this.deps.registerDomEvent(caret, "click", (evt) => {
+			evt.stopPropagation();
+			snippetsEl.classList.toggle("is-collapsed");
+		});
+
+		// Clicking the note name opens it.
+		this.deps.registerDomEvent(nameEl, "click", (evt) => {
+			this.openMentionPath(group.path, activePath, evt, settings);
+		});
+
+		this.deps.registerDomEvent(nameEl, "mouseover", (evt) => {
+			this.deps.app.workspace.trigger("hover-link", {
+				event: evt,
+				source: "orbit",
+				hoverParent: this,
+				targetEl: nameEl,
+				linktext: group.path,
+				sourcePath: activePath,
+			});
+		});
+
+		this.deps.registerDomEvent(linkAllBtn, "click", (evt) => {
+			evt.stopPropagation();
+			void this.deps.mentions
+				.linkMentions(activePath, group.path)
+				.then(() => this.deps.requestRefresh());
+		});
+	}
+
+	private renderMentionSnippet(
+		container: HTMLElement,
+		group: UnlinkedMentionGroup,
+		item: UnlinkedMentionItem,
+		activePath: string,
+		settings: OrbitSettings,
+	): void {
+		const row = (container as unknown as AugmentedEl).createEl("div", {
+			cls: "orbit-relations-mention-snippet is-clickable",
+		});
+
+		const text = (row as unknown as AugmentedEl).createSpan({
+			cls: "orbit-relations-mention-snippet-text",
+		});
+		(text as unknown as AugmentedEl).createSpan({
+			cls: "orbit-relations-mention-snippet-context",
+			text: item.snippet.before,
+		});
+		(text as unknown as AugmentedEl).createSpan({
+			cls: "orbit-relations-mention-highlight",
+			text: item.snippet.hit,
+		});
+		(text as unknown as AugmentedEl).createSpan({
+			cls: "orbit-relations-mention-snippet-context",
+			text: item.snippet.after,
+		});
+
+		const linkBtn = (row as unknown as AugmentedEl).createEl("button", {
+			cls: "orbit-relations-mention-link-btn",
+			text: "Link",
+			attr: { "aria-label": "Link this mention" },
+		});
+
+		this.deps.registerDomEvent(text, "click", (evt) => {
+			this.openMentionPath(group.path, activePath, evt, settings);
+		});
+
+		this.deps.registerDomEvent(linkBtn, "click", (evt) => {
+			evt.stopPropagation();
+			void this.deps.mentions
+				.linkMentions(activePath, group.path, [item.start])
+				.then(() => this.deps.requestRefresh());
+		});
+	}
+
+	/** Open a mention's source note; new tab on Mod-click or per the setting. */
+	private openMentionPath(
+		path: string,
+		activePath: string,
+		evt: MouseEvent,
+		settings: OrbitSettings,
+	): void {
+		const newLeaf = Keymap.isModEvent(evt) || settings.unlinkedOpenInNewTab;
+		const leaf = this.deps.app.workspace.getLeaf(newLeaf);
+		void leaf.openLinkText(path, activePath, newLeaf);
 	}
 
 	// -------------------------------------------------------------------------

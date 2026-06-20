@@ -7,6 +7,7 @@ import type { RelationsDeps, DanglingDeps, RecentDeps } from "view/OrbitView";
 import { LinkGraphIndex } from "graph/LinkGraphIndex";
 import { ExclusionMatcher } from "shared/ExclusionMatcher";
 import { LinkRewriteService } from "links/LinkRewriteService";
+import { MentionLinkService } from "links/MentionLinkService";
 import { NotePickerModal, NoteFilePicker } from "modals/NotePickerModal";
 import { RenameTargetPicker } from "modals/RenameTargetPicker";
 import { ConfirmRewriteModal } from "modals/ConfirmRewriteModal";
@@ -34,6 +35,9 @@ export default class OrbitPlugin extends Plugin {
 	_index: LinkGraphIndex = new LinkGraphIndex(
 		{ resolvedLinks: {}, unresolvedLinks: {} },
 	);
+
+	/** Plugin-scoped unlinked-mentions service — survives view open/close. */
+	_mentionService!: MentionLinkService;
 
 	/** Plugin-scoped recent-files store — survives view open/close. */
 	_recentStore: RecentFilesStore = new RecentFilesStore({
@@ -67,6 +71,14 @@ export default class OrbitPlugin extends Plugin {
 		addIcon(ORBIT_ICON_ID, ORBIT_ICON_SVG);
 
 		this._index = new LinkGraphIndex(this.app.metadataCache);
+
+		this._mentionService = new MentionLinkService(
+			this.app.vault,
+			this.app.fileManager,
+			this.app.metadataCache,
+			this._index,
+			(path: string) => this._isExcluded(path),
+		);
 
 		this.registerView(VIEW_TYPE, (leaf) => new OrbitView(
 			leaf,
@@ -134,6 +146,7 @@ export default class OrbitPlugin extends Plugin {
 			// assignable without this cast.
 			app: this.app as unknown as RelationsDeps["app"],
 			isExcluded: (path: string): boolean => this._isExcluded(path),
+			mentions: this._mentionService,
 			onManage: (target: string): void => {
 				const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE);
 				for (const leaf of leaves) {
@@ -277,6 +290,7 @@ export default class OrbitPlugin extends Plugin {
 				if (file instanceof TFile) {
 					void this._recentStore.rename(oldPath, file.path, file.basename);
 				}
+				this._mentionService.invalidate();
 				if (this._indexBuilt) this._structuralChange = true;
 				this._repaintActivePanel();
 			}),
@@ -286,6 +300,7 @@ export default class OrbitPlugin extends Plugin {
 			this.app.vault.on("delete", (file: { path: string }) => {
 				this._index.removeFile(file.path);
 				void this._recentStore.delete(file.path);
+				this._mentionService.invalidate();
 				if (this._indexBuilt) this._structuralChange = true;
 				this._repaintActivePanel();
 			}),
@@ -307,6 +322,7 @@ export default class OrbitPlugin extends Plugin {
 		this.registerEvent(
 			this.app.metadataCache.on("changed", (file: { path: string }) => {
 				this._index.updateFile(file.path);
+				this._mentionService.invalidate();
 				this._repaintActivePanel();
 			}),
 		);
@@ -336,6 +352,7 @@ export default class OrbitPlugin extends Plugin {
 			// skip the expensive full rebuild for them.
 			const rebuildOnResolved = debounce((): void => {
 				this._index.buildFull();
+				this._mentionService.invalidate();
 				this._repaintActivePanel();
 				this._log.debug("index rebuilt after structural change");
 			}, this.settings.refreshDebounceMs, true);

@@ -134,6 +134,17 @@ export class MentionLinkService {
 		}
 	}
 
+	/**
+	 * Synchronous peek at the memoized result for `activePath`, or null when no
+	 * cached result exists yet. Lets the UI render cached rows without kicking a
+	 * fresh scan.
+	 */
+	peek(activePath: string): UnlinkedMentionGroup[] | null {
+		return this.cached !== null && this.cached.path === activePath
+			? this.cached.groups
+			: null;
+	}
+
 	/** Drop the memoized result — call when the vault or cache changes. */
 	invalidate(): void {
 		this.cached = null;
