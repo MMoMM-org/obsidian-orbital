@@ -13,8 +13,11 @@ Matching rules (`src/graph/unlinkedMentions.ts`, pure):
   "JavaScript"), NOT ASCII `\b`.
 - Overlapping matches from multiple names dedupe to the longest (most specific).
 - Skipped regions (`collectMaskSpans`): existing wikilink/embed cache positions,
-  the leading frontmatter block, fenced + inline code, markdown-link syntax, and
-  a wikilink regex fallback when cache positions are absent.
+  the leading frontmatter block, markdown-link syntax, and a wikilink regex
+  fallback when cache positions are absent. **Code spans / fenced code are NOT
+  masked** — Obsidian's native unlinked-mentions counts occurrences inside
+  backticks too (e.g. two `` `Zettelkasten` `` in one line = 2 mentions), so we
+  mask only existing *links* + frontmatter to match the core Backlinks count.
 
 Linking rule (`MentionLinkService.linkMentions`): replacement built via
 `fileManager.generateMarkdownLink` (honours the user's link-format settings).

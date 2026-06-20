@@ -338,7 +338,7 @@ export class RelationsPanel {
 		}
 
 		const linkAllBtn = (actions as unknown as AugmentedEl).createEl("button", {
-			cls: "orbit-relations-mention-link-btn search-result-file-match-replace-button",
+			cls: "orbit-relations-mention-link-btn",
 			text: "Link all",
 			attr: { "aria-label": "Link all mentions in this note" },
 		});
@@ -401,15 +401,18 @@ export class RelationsPanel {
 			cls: "orbit-relations-mention-snippet search-result-file-match tappable",
 		});
 
-		(row as unknown as AugmentedEl).createSpan({ text: item.snippet.before });
-		(row as unknown as AugmentedEl).createSpan({
+		const textWrap = (row as unknown as AugmentedEl).createSpan({
+			cls: "orbit-relations-mention-snippet-text",
+		});
+		(textWrap as unknown as AugmentedEl).createSpan({ text: item.snippet.before });
+		(textWrap as unknown as AugmentedEl).createSpan({
 			cls: "orbit-relations-mention-highlight search-result-file-matched-text",
 			text: item.snippet.hit,
 		});
-		(row as unknown as AugmentedEl).createSpan({ text: item.snippet.after });
+		(textWrap as unknown as AugmentedEl).createSpan({ text: item.snippet.after });
 
 		const linkBtn = (row as unknown as AugmentedEl).createEl("button", {
-			cls: "orbit-relations-mention-link-btn search-result-file-match-replace-button",
+			cls: "orbit-relations-mention-link-btn",
 			text: "Link",
 			attr: { "aria-label": "Link this mention" },
 		});

@@ -303,6 +303,37 @@
 	font-size: var(--font-smaller);
 }
 
+/* Snippet rows: keep native card look, lay text + Link button side by side. */
+.orbit-relations-mention-snippet {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+}
+
+.orbit-relations-mention-snippet-text {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+/* Always-visible Link / Link all buttons (the native replace button hides
+   until hover, which we don't want — linking must be discoverable). */
+.orbit-relations-mention-link-btn {
+	flex: 0 0 auto;
+	padding: 0 6px;
+	font-size: var(--font-smaller);
+	color: var(--text-accent);
+	background: transparent;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	cursor: pointer;
+}
+
+.orbit-relations-mention-link-btn:hover {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
+}
+
 /* Collapse fallback so behaviour is deterministic across themes. */
 .orbit-relations-mention-group.is-collapsed .orbit-relations-mention-snippets {
 	display: none;

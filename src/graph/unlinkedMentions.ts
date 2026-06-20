@@ -167,8 +167,6 @@ function dedupeOverlaps(matches: MentionMatch[]): MentionMatch[] {
 // ---------------------------------------------------------------------------
 
 const FRONTMATTER_RE = /^---\r?\n[\s\S]*?\r?\n---/;
-const FENCED_CODE_RE = /```[\s\S]*?```/g;
-const INLINE_CODE_RE = /`[^`\n]*`/g;
 const MARKDOWN_LINK_RE = /\[[^\]]*\]\([^)]*\)/g;
 const WIKILINK_RE = /!?\[\[[^\]]*\]\]/g;
 
@@ -176,9 +174,14 @@ const WIKILINK_RE = /!?\[\[[^\]]*\]\]/g;
  * Derive the spans that must NOT be treated as unlinked mentions:
  *   - existing wikilink/embed positions from the file cache (authoritative),
  *   - the leading frontmatter block,
- *   - fenced and inline code,
  *   - markdown link syntax `[text](url)`,
  *   - wikilink syntax (regex fallback when cache positions are absent).
+ *
+ * NOTE: code spans / fenced code are intentionally NOT masked — Obsidian's
+ * native "unlinked mentions" counts occurrences inside backticks too, so we
+ * mask only existing *links* (the definition of an unlinked mention is a
+ * mention that is not already a link) plus frontmatter. This matches the count
+ * shown by the core Backlinks pane.
  *
  * `cache` may be null; in that case only the regex-derived spans are returned.
  */
@@ -194,7 +197,7 @@ export function collectMaskSpans(text: string, cache: MentionFileCache | null): 
 	const fm = FRONTMATTER_RE.exec(text);
 	if (fm !== null) spans.push({ start: 0, end: fm[0].length });
 
-	for (const re of [FENCED_CODE_RE, INLINE_CODE_RE, MARKDOWN_LINK_RE, WIKILINK_RE]) {
+	for (const re of [MARKDOWN_LINK_RE, WIKILINK_RE]) {
 		re.lastIndex = 0;
 		let m: RegExpExecArray | null;
 		while ((m = re.exec(text)) !== null) {

@@ -831,7 +831,27 @@ describe("RelationsPanel unlinked mentions", () => {
 		expect(section.querySelector(".search-result-file-matches")).not.toBeNull();
 		expect(section.querySelector(".search-result-file-match")).not.toBeNull();
 		expect(section.querySelector(".search-result-file-matched-text")?.textContent).toBe("Note");
-		expect(section.querySelector(".search-result-file-match-replace-button")).not.toBeNull();
+	});
+
+	it("renders always-visible Link buttons (per note and per occurrence)", () => {
+		const deps = makeDeps({ collapsed: [], mentionGroups: [makeGroup("notes/Hub.md")] });
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const section = unlinkedSection(container)!;
+		// Per-note "Link all" lives in the title row's action cluster.
+		const linkAll = section.querySelector(
+			".orbit-relations-mention-group-header .orbit-relations-mention-link-btn",
+		);
+		expect(linkAll?.textContent).toBe("Link all");
+		// Per-occurrence "Link" lives on the snippet row.
+		const linkOne = section.querySelector(
+			".orbit-relations-mention-snippet .orbit-relations-mention-link-btn",
+		);
+		expect(linkOne?.textContent).toBe("Link");
+		// Neither relies on the native replace-button (hover-hidden) class.
+		expect(section.querySelector(".search-result-file-match-replace-button")).toBeNull();
 	});
 
 	it("shows a 🔗 badge when the note already links the active note", () => {

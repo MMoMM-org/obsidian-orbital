@@ -116,11 +116,10 @@ describe("collectMaskSpans", () => {
 		expect(spans.some((s) => s.start === 0 && s.end >= fmEnd)).toBe(true);
 	});
 
-	it("masks fenced and inline code", () => {
+	it("does NOT mask code spans (Obsidian counts mentions inside backticks)", () => {
 		const text = "a `code` b\n```\nfenced\n```\n end";
 		const spans = collectMaskSpans(text, null);
-		expect(spans.some((s) => text.slice(s.start, s.end).includes("`code`"))).toBe(true);
-		expect(spans.some((s) => text.slice(s.start, s.end).includes("fenced"))).toBe(true);
+		expect(spans).toHaveLength(0);
 	});
 
 	it("masks markdown link syntax", () => {
@@ -130,7 +129,7 @@ describe("collectMaskSpans", () => {
 	});
 
 	it("returns regex-derived spans even when cache is null", () => {
-		const text = "plain `x` text";
+		const text = "plain [[x]] text";
 		expect(collectMaskSpans(text, null).length).toBeGreaterThan(0);
 	});
 });
@@ -153,6 +152,13 @@ describe("scanTextForMentions — does not match inside masked regions", () => {
 		const spans = collectMaskSpans(text, null);
 		const matches = scanTextForMentions(text, ["Zettelkasten"], spans);
 		expect(matches).toHaveLength(0);
+	});
+
+	it("counts mentions inside backticks/code (parity with Obsidian)", () => {
+		const text = "rename `Inbox` to `Zettelkasten` then merge into `Zettelkasten`.";
+		const spans = collectMaskSpans(text, null);
+		const matches = scanTextForMentions(text, ["Zettelkasten"], spans);
+		expect(matches).toHaveLength(2);
 	});
 });
 
