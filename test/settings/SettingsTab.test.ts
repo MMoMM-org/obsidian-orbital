@@ -293,6 +293,42 @@ describe("SettingsTab — toggle persistence", () => {
 		expect(plugin.settings.showCounts).toBe(false);
 		expect(plugin.saveSettings).toHaveBeenCalled();
 	});
+
+	it("unlinkedMentionsEnabled: toggle click mutates settings", async () => {
+		const plugin = makePlugin();
+		plugin.settings.unlinkedMentionsEnabled = true;
+		const tab = makeTab(plugin);
+		const container = renderTab(tab);
+
+		const settingEl = Array.from(container.querySelectorAll("[data-setting-name]"))
+			.find((el) => el.getAttribute("data-setting-name")?.toLowerCase().includes("show unlinked"));
+		const toggle = settingEl?.querySelector("[role='switch']") as HTMLElement | null;
+		expect(toggle).not.toBeNull();
+
+		toggle!.click();
+		await flush();
+
+		expect(plugin.settings.unlinkedMentionsEnabled).toBe(false);
+		expect(plugin.saveSettings).toHaveBeenCalled();
+	});
+
+	it("unlinkedOpenInNewTab: toggle click mutates settings", async () => {
+		const plugin = makePlugin();
+		plugin.settings.unlinkedOpenInNewTab = false;
+		const tab = makeTab(plugin);
+		const container = renderTab(tab);
+
+		const settingEl = Array.from(container.querySelectorAll("[data-setting-name]"))
+			.find((el) => el.getAttribute("data-setting-name")?.toLowerCase().includes("new tab"));
+		const toggle = settingEl?.querySelector("[role='switch']") as HTMLElement | null;
+		expect(toggle).not.toBeNull();
+
+		toggle!.click();
+		await flush();
+
+		expect(plugin.settings.unlinkedOpenInNewTab).toBe(true);
+		expect(plugin.saveSettings).toHaveBeenCalled();
+	});
 });
 
 describe("SettingsTab — dropdown persistence", () => {

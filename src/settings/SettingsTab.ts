@@ -177,6 +177,30 @@ export class SettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName("Show unlinked mentions")
+			.setDesc("Add an 'unlinked mentions' section to the relations tab. Scans note contents on demand when expanded.")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.unlinkedMentionsEnabled)
+					.onChange(async (value) => {
+						this.plugin.settings.unlinkedMentionsEnabled = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName("Open unlinked mentions in new tab")
+			.setDesc("Open the note in a new tab when clicking an unlinked mention. Mod-click always opens a new tab.")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.unlinkedOpenInNewTab)
+					.onChange(async (value) => {
+						this.plugin.settings.unlinkedOpenInNewTab = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName("Exclude path patterns")
 			.setDesc("File path patterns to exclude (one per line, plain text or regex).")
 			.addTextArea((textarea) =>

@@ -269,6 +269,100 @@
 	color: var(--text-faint);
 }
 
+/* ── Unlinked mentions (Relations) ──────────────────────────────────────────
+   Lazy-scanned section: per-note groups with collapsible context snippets and
+   inline "Link" actions. All colors from CSS variables.
+   ─────────────────────────────────────────────────────────────────────────*/
+
+.orbit-relations-mention-loading {
+	padding: 8px;
+	font-size: var(--font-small);
+	color: var(--text-faint);
+	font-style: italic;
+}
+
+.orbit-relations-mention-group {
+	margin-bottom: 6px;
+}
+
+.orbit-relations-mention-group-header {
+	display: flex;
+	align-items: center;
+	gap: 0.35em;
+	padding: 1px 4px;
+}
+
+.orbit-relations-mention-caret {
+	flex: 0 0 auto;
+	color: var(--text-faint);
+	cursor: pointer;
+}
+
+.orbit-relations-mention-name {
+	flex: 1 1 auto;
+	font-size: var(--font-small);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.orbit-relations-mention-name:hover {
+	color: var(--text-accent);
+	text-decoration: underline;
+}
+
+.orbit-relations-mention-linked-badge {
+	flex: 0 0 auto;
+	font-size: var(--font-smaller);
+}
+
+.orbit-relations-mention-link-btn {
+	flex: 0 0 auto;
+	padding: 0 4px;
+	font-size: var(--font-small);
+	color: var(--text-accent);
+	background: transparent;
+	border: none;
+	cursor: pointer;
+}
+
+.orbit-relations-mention-link-btn:hover {
+	text-decoration: underline;
+}
+
+.orbit-relations-mention-snippets {
+	padding-left: 1.4em;
+}
+
+.orbit-relations-mention-snippets.is-collapsed {
+	display: none;
+}
+
+.orbit-relations-mention-snippet {
+	display: flex;
+	align-items: baseline;
+	gap: 0.35em;
+	padding: 1px 4px;
+}
+
+.orbit-relations-mention-snippet-text {
+	flex: 1 1 auto;
+	font-size: var(--font-small);
+	color: var(--text-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.orbit-relations-mention-highlight {
+	color: var(--text-normal);
+	background: var(--text-highlight-bg);
+	border-radius: var(--radius-s);
+	padding: 0 2px;
+}
+
 /* ── DanglingPanel ──────────────────────────────────────────────────────────
    Grouped tree of unresolved wikilink targets with inline actions.
    Uses Obsidian tree-item structure; all colors from CSS variables.
