@@ -15,6 +15,7 @@
 
 import { FuzzySuggestModal } from "obsidian";
 import type { App, TFile, TFolder } from "obsidian";
+import type { LogFn } from "shared/logger";
 
 // ---------------------------------------------------------------------------
 // NotePickerModal — folder variant
@@ -77,9 +78,12 @@ export class NotePickerModal extends FuzzySuggestModal<TFolder> {
  */
 export class NoteFilePicker extends FuzzySuggestModal<TFile> {
 	private resolveNote: ((file: TFile | null) => void) | null = null;
+	private chosen: TFile | null = null;
+	private readonly log?: LogFn;
 
-	constructor(app: App) {
+	constructor(app: App, log?: LogFn) {
 		super(app);
+		this.log = log;
 		this.setPlaceholder("Choose existing note…");
 	}
 
@@ -87,30 +91,40 @@ export class NoteFilePicker extends FuzzySuggestModal<TFile> {
 	pickNote(): Promise<TFile | null> {
 		return new Promise<TFile | null>((res) => {
 			this.resolveNote = res;
+			this.chosen = null;
 			this.open();
 		});
 	}
 
 	getItems(): TFile[] {
-		return this.app.vault.getMarkdownFiles();
+		const items = this.app.vault.getMarkdownFiles();
+		this.log?.("notePicker: getItems", { count: items.length });
+		return items;
 	}
 
 	getItemText(item: TFile): string {
 		return item.path;
 	}
 
+	/**
+	 * Record the choice (first wins). Resolution happens in onClose so it is
+	 * robust to the onChooseItem/onClose ordering and so the caller's follow-up
+	 * modal opens only after this picker has fully closed.
+	 */
 	onChooseItem(item: TFile, _evt?: MouseEvent | KeyboardEvent): void {
-		if (this.resolveNote !== null) {
-			this.resolveNote(item);
-			this.resolveNote = null;
-		}
+		this.log?.("notePicker: onChooseItem", { path: item?.path ?? null });
+		if (this.chosen === null) this.chosen = item;
 	}
 
 	onClose(): void {
 		super.onClose();
+		this.log?.("notePicker: onClose", { chosen: this.chosen?.path ?? null });
 		if (this.resolveNote !== null) {
-			this.resolveNote(null);
+			const resolve = this.resolveNote;
+			const chosen = this.chosen;
 			this.resolveNote = null;
+			this.chosen = null;
+			resolve(chosen);
 		}
 	}
 }

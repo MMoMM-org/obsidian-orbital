@@ -73,7 +73,7 @@ interface FolderPickerConstructor {
 }
 
 interface NotePickerConstructor {
-	new (app: DanglingPanelApp): { pickNote(): Promise<TFile | null> };
+	new (app: DanglingPanelApp, log?: LogFn): { pickNote(): Promise<TFile | null> };
 }
 
 type CreateNoteFn = (
@@ -590,7 +590,7 @@ export class DanglingPanel {
 			this.deps.log?.("alias: start", { target, scope });
 			// Pick an existing note via NoteFilePicker (ADR-6: alias target must be
 			// an existing note, not a folder, so the wikilink resolves correctly).
-			const picker = new this.deps.notePicker(this.deps.app);
+			const picker = new this.deps.notePicker(this.deps.app, this.deps.log);
 			this.deps.log?.("alias: opening note picker");
 			const note = await picker.pickNote();
 			this.deps.log?.("alias: picker resolved", { note: note?.path ?? null });
