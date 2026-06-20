@@ -14,6 +14,10 @@ export interface OrbitSettings {
 	newNoteFolder: string;
 	defaultTab: TabId;
 	showCounts: boolean;
+	/** When true, the Relations tab shows an "Unlinked mentions" section. */
+	unlinkedMentionsEnabled: boolean;
+	/** When true, clicking an unlinked mention opens the note in a new tab. */
+	unlinkedOpenInNewTab: boolean;
 	/** When true, Orbit emits verbose [Orbit] console.debug traces for diagnostics. */
 	debugLogging: boolean;
 	recentFiles: { path: string; basename: string }[];
@@ -31,6 +35,8 @@ export const DEFAULT_SETTINGS: OrbitSettings = {
 	newNoteFolder: "",
 	defaultTab: "relations",
 	showCounts: true,
+	unlinkedMentionsEnabled: true,
+	unlinkedOpenInNewTab: false,
 	debugLogging: false,
 	recentFiles: [],
 };

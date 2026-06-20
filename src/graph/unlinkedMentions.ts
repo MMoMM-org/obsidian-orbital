@@ -40,6 +40,23 @@ export interface MentionSnippet {
 	after: string;
 }
 
+/** A match paired with its display snippet. */
+export interface UnlinkedMentionItem extends MentionMatch {
+	snippet: MentionSnippet;
+}
+
+/** All unlinked mentions of the active note found within a single source note. */
+export interface UnlinkedMentionGroup {
+	/** Vault path of the note containing the mentions. */
+	path: string;
+	/** Display name (basename without extension). */
+	display: string;
+	/** Every unlinked occurrence within this note, sorted by position. */
+	matches: UnlinkedMentionItem[];
+	/** True when this note already has a resolved link to the active note. */
+	alreadyLinks: boolean;
+}
+
 /** Structural subset of a metadata cache entry needed for masking. */
 export interface MentionFileCache {
 	links?: Array<{ position: { start: { offset: number }; end: { offset: number } } }>;
