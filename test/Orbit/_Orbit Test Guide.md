@@ -1,7 +1,7 @@
 # _Orbit Test Guide
 
 A smoke-test script for the Orbit plugin. The notes in this vault form a small
-Zettelkasten/PKM graph whose links are arranged to exercise every tab and action.
+[[Zettelkasten]]/PKM graph whose links are arranged to exercise every tab and action.
 Open the Orbit pane (right sidebar, the git-fork icon) and work through the
 sections below.
 
@@ -13,10 +13,10 @@ sections below.
 - **[[Hub]]** is the centre: 4 outgoing links, 5 backlinks (incl. this guide),
   several 2nd-hop notes, and 3 missing targets.
 - Dangling targets seeded across the vault (and the form they test):
-  - `[[Atlas of Concepts]]` — plain, in **3 files** (Hub, Zettelkasten, Linking)
+  - `[[Atlas of Concepts]]` — plain, in **3 files** (Hub, [[Zettelkasten]], Linking)
   - `[[Concept Atlas]]` — plain, 1 file (Knowledge Management) — a second spelling to **merge**
   - `[[Inbox]]` — plain, 2 files (Hub, 2026-06-19) — use for **create note**
-  - `[[Fleeting Notes]]` — plain (Hub), `#Capture` heading (Zettelkasten), `#^cap01` block (Slip Box)
+  - `[[Fleeting Notes]]` — plain (Hub), `#Capture` heading ([[Zettelkasten]]), `#^cap01` block (Slip Box)
   - `![[Map of Content]]` — **embed** (Knowledge Management)
   - `[[Daily Note Template|today's template]]` — **alias** form (2026-06-19)
   - `[[MOC]]` — plain (Orbit Plugin) — use for **change to alias**
@@ -38,7 +38,7 @@ sections below.
 - [ ] **2nd-hop** lists Slip Box, Bidirectional Links, Progressive Summarization, Evergreen Notes — grouped by the connecting note, **deduped**, and **excluding** Hub itself and the 1st-hop Atomic Notes.
 - [ ] Click a relation row → opens in the current pane. **Cmd/Ctrl-click** (or middle-click) → opens in a new pane.
 - [ ] Hover a row (with core **Page preview** enabled) → preview popover appears.
-- [ ] Switch the active note rapidly between Hub / Zettelkasten / Knowledge Management → Relations updates, **debounced** (no flicker).
+- [ ] Switch the active note rapidly between Hub / [[Zettelkasten]] / Knowledge Management → Relations updates, **debounced** (no flicker).
 - [ ] Open **[[Empty Note]]** → empty sections, not a blank pane. Close all notes → clear **empty state**.
 - [ ] In Hub's **Missing** section, click **"Manage →"** on `Atlas of Concepts` → jumps to the **Dangling tab filtered to that target**; **"Show all"** restores the full list.
 
@@ -48,7 +48,7 @@ sections below.
 - [ ] **Scope toggle** → switch to the active note's folder. Open **[[Daily/2026-06-19]]** then set folder scope → only `Inbox` and `Daily Note Template` (the Daily/ folder's danglings) remain.
 - [ ] **Rename / merge (preview):** rename `Atlas of Concepts` → preview says "3 occurrences in 3 files"; confirm → all three files rewrite, open editors stay in sync.
 - [ ] **Merge into existing spelling:** rename `Concept Atlas` → `Atlas of Concepts` → merges the two spellings.
-- [ ] **Merge into a real note:** rename `Inbox` → `Zettelkasten` → preview flags merging into the existing note `Zettelkasten`.
+- [ ] **Merge into a real note:** rename `Inbox` → `[[Zettelkasten]]` → preview flags merging into the existing note `[[Zettelkasten]]`.
 - [ ] **Change to alias:** on `MOC`, choose *Change to alias* → pick the real note **Knowledge Management** → occurrence rewrites to `[[Knowledge Management|MOC]]`.
 - [ ] **Create missing note:** on `Inbox`, choose *Create note* → pick a folder → the note is created.
 - [ ] **Delete link:** on any target, *Delete* → confirmation appears (with a **"this note only"** option and the no-undo warning) before removing the `[[…]]`.
