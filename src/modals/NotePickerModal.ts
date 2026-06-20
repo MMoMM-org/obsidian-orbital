@@ -78,7 +78,6 @@ export class NotePickerModal extends FuzzySuggestModal<TFolder> {
  */
 export class NoteFilePicker extends FuzzySuggestModal<TFile> {
 	private resolveNote: ((file: TFile | null) => void) | null = null;
-	private chosen: TFile | null = null;
 	private readonly log?: LogFn;
 
 	constructor(app: App, log?: LogFn) {
@@ -91,7 +90,6 @@ export class NoteFilePicker extends FuzzySuggestModal<TFile> {
 	pickNote(): Promise<TFile | null> {
 		return new Promise<TFile | null>((res) => {
 			this.resolveNote = res;
-			this.chosen = null;
 			this.open();
 		});
 	}
@@ -106,25 +104,28 @@ export class NoteFilePicker extends FuzzySuggestModal<TFile> {
 		return item.path;
 	}
 
-	/**
-	 * Record the choice (first wins). Resolution happens in onClose so it is
-	 * robust to the onChooseItem/onClose ordering and so the caller's follow-up
-	 * modal opens only after this picker has fully closed.
-	 */
+	/** A selection wins immediately. (Obsidian may fire this AFTER onClose.) */
 	onChooseItem(item: TFile, _evt?: MouseEvent | KeyboardEvent): void {
 		this.log?.("notePicker: onChooseItem", { path: item?.path ?? null });
-		if (this.chosen === null) this.chosen = item;
+		if (this.resolveNote !== null) {
+			this.resolveNote(item);
+			this.resolveNote = null;
+		}
 	}
 
 	onClose(): void {
 		super.onClose();
-		this.log?.("notePicker: onClose", { chosen: this.chosen?.path ?? null });
-		if (this.resolveNote !== null) {
-			const resolve = this.resolveNote;
-			const chosen = this.chosen;
-			this.resolveNote = null;
-			this.chosen = null;
-			resolve(chosen);
-		}
+		this.log?.("notePicker: onClose");
+		// CRITICAL: Obsidian fires onClose BEFORE onChooseItem when a suggestion is
+		// selected. Defer the dismissal (null) resolution by a macrotask so that a
+		// choice arriving immediately after the close still wins. If onChooseItem
+		// already resolved, resolveNote is null here and this is a no-op.
+		window.setTimeout(() => {
+			if (this.resolveNote !== null) {
+				this.log?.("notePicker: dismissed (no selection)");
+				this.resolveNote(null);
+				this.resolveNote = null;
+			}
+		}, 0);
 	}
 }
