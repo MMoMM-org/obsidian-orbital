@@ -51,6 +51,13 @@ export interface ConfirmRewriteModalOptions {
 	 * spans every source in scope.
 	 */
 	deleteSourceNote?: string;
+	/**
+	 * Delete kind only. Preview counts restricted to the source note (by-source
+	 * grouping). Shown in place of the scope-wide `preview` whenever the
+	 * "Only in note" checkbox is checked, so the count reflects what will really
+	 * be modified.
+	 */
+	deleteSourcePreview?: RewritePreview;
 }
 
 // ---------------------------------------------------------------------------
@@ -85,6 +92,9 @@ export class ConfirmRewriteModal extends Modal {
 	 * grouping); otherwise the checkbox is not rendered and this stays false.
 	 */
 	public onlyInThisNote = false;
+
+	/** The preview count paragraph — updated reactively as the delete scope toggles. */
+	private previewEl: HTMLElement | null = null;
 
 	constructor(app: App, opts: ConfirmRewriteModalOptions) {
 		super(app);
@@ -131,11 +141,23 @@ export class ConfirmRewriteModal extends Modal {
 	}
 
 	private renderPreview(el: AugmentedEl): void {
-		const { occurrences, files } = this.opts.preview;
-		el.createEl("p", {
+		this.previewEl = el.createEl("p", {
 			cls: "orbit-confirm-preview",
-			text: `${occurrences} occurrence${occurrences === 1 ? "" : "s"} across ${files.length} file${files.length === 1 ? "" : "s"} will be modified.`,
+			text: this.previewText(this.opts.preview),
 		});
+	}
+
+	private previewText(preview: RewritePreview): string {
+		const { occurrences, files } = preview;
+		return `${occurrences} occurrence${occurrences === 1 ? "" : "s"} across ${files.length} file${files.length === 1 ? "" : "s"} will be modified.`;
+	}
+
+	/** Repaint the preview line to match the current delete scope (source vs scope-wide). */
+	private updatePreview(scopeToSource: boolean): void {
+		if (this.previewEl === null) return;
+		const sourcePreview = this.opts.deleteSourcePreview;
+		const preview = scopeToSource && sourcePreview !== undefined ? sourcePreview : this.opts.preview;
+		this.previewEl.textContent = this.previewText(preview);
 	}
 
 	private renderWarning(el: AugmentedEl): void {
@@ -235,6 +257,8 @@ export class ConfirmRewriteModal extends Modal {
 			}) as HTMLInputElement;
 			onlyInNoteCheckbox.checked = true;
 			this.onlyInThisNote = true;
+			// Pre-checked: show the source-scoped count instead of the scope-wide one.
+			this.updatePreview(true);
 
 			(onlyInNoteRow as unknown as AugmentedEl).createEl("label", {
 				text: `Only in note: ${sourceNote}`,
@@ -243,6 +267,7 @@ export class ConfirmRewriteModal extends Modal {
 
 			onlyInNoteCheckbox.addEventListener("change", () => {
 				this.onlyInThisNote = onlyInNoteCheckbox.checked;
+				this.updatePreview(onlyInNoteCheckbox.checked);
 			});
 		}
 

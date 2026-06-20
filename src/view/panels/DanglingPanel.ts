@@ -68,6 +68,7 @@ interface ConfirmRewriteModalConstructor {
 			existingNoteNames?: string[];
 			pickExisting?: () => Promise<string | null>;
 			deleteSourceNote?: string;
+			deleteSourcePreview?: RewritePreview;
 		},
 	): { open(): void; onlyInThisNote?: boolean };
 }
@@ -699,6 +700,17 @@ export class DanglingPanel {
 			// by-target grouping there is no single source, so no checkbox is shown.
 			const sourceNoteName = sourcePath !== undefined ? noteName(sourcePath) : undefined;
 
+			// Source-scoped preview counts so the dialog reflects what a
+			// "Only in note" delete will really modify (just that one file).
+			let deleteSourcePreview: RewritePreview | undefined;
+			if (sourcePath !== undefined) {
+				const file = preview.files.find((f) => f.path === sourcePath);
+				deleteSourcePreview = {
+					occurrences: file?.count ?? 0,
+					files: file !== undefined ? [file] : [],
+				};
+			}
+
 			// modalRef holds the instance so onConfirm can read modal.onlyInThisNote,
 			// which is updated by the "Only in note" checkbox in renderDeleteConfirm.
 			const modalRef: { instance: InstanceType<ConfirmRewriteModalConstructor> | null } = { instance: null };
@@ -707,6 +719,7 @@ export class DanglingPanel {
 				preview,
 				kind: "delete",
 				deleteSourceNote: sourceNoteName,
+				deleteSourcePreview,
 				onConfirm: (_name: string) => {
 					// Scope to the source note only when it exists and the checkbox is
 					// still checked; otherwise delete across every source in scope.

@@ -379,6 +379,35 @@ describe("ConfirmRewriteModal", () => {
 			expect(label).not.toBeNull();
 			expect(label?.textContent).toBe("Only in note: Slip Box");
 		});
+
+		it("shows the source-scoped preview count while pre-checked, and toggles with the checkbox", () => {
+			const app = makeApp();
+			const modal = new ConfirmRewriteModal(app, {
+				preview: makePreview(5, ["a.md", "b.md"]),
+				kind: "delete",
+				deleteSourceNote: "a",
+				deleteSourcePreview: { occurrences: 2, files: [{ path: "a.md", count: 2 }] },
+				onConfirm: vi.fn(),
+			});
+			modal.onOpen();
+
+			const previewEl = modal.contentEl.querySelector(".orbit-confirm-preview");
+			// Pre-checked → source-scoped count (2 occurrences across 1 file)
+			expect(previewEl?.textContent).toBe("2 occurrences across 1 file will be modified.");
+
+			const checkbox = modal.contentEl.querySelector<HTMLInputElement>(
+				"input[id='orbit-confirm-delete-only-note']",
+			);
+			// Uncheck → scope-wide count (5 occurrences across 2 files)
+			checkbox!.checked = false;
+			checkbox!.dispatchEvent(new Event("change"));
+			expect(previewEl?.textContent).toBe("5 occurrences across 2 files will be modified.");
+
+			// Re-check → back to source-scoped
+			checkbox!.checked = true;
+			checkbox!.dispatchEvent(new Event("change"));
+			expect(previewEl?.textContent).toBe("2 occurrences across 1 file will be modified.");
+		});
 	});
 
 	describe("non-rename ops (merge, alias)", () => {
