@@ -817,6 +817,23 @@ describe("RelationsPanel unlinked mentions", () => {
 		expect(deps.mentionsMock.computeGroups).not.toHaveBeenCalled();
 	});
 
+	it("uses Obsidian's native search-result classes so it matches the Backlinks pane", () => {
+		const deps = makeDeps({ collapsed: [], mentionGroups: [makeGroup("notes/Hub.md")] });
+		const panel = new RelationsPanel(deps);
+		const container = makeContainer();
+		panel.render(container, "notes/active.md");
+
+		const section = unlinkedSection(container)!;
+		expect(section.querySelector(".tree-item.search-result")).not.toBeNull();
+		expect(section.querySelector(".tree-item-self.search-result-file-title")).not.toBeNull();
+		expect(section.querySelector(".tree-item-icon.collapse-icon")).not.toBeNull();
+		expect(section.querySelector(".tree-item-inner")).not.toBeNull();
+		expect(section.querySelector(".search-result-file-matches")).not.toBeNull();
+		expect(section.querySelector(".search-result-file-match")).not.toBeNull();
+		expect(section.querySelector(".search-result-file-matched-text")?.textContent).toBe("Note");
+		expect(section.querySelector(".search-result-file-match-replace-button")).not.toBeNull();
+	});
+
 	it("shows a 🔗 badge when the note already links the active note", () => {
 		const deps = makeDeps({
 			collapsed: [],

@@ -57,3 +57,14 @@ scans so it terminates in one round-trip). Default-collapsed is seeded in
 Deliberate v1 limits: no global "Link all" (only per-note / per-occurrence);
 click opens the file but does not jump to the match offset; match options
 (whole-word, case) are hardcoded to Obsidian defaults (no setting).
+
+### Native styling (2026-06-20 follow-up)
+The mention section reuses Obsidian's core search-result/tree-item class names
+(`tree-item search-result`, `tree-item-self search-result-file-title`,
+`collapse-icon` + `setIcon(el,"right-triangle")`, `tree-item-inner`,
+`tree-item-flair`, `search-result-file-matches`, `search-result-file-match`,
+`search-result-file-matched-text`, `search-result-file-match-replace-button`)
+so it inherits the exact look of the core Backlinks pane and the user's theme.
+Orbit-prefixed classes are kept alongside as stable test/style hooks. Groups
+render expanded by default (like the native pane). We omit the native
+"Show more context" hover buttons.

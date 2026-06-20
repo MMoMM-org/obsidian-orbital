@@ -16,7 +16,7 @@
  *   tests both use the same import path (tests shadow it with the mock).
  */
 
-import { Keymap } from "obsidian";
+import { Keymap, setIcon } from "obsidian";
 import { computeRelations } from "graph/relations";
 import type { RelationsMetadataCache } from "graph/relations";
 import type { LinkGraphIndex } from "graph/LinkGraphIndex";
@@ -294,6 +294,12 @@ export class RelationsPanel {
 		});
 	}
 
+	/**
+	 * Render one source-note group using Obsidian's native search-result / tree-item
+	 * class names so it inherits the exact look of the core Backlinks pane (collapse
+	 * chevron, snippet cards, matched-text highlight). Orbit-prefixed classes are kept
+	 * alongside as stable hooks for styling/tests.
+	 */
 	private renderMentionGroup(
 		container: HTMLElement,
 		group: UnlinkedMentionGroup,
@@ -301,57 +307,67 @@ export class RelationsPanel {
 		settings: OrbitSettings,
 	): void {
 		const groupEl = (container as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-relations-mention-group",
+			cls: "orbit-relations-mention-group tree-item search-result",
 		});
 
 		const headerEl = (groupEl as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-relations-mention-group-header tree-item-self is-clickable",
+			cls: "orbit-relations-mention-group-header tree-item-self search-result-file-title is-clickable",
 		});
 
-		const caret = (headerEl as unknown as AugmentedEl).createSpan({
-			cls: "orbit-relations-mention-caret",
-			text: "›",
+		const caret = (headerEl as unknown as AugmentedEl).createDiv({
+			cls: "orbit-relations-mention-caret tree-item-icon collapse-icon",
 		});
+		setIcon(caret, "right-triangle");
 
-		const nameEl = (headerEl as unknown as AugmentedEl).createSpan({
-			cls: "orbit-relations-mention-name",
+		const nameEl = (headerEl as unknown as AugmentedEl).createDiv({
+			cls: "orbit-relations-mention-name tree-item-inner",
 			text: group.display,
 		});
 
-		(headerEl as unknown as AugmentedEl).createSpan({
-			cls: "orbit-relations-count",
-			text: String(group.matches.length),
+		// Right-aligned action cluster: badge, Link-all button, count flair.
+		const actions = (headerEl as unknown as AugmentedEl).createDiv({
+			cls: "orbit-relations-mention-actions",
 		});
 
 		if (group.alreadyLinks) {
-			(headerEl as unknown as AugmentedEl).createEl("span", {
+			(actions as unknown as AugmentedEl).createEl("span", {
 				cls: "orbit-relations-mention-linked-badge",
 				text: "🔗",
 				attr: { "aria-label": "Already links to the active note" },
 			});
 		}
 
-		const linkAllBtn = (headerEl as unknown as AugmentedEl).createEl("button", {
-			cls: "orbit-relations-mention-link-btn",
-			text: "Link",
+		const linkAllBtn = (actions as unknown as AugmentedEl).createEl("button", {
+			cls: "orbit-relations-mention-link-btn search-result-file-match-replace-button",
+			text: "Link all",
 			attr: { "aria-label": "Link all mentions in this note" },
 		});
 
+		if (settings.showCounts) {
+			const flairOuter = (actions as unknown as AugmentedEl).createDiv({
+				cls: "tree-item-flair-outer",
+			});
+			(flairOuter as unknown as AugmentedEl).createSpan({
+				cls: "orbit-relations-count tree-item-flair",
+				text: String(group.matches.length),
+			});
+		}
+
 		const snippetsEl = (groupEl as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-relations-mention-snippets is-collapsed",
+			cls: "orbit-relations-mention-snippets search-result-file-matches",
 		});
 		for (const item of group.matches) {
 			this.renderMentionSnippet(snippetsEl, group, item, activePath, settings);
 		}
 
-		// Caret toggles the snippet list locally (ephemeral — no re-render).
-		this.deps.registerDomEvent(caret, "click", (evt) => {
-			evt.stopPropagation();
-			snippetsEl.classList.toggle("is-collapsed");
+		// Clicking the title row toggles the matches (native behaviour); clicking the
+		// note name opens it, and the action buttons handle their own clicks.
+		this.deps.registerDomEvent(headerEl, "click", () => {
+			groupEl.classList.toggle("is-collapsed");
 		});
 
-		// Clicking the note name opens it.
 		this.deps.registerDomEvent(nameEl, "click", (evt) => {
+			evt.stopPropagation();
 			this.openMentionPath(group.path, activePath, evt, settings);
 		});
 
@@ -382,32 +398,23 @@ export class RelationsPanel {
 		settings: OrbitSettings,
 	): void {
 		const row = (container as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-relations-mention-snippet is-clickable",
+			cls: "orbit-relations-mention-snippet search-result-file-match tappable",
 		});
 
-		const text = (row as unknown as AugmentedEl).createSpan({
-			cls: "orbit-relations-mention-snippet-text",
-		});
-		(text as unknown as AugmentedEl).createSpan({
-			cls: "orbit-relations-mention-snippet-context",
-			text: item.snippet.before,
-		});
-		(text as unknown as AugmentedEl).createSpan({
-			cls: "orbit-relations-mention-highlight",
+		(row as unknown as AugmentedEl).createSpan({ text: item.snippet.before });
+		(row as unknown as AugmentedEl).createSpan({
+			cls: "orbit-relations-mention-highlight search-result-file-matched-text",
 			text: item.snippet.hit,
 		});
-		(text as unknown as AugmentedEl).createSpan({
-			cls: "orbit-relations-mention-snippet-context",
-			text: item.snippet.after,
-		});
+		(row as unknown as AugmentedEl).createSpan({ text: item.snippet.after });
 
 		const linkBtn = (row as unknown as AugmentedEl).createEl("button", {
-			cls: "orbit-relations-mention-link-btn",
+			cls: "orbit-relations-mention-link-btn search-result-file-match-replace-button",
 			text: "Link",
 			attr: { "aria-label": "Link this mention" },
 		});
 
-		this.deps.registerDomEvent(text, "click", (evt) => {
+		this.deps.registerDomEvent(row, "click", (evt) => {
 			this.openMentionPath(group.path, activePath, evt, settings);
 		});
 

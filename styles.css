@@ -270,8 +270,9 @@
 }
 
 /* ── Unlinked mentions (Relations) ──────────────────────────────────────────
-   Lazy-scanned section: per-note groups with collapsible context snippets and
-   inline "Link" actions. All colors from CSS variables.
+   Reuses Obsidian's native search-result / tree-item classes so the section
+   matches the core Backlinks pane (collapse chevron, snippet cards, matched-
+   text highlight). Only layout-level overrides live here; visuals are inherited.
    ─────────────────────────────────────────────────────────────────────────*/
 
 .orbit-relations-mention-loading {
@@ -281,86 +282,34 @@
 	font-style: italic;
 }
 
-.orbit-relations-mention-group {
-	margin-bottom: 6px;
-}
-
-.orbit-relations-mention-group-header {
-	display: flex;
-	align-items: center;
-	gap: 0.35em;
-	padding: 1px 4px;
-}
-
-.orbit-relations-mention-caret {
-	flex: 0 0 auto;
-	color: var(--text-faint);
-	cursor: pointer;
-}
-
+/* The note name opens its note (rest of the title row toggles the matches). */
 .orbit-relations-mention-name {
-	flex: 1 1 auto;
-	font-size: var(--font-small);
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
 	cursor: pointer;
 }
 
 .orbit-relations-mention-name:hover {
 	color: var(--text-accent);
-	text-decoration: underline;
+}
+
+/* Right-aligned action cluster (badge + Link-all + count). */
+.orbit-relations-mention-actions {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-left: auto;
 }
 
 .orbit-relations-mention-linked-badge {
-	flex: 0 0 auto;
 	font-size: var(--font-smaller);
 }
 
-.orbit-relations-mention-link-btn {
-	flex: 0 0 auto;
-	padding: 0 4px;
-	font-size: var(--font-small);
-	color: var(--text-accent);
-	background: transparent;
-	border: none;
-	cursor: pointer;
-}
-
-.orbit-relations-mention-link-btn:hover {
-	text-decoration: underline;
-}
-
-.orbit-relations-mention-snippets {
-	padding-left: 1.4em;
-}
-
-.orbit-relations-mention-snippets.is-collapsed {
+/* Collapse fallback so behaviour is deterministic across themes. */
+.orbit-relations-mention-group.is-collapsed .orbit-relations-mention-snippets {
 	display: none;
 }
 
-.orbit-relations-mention-snippet {
-	display: flex;
-	align-items: baseline;
-	gap: 0.35em;
-	padding: 1px 4px;
-}
-
-.orbit-relations-mention-snippet-text {
-	flex: 1 1 auto;
-	font-size: var(--font-small);
-	color: var(--text-muted);
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	cursor: pointer;
-}
-
-.orbit-relations-mention-highlight {
-	color: var(--text-normal);
-	background: var(--text-highlight-bg);
-	border-radius: var(--radius-s);
-	padding: 0 2px;
+.orbit-relations-mention-group.is-collapsed .orbit-relations-mention-caret {
+	transform: rotate(-90deg);
 }
 
 /* ── DanglingPanel ──────────────────────────────────────────────────────────
