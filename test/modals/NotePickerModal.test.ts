@@ -116,6 +116,22 @@ describe("NotePickerModal", () => {
 		expect(result?.path).toBe("chosen/folder");
 	});
 
+	it("resolves with the chosen folder even when onClose fires before onChooseItem", async () => {
+		// Obsidian closes the suggest modal BEFORE invoking onChooseItem on a
+		// selection — the picker must still resolve with the chosen folder, not null.
+		const app = makeApp();
+		const modal = new NotePickerModal(app);
+
+		const folder = makeFolder("chosen/folder");
+
+		const promise = modal.pickFolder();
+		modal.onClose(); // close fires first…
+		modal.onChooseItem(folder); // …then the choice arrives
+
+		const result = await promise;
+		expect(result?.path).toBe("chosen/folder");
+	});
+
 	it("pickFolder() resolves with null when modal is closed without selection", async () => {
 		const app = makeApp();
 		const modal = new NotePickerModal(app);

@@ -23,9 +23,11 @@ import type { LogFn } from "shared/logger";
 
 export class NotePickerModal extends FuzzySuggestModal<TFolder> {
 	private resolve: ((folder: TFolder | null) => void) | null = null;
+	private readonly log?: LogFn;
 
-	constructor(app: App) {
+	constructor(app: App, log?: LogFn) {
 		super(app);
+		this.log = log;
 		this.setPlaceholder("Choose destination folder…");
 	}
 
@@ -47,7 +49,9 @@ export class NotePickerModal extends FuzzySuggestModal<TFolder> {
 		return item.path;
 	}
 
+	/** A selection wins immediately. (Obsidian may fire this AFTER onClose.) */
 	onChooseItem(item: TFolder, _evt?: MouseEvent | KeyboardEvent): void {
+		this.log?.("folderPicker: onChooseItem", { path: item?.path ?? null });
 		if (this.resolve !== null) {
 			this.resolve(item);
 			this.resolve = null;
@@ -56,10 +60,15 @@ export class NotePickerModal extends FuzzySuggestModal<TFolder> {
 
 	onClose(): void {
 		super.onClose();
-		if (this.resolve !== null) {
-			this.resolve(null);
-			this.resolve = null;
-		}
+		// See NoteFilePicker: Obsidian fires onClose BEFORE onChooseItem on a
+		// selection, so defer the dismissal (null) by a macrotask — a choice
+		// arriving right after the close still wins; otherwise it resolves null.
+		window.setTimeout(() => {
+			if (this.resolve !== null) {
+				this.resolve(null);
+				this.resolve = null;
+			}
+		}, 0);
 	}
 }
 

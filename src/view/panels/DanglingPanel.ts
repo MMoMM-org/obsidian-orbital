@@ -69,7 +69,7 @@ interface ConfirmRewriteModalConstructor {
 }
 
 interface FolderPickerConstructor {
-	new (app: DanglingPanelApp): { pickFolder(): Promise<TFolder | null> };
+	new (app: DanglingPanelApp, log?: LogFn): { pickFolder(): Promise<TFolder | null> };
 }
 
 interface NotePickerConstructor {
@@ -635,7 +635,7 @@ export class DanglingPanel {
 		liveRegion: HTMLElement,
 	): Promise<void> {
 		try {
-			const picker = new this.deps.folderPicker(this.deps.app);
+			const picker = new this.deps.folderPicker(this.deps.app, this.deps.log);
 			const folder = await picker.pickFolder();
 			const settings = this.deps.getSettings();
 
