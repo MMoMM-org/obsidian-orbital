@@ -27,8 +27,15 @@ active one. New modules `graph/unlinkedMentions.ts` (pure scanner) and
 Two settings added (unlinkedMentionsEnabled, unlinkedOpenInNewTab). See
 domain.md + decisions.md for rules/rationale.
 
+## Status-bar item — added 2026-06-20
+`main.ts` adds a status-bar item (orbit icon + `backlinks/2nd-hop` counts for the
+active note) via `addStatusBarItem`; hover tooltip explains it, click opens the
+Relations tab (`_openRelations`). Counts come from `computeRelations` (mirror the
+tab, honouring 2nd-hop enabled/cap). Updated from `_repaintActivePanel`; setting
+`showStatusBar` (default true) with `_refreshStatusBar` to add/remove at runtime.
+
 ## State
-602 tests pass; lint/typecheck/build clean. Test vault `test/Orbit/` holds a
+612 tests pass; lint/typecheck/build clean. Test vault `test/Orbit/` holds a
 smoke-test corpus (18 PKM notes + `_Orbit Test Guide.md`) covering every tab/action,
 including Zettelkasten unlinked-mention fixtures.
 Next: real-vault smoke session for unlinked mentions (lazy scan on a large vault,

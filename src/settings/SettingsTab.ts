@@ -177,6 +177,19 @@ export class SettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName("Show status bar item")
+			.setDesc("Show the orbit icon with backlink / 2nd-hop counts for the active note. Click it to open the relations tab.")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.showStatusBar)
+					.onChange(async (value) => {
+						this.plugin.settings.showStatusBar = value;
+						await this.plugin.saveSettings();
+						this.plugin._refreshStatusBar();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName("Show unlinked mentions")
 			.setDesc("Add an 'unlinked mentions' section to the relations tab. Scans note contents on demand when expanded.")
 			.addToggle((toggle) =>

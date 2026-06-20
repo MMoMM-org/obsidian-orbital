@@ -48,6 +48,10 @@ Operations are preview-confirmed before writing.
 
 Most-recent-first list of opened notes. Configurable list length and folder exclusions (set in Settings → Orbit). Drag a row to another editor to insert a link, or tap/click to open the note.
 
+### Status bar
+
+A status-bar item shows the orbit icon with **backlinks / 2nd-hop** counts for the active note (e.g. `🪐 3/5`). Hover for an explanation; click it to open the Relations tab. Toggle it under Settings → Orbit → Display (on by default).
+
 ## Prior art and attribution
 
 Orbit consolidates what previously required three separate plugins. It draws inspiration from the following prior art:

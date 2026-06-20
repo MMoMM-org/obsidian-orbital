@@ -343,6 +343,24 @@
 	transform: rotate(-90deg);
 }
 
+/* ── Status bar ──────────────────────────────────────────────────────────── */
+
+.orbit-statusbar {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.orbit-statusbar-icon {
+	display: inline-flex;
+	align-items: center;
+}
+
+.orbit-statusbar-icon .svg-icon {
+	width: var(--icon-s);
+	height: var(--icon-s);
+}
+
 /* ── DanglingPanel ──────────────────────────────────────────────────────────
    Grouped tree of unresolved wikilink targets with inline actions.
    Uses Obsidian tree-item structure; all colors from CSS variables.

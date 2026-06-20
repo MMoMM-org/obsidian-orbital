@@ -14,6 +14,8 @@ export interface OrbitSettings {
 	newNoteFolder: string;
 	defaultTab: TabId;
 	showCounts: boolean;
+	/** When true, a status-bar item shows backlink/2nd-hop counts for the active note. */
+	showStatusBar: boolean;
 	/** When true, the Relations tab shows an "Unlinked mentions" section. */
 	unlinkedMentionsEnabled: boolean;
 	/** When true, clicking an unlinked mention opens the note in a new tab. */
@@ -35,6 +37,7 @@ export const DEFAULT_SETTINGS: OrbitSettings = {
 	newNoteFolder: "",
 	defaultTab: "relations",
 	showCounts: true,
+	showStatusBar: true,
 	unlinkedMentionsEnabled: true,
 	unlinkedOpenInNewTab: false,
 	debugLogging: false,

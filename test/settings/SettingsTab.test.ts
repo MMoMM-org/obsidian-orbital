@@ -294,6 +294,26 @@ describe("SettingsTab — toggle persistence", () => {
 		expect(plugin.saveSettings).toHaveBeenCalled();
 	});
 
+	it("showStatusBar: toggle click mutates settings and refreshes the status bar", async () => {
+		const plugin = makePlugin();
+		plugin.settings.showStatusBar = true;
+		plugin._refreshStatusBar = vi.fn();
+		const tab = makeTab(plugin);
+		const container = renderTab(tab);
+
+		const settingEl = Array.from(container.querySelectorAll("[data-setting-name]"))
+			.find((el) => el.getAttribute("data-setting-name")?.toLowerCase().includes("status bar"));
+		const toggle = settingEl?.querySelector("[role='switch']") as HTMLElement | null;
+		expect(toggle).not.toBeNull();
+
+		toggle!.click();
+		await flush();
+
+		expect(plugin.settings.showStatusBar).toBe(false);
+		expect(plugin.saveSettings).toHaveBeenCalled();
+		expect(plugin._refreshStatusBar).toHaveBeenCalled();
+	});
+
 	it("unlinkedMentionsEnabled: toggle click mutates settings", async () => {
 		const plugin = makePlugin();
 		plugin.settings.unlinkedMentionsEnabled = true;

@@ -1,5 +1,6 @@
-import { Plugin, addIcon, debounce, TFile, TAbstractFile, MarkdownView } from "obsidian";
+import { Plugin, addIcon, debounce, setIcon, setTooltip, TFile, TAbstractFile, MarkdownView } from "obsidian";
 import type { Debouncer } from "obsidian";
+import { computeRelations } from "graph/relations";
 import { SettingsTab } from "settings/SettingsTab";
 import { DEFAULT_SETTINGS, type OrbitSettings } from "types/index";
 import { OrbitView, VIEW_TYPE } from "view/OrbitView";
@@ -38,6 +39,9 @@ export default class OrbitPlugin extends Plugin {
 
 	/** Plugin-scoped unlinked-mentions service — survives view open/close. */
 	_mentionService!: MentionLinkService;
+
+	/** Status-bar item showing backlink/2nd-hop counts; null when disabled. */
+	_statusBarItem: HTMLElement | null = null;
 
 	/** Plugin-scoped recent-files store — survives view open/close. */
 	_recentStore: RecentFilesStore = new RecentFilesStore({
@@ -97,6 +101,7 @@ export default class OrbitPlugin extends Plugin {
 		this.addSettingTab(new SettingsTab(this.app, this));
 
 		this._wireEvents();
+		this._buildStatusBar();
 
 		console.debug(`${this.manifest.name} loaded (v${this.manifest.version})`);
 		this._log.debug("onload complete", {
@@ -369,13 +374,94 @@ export default class OrbitPlugin extends Plugin {
 		});
 	}
 
-	/** Repaint the active OrbitView panel if a view is open. */
+	/** Repaint the active OrbitView panel if a view is open, and refresh the status bar. */
 	private _repaintActivePanel(): void {
+		this._updateStatusBar();
 		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE);
 		for (const leaf of leaves) {
 			const view = leaf.view;
 			if (view instanceof OrbitView) {
 				view.refreshActivePanel();
+			}
+		}
+	}
+
+	// ---------------------------------------------------------------------------
+	// Private — status bar
+	// ---------------------------------------------------------------------------
+
+	/** Create the status-bar item if enabled and not already present. */
+	private _buildStatusBar(): void {
+		if (!this.settings.showStatusBar || this._statusBarItem !== null) return;
+		const item = this.addStatusBarItem();
+		item.addClass("orbit-statusbar", "mod-clickable");
+		this.registerDomEvent(item, "click", () => {
+			void this._openRelations();
+		});
+		this._statusBarItem = item;
+		this._updateStatusBar();
+	}
+
+	/**
+	 * Create or remove the status-bar item to match the current setting.
+	 * Called from the settings toggle.
+	 */
+	_refreshStatusBar(): void {
+		if (this.settings.showStatusBar) {
+			this._buildStatusBar();
+		} else if (this._statusBarItem !== null) {
+			this._statusBarItem.remove();
+			this._statusBarItem = null;
+		}
+	}
+
+	/** Re-render the status-bar item's icon + "backlinks/2nd-hop" counts. */
+	private _updateStatusBar(): void {
+		const item = this._statusBarItem;
+		if (item === null) return;
+		item.empty();
+
+		const icon = item.createSpan({ cls: "orbit-statusbar-icon" });
+		setIcon(icon, ORBIT_ICON_ID);
+
+		const activePath = this.app.workspace.getActiveFile()?.path ?? null;
+		let label: string;
+		let tooltip: string;
+
+		if (activePath === null) {
+			label = "–";
+			tooltip = "Orbit — no note open";
+		} else {
+			const result = computeRelations(
+				this._index,
+				activePath,
+				this.settings,
+				(p: string) => this._isExcluded(p),
+				this.app.metadataCache,
+			);
+			const backlinks = result.backlinks.length;
+			const secondHop = result.secondHop.reduce((sum, g) => sum + g.items.length, 0);
+			label = `${backlinks}/${secondHop}`;
+			tooltip =
+				`Orbit — ${backlinks} backlink${backlinks === 1 ? "" : "s"}, ` +
+				`${secondHop} 2nd-hop note${secondHop === 1 ? "" : "s"}.\nClick to open Relations.`;
+		}
+
+		item.createSpan({ cls: "orbit-statusbar-text", text: label });
+		setTooltip(item, tooltip);
+	}
+
+	/** Open (or focus) the Orbit view and switch it to the Relations tab. */
+	private async _openRelations(): Promise<void> {
+		await this.activateView();
+		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE);
+		for (const leaf of leaves) {
+			const view = leaf.view;
+			if (view instanceof OrbitView) {
+				void view.setState(
+					{ ...view.getState(), activeTab: "relations" },
+					{ history: false },
+				);
 			}
 		}
 	}

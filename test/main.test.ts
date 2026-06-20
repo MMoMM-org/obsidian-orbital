@@ -451,3 +451,74 @@ describe("T5.1 integration: Relations Manage → switches to Dangling tab filter
 		expect(showAllBtn).not.toBeNull();
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Status bar
+// ---------------------------------------------------------------------------
+
+describe("OrbitPlugin status bar", () => {
+	it("adds a status-bar item on load when the setting is enabled", async () => {
+		const app = makeApp();
+		const plugin = await makePlugin(app);
+		await plugin.onload();
+
+		expect(plugin.addStatusBarItem).toHaveBeenCalled();
+		expect(plugin._statusBarItem).not.toBeNull();
+	});
+
+	it("does NOT add a status-bar item when the setting is disabled", async () => {
+		const app = makeApp();
+		const plugin = await makePlugin(app);
+		plugin.loadData = vi.fn(async () => ({ showStatusBar: false }));
+		await plugin.onload();
+
+		expect(plugin.addStatusBarItem).not.toHaveBeenCalled();
+		expect(plugin._statusBarItem).toBeNull();
+	});
+
+	it("shows the orbit icon with backlink/2nd-hop counts for the active note", async () => {
+		const app = makeApp();
+		app.metadataCache.resolvedLinks = { "src.md": { "active.md": 1 } };
+		app.workspace.getActiveFile = vi.fn(
+			() => ({ path: "active.md" }) as unknown as ReturnType<typeof app.workspace.getActiveFile>,
+		);
+		const plugin = await makePlugin(app);
+		await plugin.onload();
+
+		const text = plugin._statusBarItem?.querySelector(".orbit-statusbar-text");
+		expect(text?.textContent).toBe("1/0");
+		expect(plugin._statusBarItem?.querySelector(".orbit-statusbar-icon")).not.toBeNull();
+	});
+
+	it("shows a dash when no note is open", async () => {
+		const app = makeApp();
+		const plugin = await makePlugin(app);
+		await plugin.onload();
+
+		const text = plugin._statusBarItem?.querySelector(".orbit-statusbar-text");
+		expect(text?.textContent).toBe("–");
+	});
+
+	it("clicking the status-bar item opens the Orbit view", async () => {
+		const app = makeApp();
+		const plugin = await makePlugin(app);
+		await plugin.onload();
+
+		(plugin._statusBarItem as HTMLElement).click();
+		await flush();
+
+		// activateView() creates a right leaf when none exists.
+		expect(app.workspace.getRightLeaf).toHaveBeenCalled();
+	});
+
+	it("_refreshStatusBar removes the item when the setting is turned off", async () => {
+		const app = makeApp();
+		const plugin = await makePlugin(app);
+		await plugin.onload();
+		expect(plugin._statusBarItem).not.toBeNull();
+
+		plugin.settings.showStatusBar = false;
+		plugin._refreshStatusBar();
+		expect(plugin._statusBarItem).toBeNull();
+	});
+});

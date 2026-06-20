@@ -208,7 +208,7 @@ export class Plugin extends Component {
 	loadData = vi.fn(async () => ({}));
 	saveData = vi.fn(async () => {});
 	addRibbonIcon = vi.fn(() => document.createElement("div"));
-	addStatusBarItem = vi.fn(() => ({ setText: vi.fn() }));
+	addStatusBarItem = vi.fn(() => augmentEl(document.createElement("div")));
 	addCommand = vi.fn();
 	addSettingTab = vi.fn();
 	/** registerView records the factory so tests can assert registration. */
@@ -691,6 +691,11 @@ export const Platform = {
 };
 
 export const setIcon = vi.fn((_el: HTMLElement, _iconId: string): void => {});
+
+/** setTooltip — standalone helper; sets an aria-label so tests can assert it. */
+export const setTooltip = vi.fn((el: HTMLElement, tooltip: string): void => {
+	el.setAttribute("aria-label", tooltip);
+});
 
 /** addIcon — registers a custom icon by id. No-op stub in tests. */
 export const addIcon = vi.fn((_iconId: string, _svgContent: string): void => {});
