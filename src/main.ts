@@ -48,9 +48,6 @@ export default class OrbitPlugin extends Plugin {
 	/** True once the index has been built (at layout-ready). */
 	private _indexBuilt = false;
 
-	/** Guards the one-shot 'resolved' safety-net rebuild. */
-	private _resolvedRebuilt = false;
-
 	/** Debug logger — gated by the debugLogging setting (read live). */
 	_log: Logger = createLogger(() => this.settings.debugLogging);
 
@@ -310,16 +307,22 @@ export default class OrbitPlugin extends Plugin {
 				this._repaintActivePanel();
 			}
 
-			// Safety net for very large vaults still resolving at layout-ready:
-			// rebuild once when resolution completes. Guarded so ongoing 'resolved'
-			// events (fired after edits) don't trigger repeated full rebuilds —
-			// incremental updates are handled by the 'changed' handler above.
+			// Rebuild (debounced) whenever link resolution changes across the vault.
+			// 'resolved' fires after notes are created/deleted or links rewritten —
+			// cross-file changes that the per-file 'changed' handler doesn't capture
+			// (e.g. creating a note clears the dangling entries that referenced it,
+			// and deleting links updates other targets). Debounced to coalesce bursts.
+			const rebuildOnResolved = debounce((): void => {
+				this._index.buildFull();
+				this._repaintActivePanel();
+				this._log.debug("index rebuilt on resolved");
+			}, this.settings.refreshDebounceMs, true);
+			this.register(() => rebuildOnResolved.cancel());
+
 			this.registerEvent(
 				this.app.metadataCache.on("resolved", () => {
-					if (this._resolvedRebuilt) return;
-					this._resolvedRebuilt = true;
-					this._index.buildFull();
-					this._repaintActivePanel();
+					this._log.debug("metadataCache resolved → debounced rebuild");
+					rebuildOnResolved();
 				}),
 			);
 		});

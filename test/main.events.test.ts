@@ -91,31 +91,29 @@ describe("T2.4 — index lifecycle: metadataCache 'resolved'", () => {
 		buildFullSpy.mockRestore();
 	});
 
-	it("calls buildFull exactly once on the first 'resolved' event after onLayoutReady", async () => {
+	it("rebuilds the index (debounced) on a 'resolved' event after onLayoutReady", async () => {
 		const app = makeApp();
 		const plugin = await makePlugin(app);
 		await plugin.onload();
 		await flush();
 
-		// The plugin must expose its index for testing — or we check via spy on
-		// metadataCache.on calls to capture the 'resolved' handler and simulate it.
 		const resolvedHandler = getRegisteredHandler(
 			app.metadataCache.on as ReturnType<typeof vi.fn>,
 			"resolved",
 		);
 		expect(resolvedHandler).toBeDefined();
 
-		// Spy on the index's buildFull via the plugin's exposed index
 		const index = (plugin as unknown as { _index: { buildFull: () => void } })._index;
-		expect(index).toBeDefined();
 		const buildFullSpy = vi.spyOn(index, "buildFull");
 
-		// Fire 'resolved' once
+		// Debounced: not immediate, fires after the debounce window elapses.
 		resolvedHandler?.();
+		expect(buildFullSpy).not.toHaveBeenCalled();
+		vi.advanceTimersByTime(1000);
 		expect(buildFullSpy).toHaveBeenCalledTimes(1);
 	});
 
-	it("does NOT call buildFull again on a second 'resolved' event", async () => {
+	it("coalesces rapid 'resolved' events into a single debounced rebuild", async () => {
 		const app = makeApp();
 		const plugin = await makePlugin(app);
 		await plugin.onload();
@@ -129,10 +127,11 @@ describe("T2.4 — index lifecycle: metadataCache 'resolved'", () => {
 		const index = (plugin as unknown as { _index: { buildFull: () => void } })._index;
 		const buildFullSpy = vi.spyOn(index, "buildFull");
 
-		// First 'resolved' — should build
+		// Three rapid 'resolved' events within the window → one rebuild.
 		resolvedHandler?.();
-		// Second 'resolved' — should NOT rebuild
 		resolvedHandler?.();
+		resolvedHandler?.();
+		vi.advanceTimersByTime(1000);
 
 		expect(buildFullSpy).toHaveBeenCalledTimes(1);
 	});

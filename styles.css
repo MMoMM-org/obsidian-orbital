@@ -574,6 +574,12 @@
 	margin-bottom: 8px;
 }
 
+.orbit-confirm-pick-btn {
+	display: block;
+	margin-bottom: 12px;
+	cursor: pointer;
+}
+
 .orbit-confirm-merge-notice {
 	color: var(--text-accent);
 	font-size: var(--font-small);
