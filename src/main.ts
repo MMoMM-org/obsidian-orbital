@@ -48,6 +48,16 @@ export default class OrbitPlugin extends Plugin {
 	/** True once the index has been built (at layout-ready). */
 	private _indexBuilt = false;
 
+	/**
+	 * Set when a file is created/deleted/renamed AFTER the initial build. These
+	 * structural changes alter OTHER files' link resolution (e.g. creating a note
+	 * clears danglings that referenced it) — a cross-file effect the per-file
+	 * 'changed' handler can't see. The next 'resolved' (fired once the cache has
+	 * re-resolved) consumes this flag to trigger a single debounced rebuild, so
+	 * plain edits never pay for a full rebuild.
+	 */
+	private _structuralChange = false;
+
 	/** Debug logger — gated by the debugLogging setting (read live). */
 	_log: Logger = createLogger(() => this.settings.debugLogging);
 
@@ -252,12 +262,23 @@ export default class OrbitPlugin extends Plugin {
 	}
 
 	private _wireVaultEvents(): void {
+		// A new file changes other files' resolution (links to it stop dangling).
+		// The file's own (empty) edges are handled by 'changed'; here we only flag
+		// the structural change for the next 'resolved' rebuild. Guarded by
+		// _indexBuilt so the flood of 'create' events during initial load is ignored.
+		this.registerEvent(
+			this.app.vault.on("create", () => {
+				if (this._indexBuilt) this._structuralChange = true;
+			}),
+		);
+
 		this.registerEvent(
 			this.app.vault.on("rename", (file: TAbstractFile, oldPath: string) => {
 				this._index.renameFile(oldPath, file.path);
 				if (file instanceof TFile) {
 					void this._recentStore.rename(oldPath, file.path, file.basename);
 				}
+				if (this._indexBuilt) this._structuralChange = true;
 				this._repaintActivePanel();
 			}),
 		);
@@ -266,6 +287,7 @@ export default class OrbitPlugin extends Plugin {
 			this.app.vault.on("delete", (file: { path: string }) => {
 				this._index.removeFile(file.path);
 				void this._recentStore.delete(file.path);
+				if (this._indexBuilt) this._structuralChange = true;
 				this._repaintActivePanel();
 			}),
 		);
@@ -307,21 +329,24 @@ export default class OrbitPlugin extends Plugin {
 				this._repaintActivePanel();
 			}
 
-			// Rebuild (debounced) whenever link resolution changes across the vault.
-			// 'resolved' fires after notes are created/deleted or links rewritten —
-			// cross-file changes that the per-file 'changed' handler doesn't capture
-			// (e.g. creating a note clears the dangling entries that referenced it,
-			// and deleting links updates other targets). Debounced to coalesce bursts.
+			// Rebuild (debounced) only when a structural change (file create/delete/
+			// rename) has happened since the last build. 'resolved' fires after the
+			// cache finishes re-resolving — the correct moment to rebuild, since at
+			// vault-event time the cache is still stale. Plain edits also fire
+			// 'resolved' but are already handled incrementally by 'changed', so we
+			// skip the expensive full rebuild for them.
 			const rebuildOnResolved = debounce((): void => {
 				this._index.buildFull();
 				this._repaintActivePanel();
-				this._log.debug("index rebuilt on resolved");
+				this._log.debug("index rebuilt after structural change");
 			}, this.settings.refreshDebounceMs, true);
 			this.register(() => rebuildOnResolved.cancel());
 
 			this.registerEvent(
 				this.app.metadataCache.on("resolved", () => {
-					this._log.debug("metadataCache resolved → debounced rebuild");
+					if (!this._structuralChange) return;
+					this._structuralChange = false;
+					this._log.debug("resolved + structural change → debounced rebuild");
 					rebuildOnResolved();
 				}),
 			);

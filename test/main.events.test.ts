@@ -91,7 +91,7 @@ describe("T2.4 — index lifecycle: metadataCache 'resolved'", () => {
 		buildFullSpy.mockRestore();
 	});
 
-	it("rebuilds the index (debounced) on a 'resolved' event after onLayoutReady", async () => {
+	it("rebuilds (debounced) on 'resolved' after a structural change (file created)", async () => {
 		const app = makeApp();
 		const plugin = await makePlugin(app);
 		await plugin.onload();
@@ -101,19 +101,25 @@ describe("T2.4 — index lifecycle: metadataCache 'resolved'", () => {
 			app.metadataCache.on as ReturnType<typeof vi.fn>,
 			"resolved",
 		);
+		const createHandler = getRegisteredHandler(
+			app.vault.on as ReturnType<typeof vi.fn>,
+			"create",
+		);
 		expect(resolvedHandler).toBeDefined();
+		expect(createHandler).toBeDefined();
 
 		const index = (plugin as unknown as { _index: { buildFull: () => void } })._index;
 		const buildFullSpy = vi.spyOn(index, "buildFull");
 
-		// Debounced: not immediate, fires after the debounce window elapses.
+		// A file is created → flags a structural change; the next 'resolved' rebuilds.
+		createHandler?.();
 		resolvedHandler?.();
-		expect(buildFullSpy).not.toHaveBeenCalled();
+		expect(buildFullSpy).not.toHaveBeenCalled(); // debounced, not immediate
 		vi.advanceTimersByTime(1000);
 		expect(buildFullSpy).toHaveBeenCalledTimes(1);
 	});
 
-	it("coalesces rapid 'resolved' events into a single debounced rebuild", async () => {
+	it("does NOT rebuild on 'resolved' without a structural change (plain edit)", async () => {
 		const app = makeApp();
 		const plugin = await makePlugin(app);
 		await plugin.onload();
@@ -127,7 +133,32 @@ describe("T2.4 — index lifecycle: metadataCache 'resolved'", () => {
 		const index = (plugin as unknown as { _index: { buildFull: () => void } })._index;
 		const buildFullSpy = vi.spyOn(index, "buildFull");
 
-		// Three rapid 'resolved' events within the window → one rebuild.
+		// No create/delete/rename happened — 'changed' already handled the edit.
+		resolvedHandler?.();
+		vi.advanceTimersByTime(1000);
+		expect(buildFullSpy).not.toHaveBeenCalled();
+	});
+
+	it("coalesces post-structural 'resolved' events into a single rebuild", async () => {
+		const app = makeApp();
+		const plugin = await makePlugin(app);
+		await plugin.onload();
+		await flush();
+
+		const resolvedHandler = getRegisteredHandler(
+			app.metadataCache.on as ReturnType<typeof vi.fn>,
+			"resolved",
+		);
+		const deleteHandler = getRegisteredHandler(
+			app.vault.on as ReturnType<typeof vi.fn>,
+			"delete",
+		);
+
+		const index = (plugin as unknown as { _index: { buildFull: () => void } })._index;
+		const buildFullSpy = vi.spyOn(index, "buildFull");
+
+		// One structural change, several 'resolved' fires → exactly one rebuild.
+		deleteHandler?.({ path: "gone.md" });
 		resolvedHandler?.();
 		resolvedHandler?.();
 		resolvedHandler?.();
