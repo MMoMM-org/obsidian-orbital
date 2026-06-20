@@ -429,14 +429,22 @@ export class RelationsPanel {
 		});
 	}
 
-	/** Open a mention's source note; new tab on Mod-click or per the setting. */
+	/**
+	 * Open a mention's source note; new tab on Mod-click or per the setting.
+	 *
+	 * Use the "tab" PaneType (not boolean `true`) for the setting: passing a bare
+	 * `true` to openLinkText throws inside Obsidian ("Cannot create property
+	 * 'state' on boolean"). Keymap.isModEvent already yields a PaneType string on
+	 * Mod-click, so we only need to substitute one for the setting-driven case.
+	 */
 	private openMentionPath(
 		path: string,
 		activePath: string,
 		evt: MouseEvent,
 		settings: OrbitSettings,
 	): void {
-		const newLeaf = Keymap.isModEvent(evt) || settings.unlinkedOpenInNewTab;
+		let newLeaf: boolean | string = Keymap.isModEvent(evt);
+		if (newLeaf === false && settings.unlinkedOpenInNewTab) newLeaf = "tab";
 		const leaf = this.deps.app.workspace.getLeaf(newLeaf);
 		void leaf.openLinkText(path, activePath, newLeaf);
 	}

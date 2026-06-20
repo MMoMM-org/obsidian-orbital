@@ -905,8 +905,10 @@ describe("RelationsPanel unlinked mentions", () => {
 		) as HTMLElement;
 		name.click();
 
-		expect(deps.appInstance.workspace.getLeaf).toHaveBeenCalledWith(true);
-		expect(mockLeaf.openLinkText).toHaveBeenCalledWith("notes/Hub.md", "notes/active.md", true);
+		// Setting-driven new tab uses the "tab" PaneType, not boolean true
+		// (passing `true` to openLinkText throws inside Obsidian).
+		expect(deps.appInstance.workspace.getLeaf).toHaveBeenCalledWith("tab");
+		expect(mockLeaf.openLinkText).toHaveBeenCalledWith("notes/Hub.md", "notes/active.md", "tab");
 		vi.mocked(Keymap.isModEvent).mockReset();
 	});
 
