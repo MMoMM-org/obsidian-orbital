@@ -40,6 +40,12 @@ export interface RewritePreview {
 export interface BulkResult {
 	filesSucceeded: number;
 	filesFailed: { path: string; error: string }[];
+	/**
+	 * Total wikilink occurrences modified across all succeeded files (body +
+	 * frontmatter). Optional: currently populated by applyDelete so callers can
+	 * report how many references were removed.
+	 */
+	occurrencesModified?: number;
 }
 
 export type RewriteScope = { folder?: string };
@@ -250,7 +256,7 @@ export class LinkRewriteService {
 			sourcePaths = sourcePaths.filter((p) => p === restrictToSource);
 		}
 
-		const result: BulkResult = { filesSucceeded: 0, filesFailed: [] };
+		const result: BulkResult = { filesSucceeded: 0, filesFailed: [], occurrencesModified: 0 };
 
 		for (let i = 0; i < sourcePaths.length; i++) {
 			const sourcePath = sourcePaths[i]!;
@@ -261,8 +267,9 @@ export class LinkRewriteService {
 					continue;
 				}
 
-				await this.applySpliceRename(file, target, (link) => removeLink(link));
-				await this.applyFrontmatterDelete(file, target);
+				const bodyCount = await this.applySpliceRename(file, target, (link) => removeLink(link));
+				const fmCount = await this.applyFrontmatterDelete(file, target);
+				result.occurrencesModified = (result.occurrencesModified ?? 0) + bodyCount + fmCount;
 
 				result.filesSucceeded++;
 			} catch (err) {
@@ -289,10 +296,10 @@ export class LinkRewriteService {
 	 */
 	private surfaceBulkProgress(result: BulkResult, total: number): void {
 		const failed = result.filesFailed.length;
-		const msg = failed === 0
-			? `Updated ${result.filesSucceeded} of ${total} files.`
-			: `Updated ${result.filesSucceeded} of ${total} files; ${failed} failed.`;
-		new Notice(msg);
+		const base = failed === 0
+			? `Updated ${result.filesSucceeded} of ${total} files`
+			: `Updated ${result.filesSucceeded} of ${total} files; ${failed} failed`;
+		new Notice(`${base}${formatLinkCount(result.occurrencesModified)}.`);
 	}
 
 	// ---------------------------------------------------------------------------
@@ -308,7 +315,8 @@ export class LinkRewriteService {
 		file: TFileMinimal,
 		target: string,
 		transform: (link: ParsedLink) => string,
-	): Promise<void> {
+	): Promise<number> {
+		let replaced = 0;
 		await this.vault.process(file, (data) => {
 			const cache = this.metadataCache.getFileCache(file);
 			if (cache === null) return data;
@@ -318,6 +326,7 @@ export class LinkRewriteService {
 			hits.sort((a, b) => b.position.start.offset - a.position.start.offset);
 
 			let out = data;
+			let n = 0;
 			for (const hit of hits) {
 				const start = hit.position.start.offset;
 				const end = hit.position.end.offset;
@@ -325,9 +334,14 @@ export class LinkRewriteService {
 				if (!targetMatches(parsed, target)) continue;
 				const replacement = transform(parsed);
 				out = out.slice(0, start) + replacement + out.slice(end);
+				n++;
 			}
+			// process() invokes this callback once; assign rather than accumulate so
+			// an accidental re-invocation can't double-count.
+			replaced = n;
 			return out;
 		});
+		return replaced;
 	}
 
 	/**
@@ -413,13 +427,19 @@ export class LinkRewriteService {
 	private async applyFrontmatterDelete(
 		file: TFileMinimal,
 		target: string,
-	): Promise<void> {
+	): Promise<number> {
 		const cache = this.metadataCache.getFileCache(file);
-		if (cache === null || !hasFrontmatterLinks(cache, target)) return;
+		if (cache === null || !hasFrontmatterLinks(cache, target)) return 0;
+
+		const count = (cache.frontmatterLinks ?? []).filter(
+			(fl) => fl.link.toLowerCase() === target.toLowerCase(),
+		).length;
 
 		await this.fileManager.processFrontMatter(file, (fm) => {
 			rewriteFrontmatterValues(fm, target, (link) => removeLink(link));
 		});
+
+		return count;
 	}
 
 	// ---------------------------------------------------------------------------
@@ -457,6 +477,15 @@ function collectBodyEntries(
 	const links = cache.links ?? [];
 	const embeds = cache.embeds ?? [];
 	return [...links, ...embeds];
+}
+
+/**
+ * Render the trailing " (N links)" suffix for bulk-result messages.
+ * Returns "" when the count is undefined (op didn't track occurrences).
+ */
+function formatLinkCount(occurrences: number | undefined): string {
+	if (occurrences === undefined) return "";
+	return ` (${occurrences} ${occurrences === 1 ? "link" : "links"})`;
 }
 
 function hasFrontmatterLinks(cache: FileCache, target: string): boolean {

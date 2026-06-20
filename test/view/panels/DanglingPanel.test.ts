@@ -687,6 +687,30 @@ describe("DanglingPanel inline actions", () => {
 		expect(deps.service.applyDelete).toHaveBeenCalledWith("MissingTarget", expect.any(Object), null);
 	});
 
+	it("delete action: aria-live region reports the number of references removed", async () => {
+		const deps = makeDeps({
+			unresolved: { "notes/a.md": { "MissingTarget": 1 } },
+			grouping: "target",
+		});
+		// Service reports 3 occurrences removed across 2 files.
+		deps.service.applyDelete = vi.fn(async () => ({
+			filesSucceeded: 2,
+			filesFailed: [],
+			occurrencesModified: 3,
+		}));
+
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const deleteBtn = container.querySelector("[aria-label='Delete links']") as HTMLElement;
+		deleteBtn.click();
+		await new Promise((r) => setTimeout(r, 0));
+
+		const liveRegion = container.querySelector("[aria-live='polite']") as HTMLElement;
+		expect(liveRegion.textContent).toBe("Updated 2 of 2 files (3 links).");
+	});
+
 	it("alias action calls previewRename and opens ConfirmRewriteModal with 'alias' kind", async () => {
 		const deps = makeDeps({
 			unresolved: { "notes/a.md": { "MissingTarget": 1 } },

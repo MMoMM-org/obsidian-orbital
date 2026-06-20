@@ -693,7 +693,9 @@ export class DanglingPanel {
 		sourcePath?: string,
 	): Promise<void> {
 		try {
+			this.deps.log?.("delete: start", { target, scope, sourcePath: sourcePath ?? null });
 			const preview = await this.deps.service.previewRename(target, scope);
+			this.deps.log?.("delete: preview", preview);
 
 			// In by-source grouping the delete is triggered from a specific source
 			// note, so offer an "Only in note: <name>" checkbox (pre-checked). In
@@ -727,8 +729,12 @@ export class DanglingPanel {
 						sourcePath !== undefined && (modalRef.instance?.onlyInThisNote ?? false)
 							? sourcePath
 							: null;
+					this.deps.log?.("delete: confirmed → applyDelete", { target, restrictToSource });
 					void this.deps.service.applyDelete(target, scope, restrictToSource)
-						.then((result) => { this.surfaceResult(result, liveRegion); })
+						.then((result) => {
+							this.deps.log?.("delete: applyDelete result", result);
+							this.surfaceResult(result, liveRegion);
+						})
 						.catch((err) => { this.notifyError("Delete", err); });
 				},
 			});
@@ -754,12 +760,14 @@ export class DanglingPanel {
 	private surfaceResult(result: BulkResult, liveRegion: HTMLElement): void {
 		const total = result.filesSucceeded + result.filesFailed.length;
 		const failed = result.filesFailed.length;
-		const msg = failed === 0
-			? `Updated ${result.filesSucceeded} of ${total} files.`
-			: `Updated ${result.filesSucceeded} of ${total} files; ${failed} failed.`;
+		const links = result.occurrencesModified;
+		const suffix = links === undefined ? "" : ` (${links} ${links === 1 ? "link" : "links"})`;
+		const base = failed === 0
+			? `Updated ${result.filesSucceeded} of ${total} files`
+			: `Updated ${result.filesSucceeded} of ${total} files; ${failed} failed`;
 
 		// Notice is emitted by LinkRewriteService.surfaceBulkProgress — do not duplicate here.
-		this.updateLiveRegion(liveRegion, msg);
+		this.updateLiveRegion(liveRegion, `${base}${suffix}.`);
 	}
 
 	private updateLiveRegion(liveRegion: HTMLElement, msg: string): void {

@@ -405,6 +405,8 @@ describe("applyDelete", () => {
 		expect(capturedResult).toBe("Read Gone here.");
 		expect(result.filesSucceeded).toBe(1);
 		expect(result.filesFailed).toEqual([]);
+		// One body wikilink removed → one reference counted
+		expect(result.occurrencesModified).toBe(1);
 	});
 
 	it("restrictToSource limits the delete to the given source note", async () => {
@@ -493,6 +495,8 @@ describe("applyDelete", () => {
 		// Both A.md and B.md processed
 		expect(vi.mocked(app.vault.process)).toHaveBeenCalledTimes(2);
 		expect(result.filesSucceeded).toBe(2);
+		// One reference removed per file → two total
+		expect(result.occurrencesModified).toBe(2);
 	});
 });
 
