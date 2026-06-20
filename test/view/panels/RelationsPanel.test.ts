@@ -367,7 +367,6 @@ describe("RelationsPanel click navigation", () => {
 		expect(mockLeaf.openLinkText).toHaveBeenCalledWith(
 			"notes/target.md",
 			"notes/active.md",
-			false,
 		);
 
 		vi.mocked(Keymap.isModEvent).mockReset();
@@ -411,7 +410,6 @@ describe("RelationsPanel click navigation", () => {
 		expect(mockLeaf.openLinkText).toHaveBeenCalledWith(
 			"notes/target.md",
 			"notes/active.md",
-			true,
 		);
 
 		vi.mocked(Keymap.isModEvent).mockReset();
@@ -905,10 +903,10 @@ describe("RelationsPanel unlinked mentions", () => {
 		) as HTMLElement;
 		name.click();
 
-		// Setting-driven new tab uses the "tab" PaneType, not boolean true
-		// (passing `true` to openLinkText throws inside Obsidian).
-		expect(deps.appInstance.workspace.getLeaf).toHaveBeenCalledWith("tab");
-		expect(mockLeaf.openLinkText).toHaveBeenCalledWith("notes/Hub.md", "notes/active.md", "tab");
+		// getLeaf opens the new tab; openLinkText takes no 3rd arg (passing a
+		// truthy newLeaf there throws inside Obsidian).
+		expect(deps.appInstance.workspace.getLeaf).toHaveBeenCalledWith(true);
+		expect(mockLeaf.openLinkText).toHaveBeenCalledWith("notes/Hub.md", "notes/active.md");
 		vi.mocked(Keymap.isModEvent).mockReset();
 	});
 

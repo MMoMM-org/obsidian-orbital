@@ -30,7 +30,9 @@ import type { OrbitSettings, RelationItem, MissingItem, SecondHopGroup } from "t
 export interface RelationsPanelApp {
 	workspace: {
 		getLeaf(newLeaf: boolean | string): {
-			openLinkText(path: string, sourcePath: string, newLeaf: boolean | string): void | Promise<void>;
+			// 3rd arg is openViewState (an object), NOT newLeaf — the leaf is
+			// already chosen by getLeaf. Optional so callers can omit it.
+			openLinkText(path: string, sourcePath: string, openViewState?: unknown): void | Promise<void>;
 		};
 		trigger(name: string, ...data: unknown[]): void;
 	};
@@ -432,10 +434,10 @@ export class RelationsPanel {
 	/**
 	 * Open a mention's source note; new tab on Mod-click or per the setting.
 	 *
-	 * Use the "tab" PaneType (not boolean `true`) for the setting: passing a bare
-	 * `true` to openLinkText throws inside Obsidian ("Cannot create property
-	 * 'state' on boolean"). Keymap.isModEvent already yields a PaneType string on
-	 * Mod-click, so we only need to substitute one for the setting-driven case.
+	 * The target leaf is chosen by getLeaf(newLeaf); openLinkText must then be
+	 * called WITHOUT a newLeaf/3rd argument — its 3rd param is openViewState, and
+	 * passing a truthy newLeaf there throws inside Obsidian ("Cannot create
+	 * property 'state' on …").
 	 */
 	private openMentionPath(
 		path: string,
@@ -443,10 +445,9 @@ export class RelationsPanel {
 		evt: MouseEvent,
 		settings: OrbitSettings,
 	): void {
-		let newLeaf: boolean | string = Keymap.isModEvent(evt);
-		if (newLeaf === false && settings.unlinkedOpenInNewTab) newLeaf = "tab";
+		const newLeaf = Keymap.isModEvent(evt) || settings.unlinkedOpenInNewTab;
 		const leaf = this.deps.app.workspace.getLeaf(newLeaf);
-		void leaf.openLinkText(path, activePath, newLeaf);
+		void leaf.openLinkText(path, activePath);
 	}
 
 	// -------------------------------------------------------------------------
@@ -511,9 +512,10 @@ export class RelationsPanel {
 		(row as unknown as AugmentedEl).createSpan({ cls: "orbit-relations-item-label", text: item.display });
 
 		this.deps.registerDomEvent(row, "click", (evt) => {
-			const newLeaf = Keymap.isModEvent(evt);
-			const leaf = this.deps.app.workspace.getLeaf(newLeaf);
-			void leaf.openLinkText(item.path, activePath, newLeaf);
+			// getLeaf picks the leaf; openLinkText takes no newLeaf arg (its 3rd
+			// param is openViewState — passing a truthy newLeaf there throws).
+			const leaf = this.deps.app.workspace.getLeaf(Keymap.isModEvent(evt));
+			void leaf.openLinkText(item.path, activePath);
 		});
 
 		this.deps.registerDomEvent(row, "mouseover", (evt) => {

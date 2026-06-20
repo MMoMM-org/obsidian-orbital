@@ -25,11 +25,14 @@ swallowed — open the follow-up modal on a deferred macrotask too (see
 `DanglingPanel.handleAlias`). Toggle **Settings → Orbit → Advanced → Debug logging**
 for `[Orbit] …` traces (gated via `src/shared/logger.ts`).
 
-## `openLinkText(..., true)` throws "Cannot create property 'state' on boolean 'true'"
+## `leaf.openLinkText(..., truthy)` throws "Cannot create property 'state' on …"
 
-Passing boolean `true` as the `newLeaf` arg to `WorkspaceLeaf.openLinkText` (or
-`getLeaf(true)` + `openLinkText(..., true)`) crashes in Obsidian when opening in
-a new tab. Use the **`"tab"` PaneType string** instead. `Keymap.isModEvent(evt)`
-already returns a PaneType (not boolean `true`) on Mod-click, which is why the
-resolved-link rows never hit this; only a setting-derived boolean did. Fixed in
-`RelationsPanel.openMentionPath` (unlinked mentions, "Open in new tab" setting).
+`WorkspaceLeaf.openLinkText(linktext, sourcePath, openViewState?)` — its **3rd
+arg is openViewState (an object), NOT newLeaf**. When the leaf is already chosen
+via `getLeaf(newLeaf)`, call `leaf.openLinkText(path, sourcePath)` with NO 3rd
+argument. Passing a truthy value there (boolean `true` OR a PaneType string like
+`"tab"`) makes Obsidian run `openViewState.state = …` and throw ("Cannot create
+property 'state' on boolean 'true'" / "on string 'tab'"). A falsy 3rd arg
+(`false`) is silently ignored — that's why normal (non-mod) clicks never tripped
+it and only the "Open in new tab" path did. Fixed in
+`RelationsPanel.openMentionPath` and `renderResolvedItem`.
