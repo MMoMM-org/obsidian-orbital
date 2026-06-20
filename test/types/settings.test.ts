@@ -40,6 +40,10 @@ describe("OrbitSettings", () => {
 			expect(DEFAULT_SETTINGS.showCounts).toBe(true);
 		});
 
+		it("has debugLogging defaulting to false", () => {
+			expect(DEFAULT_SETTINGS.debugLogging).toBe(false);
+		});
+
 		it("has excludePathPatterns defaulting to empty array", () => {
 			expect(DEFAULT_SETTINGS.excludePathPatterns).toEqual([]);
 		});

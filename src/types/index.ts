@@ -14,6 +14,8 @@ export interface OrbitSettings {
 	newNoteFolder: string;
 	defaultTab: TabId;
 	showCounts: boolean;
+	/** When true, Orbit emits verbose [Orbit] console.debug traces for diagnostics. */
+	debugLogging: boolean;
 	recentFiles: { path: string; basename: string }[];
 }
 
@@ -29,6 +31,7 @@ export const DEFAULT_SETTINGS: OrbitSettings = {
 	newNoteFolder: "",
 	defaultTab: "relations",
 	showCounts: true,
+	debugLogging: false,
 	recentFiles: [],
 };
 

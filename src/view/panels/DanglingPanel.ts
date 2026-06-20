@@ -28,6 +28,7 @@ import type {
 import type { RewritePreview, BulkResult, RewriteScope } from "links/LinkRewriteService";
 import type { RewriteKind } from "modals/ConfirmRewriteModal";
 import type { TFile, TFolder } from "obsidian";
+import type { LogFn } from "shared/logger";
 
 // ---------------------------------------------------------------------------
 // Structural types — injected so tests can swap with mocks
@@ -123,6 +124,8 @@ export interface DanglingPanelDeps {
 	notePicker: NotePickerConstructor;
 	/** createNote function. */
 	createNote: CreateNoteFn;
+	/** Optional debug logger (gated by the debugLogging setting). */
+	log?: LogFn;
 	/**
 	 * DOM event registration delegate — routed through the owning Component
 	 * so listeners are tracked and torn down on unload.
@@ -584,20 +587,28 @@ export class DanglingPanel {
 		liveRegion: HTMLElement,
 	): Promise<void> {
 		try {
+			this.deps.log?.("alias: start", { target, scope });
 			// Pick an existing note via NoteFilePicker (ADR-6: alias target must be
 			// an existing note, not a folder, so the wikilink resolves correctly).
 			const picker = new this.deps.notePicker(this.deps.app);
+			this.deps.log?.("alias: opening note picker");
 			const note = await picker.pickNote();
+			this.deps.log?.("alias: picker resolved", { note: note?.path ?? null });
 			if (note === null) return;
 
 			const notePath = note.path;
 			const preview = await this.deps.service.previewRename(target, scope);
+			this.deps.log?.("alias: preview", preview);
 			const modal = new this.deps.ConfirmRewriteModal(this.deps.app, {
 				preview,
 				kind: "alias",
 				onConfirm: (_name: string) => {
+					this.deps.log?.("alias: confirmed → applyAlias", { target, notePath });
 					void this.deps.service.applyAlias(target, notePath, scope)
-						.then((result) => { this.surfaceResult(result, liveRegion); })
+						.then((result) => {
+							this.deps.log?.("alias: applyAlias result", result);
+							this.surfaceResult(result, liveRegion);
+						})
 						.catch((err) => { this.notifyError("Alias", err); });
 				},
 			});
@@ -607,7 +618,9 @@ export class DanglingPanel {
 			// a modal opened during another modal's close cycle.
 			window.setTimeout(() => {
 				try {
+					this.deps.log?.("alias: opening confirm modal");
 					modal.open();
+					this.deps.log?.("alias: modal.open() returned");
 				} catch (err) {
 					this.notifyError("Alias", err);
 				}

@@ -26,6 +26,7 @@ export class SettingsTab extends PluginSettingTab {
 		this.renderGraphSection(containerEl);
 		this.renderDanglingSection(containerEl);
 		this.renderDisplaySection(containerEl);
+		this.renderAdvancedSection(containerEl);
 	}
 
 	// -------------------------------------------------------------------------
@@ -203,6 +204,22 @@ export class SettingsTab extends PluginSettingTab {
 							.split("\n")
 							.map((s) => s.trim())
 							.filter((s) => s.length > 0);
+						await this.plugin.saveSettings();
+					}),
+			);
+	}
+
+	private renderAdvancedSection(containerEl: HTMLElement): void {
+		new Setting(containerEl).setName("Advanced").setHeading();
+
+		new Setting(containerEl)
+			.setName("Debug logging")
+			.setDesc("Emit verbose diagnostic traces to the developer console for troubleshooting.")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.debugLogging)
+					.onChange(async (value) => {
+						this.plugin.settings.debugLogging = value;
 						await this.plugin.saveSettings();
 					}),
 			);

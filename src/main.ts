@@ -12,6 +12,8 @@ import { ConfirmRewriteModal } from "modals/ConfirmRewriteModal";
 import { createNote } from "links/createNote";
 import { RecentFilesStore } from "recent/RecentFilesStore";
 import { DragInsertHelper } from "recent/DragInsertHelper";
+import { createLogger } from "shared/logger";
+import type { Logger } from "shared/logger";
 
 /**
  * Custom "orbit" icon — a central body, a tilted orbit ring, and a satellite.
@@ -48,6 +50,9 @@ export default class OrbitPlugin extends Plugin {
 	/** Guards the one-shot 'resolved' safety-net rebuild. */
 	private _resolvedRebuilt = false;
 
+	/** Debug logger — gated by the debugLogging setting (read live). */
+	_log: Logger = createLogger(() => this.settings.debugLogging);
+
 	async onload(): Promise<void> {
 		await this.loadSettings();
 
@@ -74,6 +79,10 @@ export default class OrbitPlugin extends Plugin {
 		this._wireEvents();
 
 		console.debug(`${this.manifest.name} loaded (v${this.manifest.version})`);
+		this._log.debug("onload complete", {
+			debugLogging: this.settings.debugLogging,
+			defaultTab: this.settings.defaultTab,
+		});
 	}
 
 	onunload(): void {
@@ -175,6 +184,7 @@ export default class OrbitPlugin extends Plugin {
 			folderPicker: NotePickerModal as unknown as DanglingDeps["folderPicker"],
 			notePicker: NoteFilePicker as unknown as DanglingDeps["notePicker"],
 			createNote,
+			log: (...args: unknown[]): void => this._log.debug(...args),
 		};
 	}
 
@@ -289,6 +299,10 @@ export default class OrbitPlugin extends Plugin {
 			if (!this._indexBuilt) {
 				this._index.buildFull();
 				this._indexBuilt = true;
+				this._log.debug("index built at onLayoutReady", {
+					resolvedFiles: Object.keys(this.app.metadataCache.resolvedLinks ?? {}).length,
+					unresolvedFiles: Object.keys(this.app.metadataCache.unresolvedLinks ?? {}).length,
+				});
 				// An Orbit pane opened before this point rendered against an empty
 				// index; repaint so its counts update from 0 to the real values.
 				this._repaintActivePanel();
