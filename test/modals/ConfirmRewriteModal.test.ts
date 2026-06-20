@@ -175,6 +175,59 @@ describe("ConfirmRewriteModal", () => {
 		});
 	});
 
+	describe("rename op — choose existing picker", () => {
+		it("renders a 'Choose existing…' button when pickExisting is provided", () => {
+			const app = makeApp();
+			const modal = new ConfirmRewriteModal(app, {
+				preview: makePreview(),
+				kind: "rename",
+				onConfirm: vi.fn(),
+				pickExisting: vi.fn(async () => null),
+			});
+			modal.onOpen();
+
+			expect(modal.contentEl.querySelector("[data-action='pick-existing']")).not.toBeNull();
+		});
+
+		it("does not render the picker button when pickExisting is absent", () => {
+			const app = makeApp();
+			const modal = new ConfirmRewriteModal(app, {
+				preview: makePreview(),
+				kind: "rename",
+				onConfirm: vi.fn(),
+			});
+			modal.onOpen();
+
+			expect(modal.contentEl.querySelector("[data-action='pick-existing']")).toBeNull();
+		});
+
+		it("fills the input, enables Confirm, and shows the merge notice when a matching value is picked", async () => {
+			const app = makeApp();
+			const modal = new ConfirmRewriteModal(app, {
+				preview: makePreview(),
+				kind: "rename",
+				onConfirm: vi.fn(),
+				existingNoteNames: ["Evergreen Notes"],
+				pickExisting: vi.fn(async () => "Evergreen Notes"),
+			});
+			modal.onOpen();
+
+			const pickBtn = modal.contentEl.querySelector("[data-action='pick-existing']") as HTMLElement;
+			pickBtn.click();
+			await new Promise((r) => setTimeout(r, 0));
+
+			const input = modal.contentEl.querySelector(".orbit-confirm-input") as HTMLInputElement;
+			expect(input.value).toBe("Evergreen Notes");
+
+			const confirmBtn = modal.contentEl.querySelector("[data-action='confirm']") as HTMLButtonElement;
+			expect(confirmBtn.disabled).toBe(false);
+
+			const mergeEl = modal.contentEl.querySelector("[data-notice='merge']");
+			expect(mergeEl).not.toBeNull();
+			expect(mergeEl!.classList.contains("is-hidden")).toBe(false);
+		});
+	});
+
 	describe("delete op", () => {
 		it("confirm button is disabled until the user checks an explicit confirm checkbox", () => {
 			const app = makeApp();

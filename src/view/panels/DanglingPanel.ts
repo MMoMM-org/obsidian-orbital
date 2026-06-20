@@ -39,6 +39,7 @@ export interface DanglingPanelApp {
 		getAbstractFileByPath(path: string): { path: string } | null;
 		create(path: string, data: string): Promise<{ path: string }>;
 		getAllLoadedFiles(): Array<{ path: string; children?: unknown[] }>;
+		getMarkdownFiles(): Array<{ basename: string }>;
 	};
 	fileManager: {
 		getNewFileParent(sourcePath: string): { path: string };
@@ -64,6 +65,8 @@ interface ConfirmRewriteModalConstructor {
 			preview: RewritePreview;
 			kind: RewriteKind;
 			onConfirm: (name: string) => void;
+			existingNoteNames?: string[];
+			pickExisting?: () => Promise<string | null>;
 		},
 	): { open(): void; onlyInThisNote?: boolean };
 }
@@ -74,6 +77,15 @@ interface FolderPickerConstructor {
 
 interface NotePickerConstructor {
 	new (app: DanglingPanelApp, log?: LogFn): { pickNote(): Promise<TFile | null> };
+}
+
+interface RenameTargetPickerConstructor {
+	new (
+		app: DanglingPanelApp,
+		index: LinkGraphIndex,
+		currentTarget: string,
+		log?: LogFn,
+	): { pick(): Promise<string | null> };
 }
 
 type CreateNoteFn = (
@@ -122,6 +134,8 @@ export interface DanglingPanelDeps {
 	folderPicker: FolderPickerConstructor;
 	/** Note picker modal constructor (NoteFilePicker). */
 	notePicker: NotePickerConstructor;
+	/** Combined rename/merge target picker constructor (RenameTargetPicker). */
+	renameTargetPicker: RenameTargetPickerConstructor;
 	/** createNote function. */
 	createNote: CreateNoteFn;
 	/** Optional debug logger (gated by the debugLogging setting). */
@@ -566,9 +580,20 @@ export class DanglingPanel {
 	): Promise<void> {
 		try {
 			const preview = await this.deps.service.previewRename(target, scope);
+			const existingNoteNames = this.deps.app.vault
+				.getMarkdownFiles()
+				.map((f) => f.basename);
 			const modal = new this.deps.ConfirmRewriteModal(this.deps.app, {
 				preview,
 				kind: "rename",
+				existingNoteNames,
+				pickExisting: () =>
+					new this.deps.renameTargetPicker(
+						this.deps.app,
+						this.deps.index,
+						target,
+						this.deps.log,
+					).pick(),
 				onConfirm: (newName: string) => {
 					void this.deps.service.applyRename(target, newName, scope)
 						.then((result) => { this.surfaceResult(result, liveRegion); })

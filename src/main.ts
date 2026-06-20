@@ -8,6 +8,7 @@ import { LinkGraphIndex } from "graph/LinkGraphIndex";
 import { ExclusionMatcher } from "shared/ExclusionMatcher";
 import { LinkRewriteService } from "links/LinkRewriteService";
 import { NotePickerModal, NoteFilePicker } from "modals/NotePickerModal";
+import { RenameTargetPicker } from "modals/RenameTargetPicker";
 import { ConfirmRewriteModal } from "modals/ConfirmRewriteModal";
 import { createNote } from "links/createNote";
 import { RecentFilesStore } from "recent/RecentFilesStore";
@@ -183,6 +184,7 @@ export default class OrbitPlugin extends Plugin {
 			ConfirmRewriteModal: ConfirmRewriteModal as unknown as DanglingDeps["ConfirmRewriteModal"],
 			folderPicker: NotePickerModal as unknown as DanglingDeps["folderPicker"],
 			notePicker: NoteFilePicker as unknown as DanglingDeps["notePicker"],
+			renameTargetPicker: RenameTargetPicker as unknown as DanglingDeps["renameTargetPicker"],
 			createNote,
 			log: (...args: unknown[]): void => this._log.debug(...args),
 		};

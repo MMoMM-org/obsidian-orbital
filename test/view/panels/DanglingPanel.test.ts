@@ -80,6 +80,12 @@ function makeMockNotePicker() {
 	}));
 }
 
+function makeMockRenameTargetPicker() {
+	return vi.fn().mockImplementation(() => ({
+		pick: vi.fn(async () => "PickedTarget"),
+	}));
+}
+
 function makeMockCreateNote() {
 	return vi.fn(async () => ({ file: { path: "Notes/Target.md" }, existed: false }));
 }
@@ -99,6 +105,7 @@ function makeDeps(overrides: DepsOverrides = {}): DanglingPanelDeps & {
 	ConfirmRewriteModal: ReturnType<typeof makeMockConfirmRewriteModal>;
 	folderPicker: ReturnType<typeof makeMockFolderPicker>;
 	notePicker: ReturnType<typeof makeMockNotePicker>;
+	renameTargetPicker: ReturnType<typeof makeMockRenameTargetPicker>;
 	createNote: ReturnType<typeof makeMockCreateNote>;
 	_getActiveFilter: () => string | null;
 } {
@@ -112,6 +119,7 @@ function makeDeps(overrides: DepsOverrides = {}): DanglingPanelDeps & {
 	const ConfirmRewriteModal = makeMockConfirmRewriteModal();
 	const folderPicker = makeMockFolderPicker();
 	const notePicker = makeMockNotePicker();
+	const renameTargetPicker = makeMockRenameTargetPicker();
 	const createNote = makeMockCreateNote();
 
 	let grouping: DanglingGrouping = overrides.grouping ?? settings.danglingGrouping;
@@ -144,11 +152,12 @@ function makeDeps(overrides: DepsOverrides = {}): DanglingPanelDeps & {
 		ConfirmRewriteModal,
 		folderPicker,
 		notePicker,
+		renameTargetPicker,
 		createNote,
 		registerDomEvent,
 	};
 
-	return { ...deps, appInstance, service, ConfirmRewriteModal, folderPicker, notePicker, createNote, _getActiveFilter: () => activeFilter };
+	return { ...deps, appInstance, service, ConfirmRewriteModal, folderPicker, notePicker, renameTargetPicker, createNote, _getActiveFilter: () => activeFilter };
 }
 
 // ---------------------------------------------------------------------------
@@ -524,6 +533,31 @@ describe("DanglingPanel inline actions", () => {
 
 		expect(deps.service.previewRename).toHaveBeenCalledWith("MissingTarget", expect.any(Object));
 		expect(deps.ConfirmRewriteModal).toHaveBeenCalled();
+	});
+
+	it("rename action passes a pickExisting picker and existingNoteNames to the modal", async () => {
+		const deps = makeDeps({
+			unresolved: { "notes/a.md": { "MissingTarget": 1 } },
+			grouping: "target",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		(container.querySelector("[aria-label='Rename dangling link']") as HTMLElement).click();
+		await new Promise((r) => setTimeout(r, 0));
+
+		const opts = deps.ConfirmRewriteModal.mock.calls[0]?.[1] as {
+			pickExisting?: () => Promise<string | null>;
+			existingNoteNames?: string[];
+		};
+		expect(typeof opts.pickExisting).toBe("function");
+		expect(Array.isArray(opts.existingNoteNames)).toBe(true);
+
+		// Invoking pickExisting constructs the rename target picker and resolves its value.
+		const picked = await opts.pickExisting?.();
+		expect(deps.renameTargetPicker).toHaveBeenCalled();
+		expect(picked).toBe("PickedTarget");
 	});
 
 	it("rename action: onConfirm calls applyRename with the entered name", async () => {

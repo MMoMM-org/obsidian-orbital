@@ -37,6 +37,12 @@ export interface ConfirmRewriteModalOptions {
 	 * when the entered rename target already exists. Case-insensitive.
 	 */
 	existingNoteNames?: string[];
+	/**
+	 * Optional picker for the rename flow. When provided, a "Choose existing…"
+	 * button is shown next to the name input; resolving with a value prefills the
+	 * input (and triggers the merge notice). Resolving null is a no-op.
+	 */
+	pickExisting?: () => Promise<string | null>;
 }
 
 // ---------------------------------------------------------------------------
@@ -140,6 +146,23 @@ export class ConfirmRewriteModal extends Modal {
 				placeholder: "Enter new name…",
 			},
 		}) as HTMLInputElement;
+
+		// Optional "Choose existing…" affordance — opens a picker (notes + dangling
+		// targets) and prefills the input, which drives the merge notice + confirm.
+		if (this.opts.pickExisting !== undefined) {
+			const pickBtn = el.createEl("button", {
+				text: "Choose existing…",
+				cls: "orbit-confirm-pick-btn",
+				attr: { "data-action": "pick-existing", "aria-label": "Choose an existing note or dangling link" },
+			});
+			pickBtn.addEventListener("click", () => {
+				void this.opts.pickExisting?.().then((picked) => {
+					if (picked === null || picked === undefined) return;
+					input.value = picked;
+					input.dispatchEvent(new Event("input"));
+				});
+			});
+		}
 
 		// Merge notice: hidden via is-hidden class until a matching name is typed
 		const mergeNotice = el.createEl("p", {
