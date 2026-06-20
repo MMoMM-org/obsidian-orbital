@@ -24,3 +24,12 @@ arrives, it resolves `null` as before. See `src/modals/NotePickerModal.ts`
 swallowed — open the follow-up modal on a deferred macrotask too (see
 `DanglingPanel.handleAlias`). Toggle **Settings → Orbit → Advanced → Debug logging**
 for `[Orbit] …` traces (gated via `src/shared/logger.ts`).
+
+## `openLinkText(..., true)` throws "Cannot create property 'state' on boolean 'true'"
+
+Passing boolean `true` as the `newLeaf` arg to `WorkspaceLeaf.openLinkText` (or
+`getLeaf(true)` + `openLinkText(..., true)`) crashes in Obsidian when opening in
+a new tab. Use the **`"tab"` PaneType string** instead. `Keymap.isModEvent(evt)`
+already returns a PaneType (not boolean `true`) on Mod-click, which is why the
+resolved-link rows never hit this; only a setting-derived boolean did. Fixed in
+`RelationsPanel.openMentionPath` (unlinked mentions, "Open in new tab" setting).
