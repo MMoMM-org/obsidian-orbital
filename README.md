@@ -52,6 +52,15 @@ Most-recent-first list of opened notes. Configurable list length and folder excl
 
 A status-bar item shows the orbit icon with **backlinks / 2nd-hop** counts for the active note (e.g. `🪐 3/5`). Hover for an explanation; click it to open the Relations tab. Toggle it under Settings → Orbit → General (on by default).
 
+## Migrating from another plugin
+
+Orbit reads Obsidian's own link graph, so there's nothing to import — your notes and links already work. To switch over:
+
+1. Disable the community plugins Orbit replaces: **obsidian-relation-pane**, **obsidian-dangling-links**, and **recent-files-obsidian**.
+2. Optionally turn off Obsidian's core **Backlinks** and **Outgoing links** panes if you now use Orbit's Relations tab instead.
+
+No settings or data need to carry over — Orbit derives everything from your vault on the fly.
+
 ## Prior art and attribution
 
 Orbit consolidates what previously required three separate plugins. It draws inspiration from the following prior art:
