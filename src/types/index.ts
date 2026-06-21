@@ -3,16 +3,27 @@ export type DanglingScope = "vault" | "folder";
 export type TabId = "relations" | "dangling" | "recent";
 
 export interface OrbitSettings {
+	/** Number of recently visited notes to show. */
 	recentListLength: number;
+	/** File path patterns to exclude (one per line, plain text or regex). */
 	excludePathPatterns: string[];
+	/** Tag patterns to exclude (one per line, plain text or regex). */
 	excludeTagPatterns: string[];
+	/** Maximum number of second-hop links to display. */
 	secondHopCap: number;
+	/** Show links that are two hops away from the active note. */
 	secondHopEnabled: boolean;
+	/** Delay in milliseconds before relations refresh after a file change. */
 	refreshDebounceMs: number;
+	/** Whether to show dangling links for the whole vault or just the current folder. */
 	danglingDefaultScope: DanglingScope;
+	/** Group dangling links by their target (missing note) or by their source file. */
 	danglingGrouping: DanglingGrouping;
+	/** Folder for new notes created from dangling links. Leave empty to use the default location. */
 	newNoteFolder: string;
+	/** Which tab to show when the orbit pane opens. */
 	defaultTab: TabId;
+	/** Display item counts on each tab label. */
 	showCounts: boolean;
 	/** When true, a status-bar item shows backlink/2nd-hop counts for the active note. */
 	showStatusBar: boolean;
@@ -22,6 +33,7 @@ export interface OrbitSettings {
 	unlinkedOpenInNewTab: boolean;
 	/** When true, Orbit emits verbose [Orbit] console.debug traces for diagnostics. */
 	debugLogging: boolean;
+	/** Internal persisted state: the most-recently-visited notes list. Not user-configurable. */
 	recentFiles: { path: string; basename: string }[];
 }
 
