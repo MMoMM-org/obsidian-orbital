@@ -23,9 +23,9 @@ export class SettingsTab extends PluginSettingTab {
 		this.header.render(headerEl);
 
 		this.renderGeneralSection(containerEl);
-		this.renderGraphSection(containerEl);
+		this.renderRelationsSection(containerEl);
 		this.renderDanglingSection(containerEl);
-		this.renderDisplaySection(containerEl);
+		this.renderRecentSection(containerEl);
 		this.renderAdvancedSection(containerEl);
 	}
 
@@ -34,36 +34,7 @@ export class SettingsTab extends PluginSettingTab {
 	// -------------------------------------------------------------------------
 
 	private renderGeneralSection(containerEl: HTMLElement): void {
-		new Setting(containerEl).setName("Behaviour").setHeading();
-
-		new Setting(containerEl)
-			.setName("Recent notes list length")
-			.setDesc("Number of recently visited notes to show.")
-			.addText((text) =>
-				text
-					.setPlaceholder("20")
-					.setValue(String(this.plugin.settings.recentListLength))
-					.onChange(async (value) => {
-						const n = parseInt(value, 10);
-						if (!isNaN(n) && n > 0) {
-							this.plugin.settings.recentListLength = n;
-							await this.plugin.saveSettings();
-						}
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName("New note folder")
-			.setDesc("Folder for new notes created from dangling links. Leave empty to use the default location.")
-			.addText((text) =>
-				text
-					.setPlaceholder("E.g. Notes/")
-					.setValue(this.plugin.settings.newNoteFolder)
-					.onChange(async (value) => {
-						this.plugin.settings.newNoteFolder = value;
-						await this.plugin.saveSettings();
-					}),
-			);
+		new Setting(containerEl).setName("General").setHeading();
 
 		new Setting(containerEl)
 			.setName("Default tab")
@@ -79,26 +50,35 @@ export class SettingsTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					}),
 			);
-	}
-
-	private renderGraphSection(containerEl: HTMLElement): void {
-		new Setting(containerEl).setName("Graph").setHeading();
 
 		new Setting(containerEl)
-			.setName("Refresh debounce (ms)")
-			.setDesc("Delay in milliseconds before relations refresh after a file change.")
-			.addText((text) =>
-				text
-					.setPlaceholder("300")
-					.setValue(String(this.plugin.settings.refreshDebounceMs))
+			.setName("Show counts")
+			.setDesc("Display item counts on each tab label.")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.showCounts)
 					.onChange(async (value) => {
-						const n = parseInt(value, 10);
-						if (!isNaN(n) && n >= 0) {
-							this.plugin.settings.refreshDebounceMs = n;
-							await this.plugin.saveSettings();
-						}
+						this.plugin.settings.showCounts = value;
+						await this.plugin.saveSettings();
 					}),
 			);
+
+		new Setting(containerEl)
+			.setName("Show status bar item")
+			.setDesc("Show the orbit icon with backlink / 2nd-hop counts for the active note. Click it to open the relations tab.")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.showStatusBar)
+					.onChange(async (value) => {
+						this.plugin.settings.showStatusBar = value;
+						await this.plugin.saveSettings();
+						this.plugin._refreshStatusBar();
+					}),
+			);
+	}
+
+	private renderRelationsSection(containerEl: HTMLElement): void {
+		new Setting(containerEl).setName("Relations").setHeading();
 
 		new Setting(containerEl)
 			.setName("Second-hop links")
@@ -125,6 +105,30 @@ export class SettingsTab extends PluginSettingTab {
 							this.plugin.settings.secondHopCap = n;
 							await this.plugin.saveSettings();
 						}
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName("Show unlinked mentions")
+			.setDesc("Add an 'unlinked mentions' section to the relations tab. Scans note contents on demand when expanded.")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.unlinkedMentionsEnabled)
+					.onChange(async (value) => {
+						this.plugin.settings.unlinkedMentionsEnabled = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName("Open unlinked mentions in new tab")
+			.setDesc("Open the note in a new tab when clicking an unlinked mention. Mod-click always opens a new tab.")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.unlinkedOpenInNewTab)
+					.onChange(async (value) => {
+						this.plugin.settings.unlinkedOpenInNewTab = value;
+						await this.plugin.saveSettings();
 					}),
 			);
 	}
@@ -159,57 +163,57 @@ export class SettingsTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					}),
 			);
+
+		new Setting(containerEl)
+			.setName("New note folder")
+			.setDesc("Folder for new notes created from dangling links. Leave empty to use the default location.")
+			.addText((text) =>
+				text
+					.setPlaceholder("E.g. Notes/")
+					.setValue(this.plugin.settings.newNoteFolder)
+					.onChange(async (value) => {
+						this.plugin.settings.newNoteFolder = value;
+						await this.plugin.saveSettings();
+					}),
+			);
 	}
 
-	private renderDisplaySection(containerEl: HTMLElement): void {
-		new Setting(containerEl).setName("Display").setHeading();
+	private renderRecentSection(containerEl: HTMLElement): void {
+		new Setting(containerEl).setName("Recent files").setHeading();
 
 		new Setting(containerEl)
-			.setName("Show counts")
-			.setDesc("Display item counts on each tab label.")
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.showCounts)
+			.setName("Recent notes list length")
+			.setDesc("Number of recently visited notes to show.")
+			.addText((text) =>
+				text
+					.setPlaceholder("20")
+					.setValue(String(this.plugin.settings.recentListLength))
 					.onChange(async (value) => {
-						this.plugin.settings.showCounts = value;
-						await this.plugin.saveSettings();
+						const n = parseInt(value, 10);
+						if (!isNaN(n) && n > 0) {
+							this.plugin.settings.recentListLength = n;
+							await this.plugin.saveSettings();
+						}
 					}),
 			);
+	}
+
+	private renderAdvancedSection(containerEl: HTMLElement): void {
+		new Setting(containerEl).setName("Advanced").setHeading();
 
 		new Setting(containerEl)
-			.setName("Show status bar item")
-			.setDesc("Show the orbit icon with backlink / 2nd-hop counts for the active note. Click it to open the relations tab.")
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.showStatusBar)
+			.setName("Refresh debounce (ms)")
+			.setDesc("Delay in milliseconds before relations refresh after a file change.")
+			.addText((text) =>
+				text
+					.setPlaceholder("300")
+					.setValue(String(this.plugin.settings.refreshDebounceMs))
 					.onChange(async (value) => {
-						this.plugin.settings.showStatusBar = value;
-						await this.plugin.saveSettings();
-						this.plugin._refreshStatusBar();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName("Show unlinked mentions")
-			.setDesc("Add an 'unlinked mentions' section to the relations tab. Scans note contents on demand when expanded.")
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.unlinkedMentionsEnabled)
-					.onChange(async (value) => {
-						this.plugin.settings.unlinkedMentionsEnabled = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName("Open unlinked mentions in new tab")
-			.setDesc("Open the note in a new tab when clicking an unlinked mention. Mod-click always opens a new tab.")
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.unlinkedOpenInNewTab)
-					.onChange(async (value) => {
-						this.plugin.settings.unlinkedOpenInNewTab = value;
-						await this.plugin.saveSettings();
+						const n = parseInt(value, 10);
+						if (!isNaN(n) && n >= 0) {
+							this.plugin.settings.refreshDebounceMs = n;
+							await this.plugin.saveSettings();
+						}
 					}),
 			);
 
@@ -244,10 +248,6 @@ export class SettingsTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					}),
 			);
-	}
-
-	private renderAdvancedSection(containerEl: HTMLElement): void {
-		new Setting(containerEl).setName("Advanced").setHeading();
 
 		new Setting(containerEl)
 			.setName("Debug logging")

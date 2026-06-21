@@ -199,7 +199,7 @@ describe("SettingsTab — numeric field persistence", () => {
 		const container = renderTab(tab);
 
 		const settingEl = Array.from(container.querySelectorAll("[data-setting-name]"))
-			.find((el) => el.getAttribute("data-setting-name")?.toLowerCase().includes("recent"));
+			.find((el) => el.getAttribute("data-setting-name")?.toLowerCase().includes("recent notes"));
 		const input = settingEl?.querySelector("input") as HTMLInputElement | null;
 		expect(input).not.toBeNull();
 
