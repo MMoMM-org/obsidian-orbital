@@ -50,7 +50,7 @@ Most-recent-first list of opened notes. Configurable list length and folder excl
 
 ### Status bar
 
-A status-bar item shows the orbit icon with **backlinks / 2nd-hop** counts for the active note (e.g. `🪐 3/5`). Hover for an explanation; click it to open the Relations tab. Toggle it under Settings → Orbit → Display (on by default).
+A status-bar item shows the orbit icon with **backlinks / 2nd-hop** counts for the active note (e.g. `🪐 3/5`). Hover for an explanation; click it to open the Relations tab. Toggle it under Settings → Orbit → General (on by default).
 
 ## Prior art and attribution
 
@@ -134,7 +134,7 @@ If this plugin integrates with an external HTTP API or daemon, copy `scripts/api
 - [Usage](docs/usage.md)
 - [Troubleshooting](docs/troubleshooting.md) — TODO: Help a user recover from the most common failures, written from their symptom rather than the plugin's internals.
 - [Commands Reference](docs/commands-reference.md) — TODO: List every command Orbit contributes to the command palette, with a one-line description and any preconditions.
-- [Settings Reference](docs/settings-reference.md) — TODO: Provide a deeper, hand-authored reference for every setting — allowed values, interactions, and when to change each one.
+- [Settings Reference](docs/settings-reference.md)
 <!-- doc-product:documentation:end -->
 
 ## License
