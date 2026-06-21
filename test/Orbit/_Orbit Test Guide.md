@@ -62,10 +62,22 @@ sections below.
 - [ ] Click → opens in current pane; **Cmd/Ctrl-click** → new pane.
 - [ ] **Drag** a row into an open editor (desktop) → inserts a `[[wikilink]]` at the drop point.
 - [ ] On mobile (or narrow), use the row's **insert action** → `[[wikilink]]` at the cursor.
-- [ ] **Path exclusion:** add `Archive/` to exclusions in settings → open **[[Archive/Old Ideas]]** → it does **not** appear in Recent.
-- [ ] **Tag exclusion:** add `archive` (tag) to exclusions → open **[[Sandbox/Tagged Scratch]]** → excluded from Recent.
+- [ ] **Path exclusion:** with `Archive/` in the path exclusions, open **[[Archive/Old Ideas]]** → it does **not** appear in Recent. Clear the pattern → it shows up again.
+- [ ] **Tag exclusion:** with `archive` in the tag exclusions, open **[[Sandbox/Tagged Scratch]]** → excluded from Recent. Clear the pattern → it returns.
 - [ ] Rename/delete a listed note → list updates; clicking a now-missing entry fails gracefully with a notice.
 - [ ] **Remove** one entry, then **Clear** the list → both persist across a reload.
+
+## 4b · Exclusions span every surface (Recent + Relations + Unlinked mentions)
+
+> This vault ships with `Archive/` (path) and `archive` (tag) already excluded.
+> Each check below is two-directional: confirm the item is **hidden** while the
+> pattern is set, then **clear** the pattern and confirm it **reappears**.
+
+- [ ] **Relations · path:** open **[[Linking]]** → with `Archive/` excluded, `Old Ideas` is **absent** from Backlinks; clear the path pattern → `Old Ideas` returns.
+- [ ] **Relations · tag:** still on **[[Linking]]** → with `archive` excluded, `Tagged Scratch` is **absent** from Backlinks; clear the tag pattern → it returns.
+- [ ] **Unlinked mentions · path:** open **[[Zettelkasten]]**, expand **Unlinked mentions** → `Old Ideas` is **absent** while `Archive/` is excluded; clear it → `Old Ideas` appears (it mentions "Zettelkasten" in plain text).
+- [ ] **Unlinked mentions · tag:** on **[[Zettelkasten]]** → `Tagged Scratch` is **absent** while `archive` is excluded; clear the tag pattern → it appears.
+- [ ] **Independence:** clearing only the path pattern still hides the tag-excluded `Tagged Scratch`, and vice-versa — path and tag exclusions are evaluated separately.
 
 ## 5 · Replaces three plugins (Feature 5)
 
