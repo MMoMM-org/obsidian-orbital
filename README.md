@@ -4,7 +4,7 @@ Orbit consolidates three sidebar workflows into one pane: explore note relations
 
 ## Installation
 
-### Community Plugins (after listing)
+### Community Plugins
 1. Open Obsidian Settings → Community Plugins
 2. Search for "Orbit"
 3. Install and enable
@@ -21,7 +21,7 @@ Orbit consolidates three sidebar workflows into one pane: explore note relations
 
 ## Usage
 
-Open the Orbit sidebar pane (click the ribbon icon or use the command palette). The pane has three tabs:
+Open the Orbit sidebar pane with the **Orbit: Open** command from the command palette (or click the status-bar item). The pane has three tabs:
 
 ### Relations tab
 
@@ -131,7 +131,7 @@ If this plugin integrates with an external HTTP API or daemon, copy `scripts/api
 
 - [Installation](docs/installation.md)
 - [Configuration](docs/configuration.md)
-- [Usage](docs/usage.md) — TODO: Show a new user how to accomplish their first real task with Orbit, then the workflows they will repeat.
+- [Usage](docs/usage.md)
 - [Troubleshooting](docs/troubleshooting.md) — TODO: Help a user recover from the most common failures, written from their symptom rather than the plugin's internals.
 - [Commands Reference](docs/commands-reference.md) — TODO: List every command Orbit contributes to the command palette, with a one-line description and any preconditions.
 - [Settings Reference](docs/settings-reference.md) — TODO: Provide a deeper, hand-authored reference for every setting — allowed values, interactions, and when to change each one.
