@@ -132,8 +132,8 @@ If this plugin integrates with an external HTTP API or daemon, copy `scripts/api
 - [Installation](docs/installation.md)
 - [Configuration](docs/configuration.md)
 - [Usage](docs/usage.md)
-- [Troubleshooting](docs/troubleshooting.md) — TODO: Help a user recover from the most common failures, written from their symptom rather than the plugin's internals.
-- [Commands Reference](docs/commands-reference.md) — TODO: List every command Orbit contributes to the command palette, with a one-line description and any preconditions.
+- [Troubleshooting](docs/troubleshooting.md)
+- [Commands Reference](docs/commands-reference.md)
 - [Settings Reference](docs/settings-reference.md)
 <!-- doc-product:documentation:end -->
 
