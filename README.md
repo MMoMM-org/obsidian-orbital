@@ -126,6 +126,17 @@ When you change source: switch to Obsidian → Settings → Community Plugins �
 
 If this plugin integrates with an external HTTP API or daemon, copy `scripts/api-inspect.template.mjs` to `scripts/<service>-inspect.mjs` and adapt the `BASE_URL` / auth scheme. Use it from day 1 — when an integration bug appears, the SDK's error message rarely tells you whether the bug is auth, path, content-type, or schema. Raw HTTP status + headers + body usually localises in seconds. Observed usage in MiYo: Dropbox path-prefix bugs (archivist), Docker daemon attach hangs (Hashi).
 
+<!-- doc-product:documentation:start -->
+## Documentation
+
+- [Installation](docs/installation.md)
+- [Configuration](docs/configuration.md)
+- [Usage](docs/usage.md) — TODO: Show a new user how to accomplish their first real task with Orbit, then the workflows they will repeat.
+- [Troubleshooting](docs/troubleshooting.md) — TODO: Help a user recover from the most common failures, written from their symptom rather than the plugin's internals.
+- [Commands Reference](docs/commands-reference.md) — TODO: List every command Orbit contributes to the command palette, with a one-line description and any preconditions.
+- [Settings Reference](docs/settings-reference.md) — TODO: Provide a deeper, hand-authored reference for every setting — allowed values, interactions, and when to change each one.
+<!-- doc-product:documentation:end -->
+
 ## License
 
 MIT - see [LICENSE](LICENSE)
