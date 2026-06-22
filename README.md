@@ -1,56 +1,27 @@
-# Orbit
+<p align="center">
+  <img src="assets/logo-orbit.png" alt="Orbit" width="200">
+</p>
 
-Orbit consolidates three sidebar workflows into one pane: explore note relations (outgoing links, backlinks, 2nd-hop related notes, and missing links), fix dangling links in bulk (rename, merge, change to alias, create, or delete), and browse recent files with drag-to-link and tap-to-insert support.
+<h1 align="center">Orbit</h1>
+
+<p align="center"><em>See what orbits your notes.</em></p>
+
+Orbit is an Obsidian plugin that brings everything connected to the note you're reading into a single sidebar pane. Instead of running three separate plugins for connections, broken links, and history, Orbit gives you one tabbed pane that answers three questions about the active note: **what does it link to and from, which of its links are broken, and what was I just looking at?**
+
+It works on desktop and mobile, and reads Obsidian's own link graph — there's nothing to index or import.
+
+## What Orbit does
+
+- **Relations** — outgoing links, backlinks, deduplicated 2nd-hop "related" notes, unlinked mentions you can convert to links inline, and the note's missing (unresolved) link targets.
+- **Dangling links** — every unresolved `[[link]]` across the vault (or just the current folder), grouped by target or by source, with bulk **rename/merge**, **change to alias**, **create note**, and **delete** — each preview-confirmed and never silent.
+- **Recent files** — a most-recent-first list of opened notes; drag a row into an editor to insert a `[[wikilink]]`, or click to open.
+- **Status bar** — an item showing backlink / 2nd-hop counts for the active note; click it to jump to the Relations tab.
+
+See the [**Usage guide**](docs/usage.md) for screenshots and the full walkthrough.
 
 ## Installation
 
-### Community Plugins
-1. Open Obsidian Settings → Community Plugins
-2. Search for "Orbit"
-3. Install and enable
-
-### Manual
-1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/MMoMM-org/obsidian-orbit/releases/latest)
-2. Create folder `<vault>/.obsidian/plugins/orbit/`
-3. Copy the downloaded files into that folder
-4. Restart Obsidian and enable the plugin
-
-### BRAT (Beta)
-1. Install [BRAT](https://github.com/TfTHacker/obsidian42-brat)
-2. Add beta plugin: `MMoMM-org/obsidian-orbit`
-
-## Usage
-
-Open the Orbit sidebar pane with the **Orbit: Open** command from the command palette (or click the status-bar item). The pane has three tabs:
-
-### Relations tab
-
-Shows the relations of the active note:
-
-- **Outgoing links** — all links the current note makes to other notes.
-- **Backlinks** — notes that link back to the current note.
-- **Related** — deduplicated 2nd-hop notes (notes linked by your links or backlinks), filtered so only notes you haven't directly linked appear.
-- **Unlinked mentions** — other notes that mention the current note's name (or one of its aliases) in plain text without linking it. Collapsed by default; it scans note contents on demand when you expand it. Each note shows the number of mentions, a 🔗 badge when it *already* links the current note, and context snippets. Convert mentions to links inline — **Link** on a note links every mention in it, **Link** on a single snippet links just that one. Clicking a note or snippet opens it (in a new tab with Mod-click, or always when the setting below is on).
-- **Missing** — unresolved link targets in the current note. A "Manage →" deep-link opens the Dangling tab pre-filtered to the same targets.
-
-### Dangling tab
-
-Vault-wide (or folder-scoped) list of unresolved link targets. Each target shows a preview of the notes that reference it. Bulk operations available per target:
-
-- **Rename** — rewrite every referencing link to a new, confirmed target (merge-safe: if the target already exists, all references collapse onto it).
-- **Change to alias** — replace the link with an alias on an existing note.
-- **Create note** — create a new note for the target and resolve all references.
-- **Delete** — remove all references to the target across the vault.
-
-Operations are preview-confirmed before writing.
-
-### Recent tab
-
-Most-recent-first list of opened notes. Configurable list length and folder exclusions (set in Settings → Orbit). Drag a row to another editor to insert a link, or tap/click to open the note.
-
-### Status bar
-
-A status-bar item shows the orbit icon with **backlinks / 2nd-hop** counts for the active note (e.g. `🪐 3/5`). Hover for an explanation; click it to open the Relations tab. Toggle it under Settings → Orbit → General (on by default).
+Install **Orbit** from Obsidian's **Settings → Community plugins → Browse**, then enable it. For manual and beta (BRAT) installs, see the [installation guide](docs/installation.md).
 
 ## Migrating from another plugin
 
@@ -58,8 +29,6 @@ Orbit reads Obsidian's own link graph, so there's nothing to import — your not
 
 1. Disable the community plugins Orbit replaces: **obsidian-relation-pane**, **obsidian-dangling-links**, and **recent-files-obsidian**.
 2. Optionally turn off Obsidian's core **Backlinks** and **Outgoing links** panes if you now use Orbit's Relations tab instead.
-
-No settings or data need to carry over — Orbit derives everything from your vault on the fly.
 
 ## Prior art and attribution
 
