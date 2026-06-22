@@ -14,7 +14,7 @@
  */
 
 import { normalizePath } from "obsidian";
-import type { OrbitSettings } from "types/index";
+import type { OrbitalSettings } from "types/index";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -66,7 +66,7 @@ interface AppMinimal {
 export async function createNote(
 	target: string,
 	app: AppMinimal,
-	settings: OrbitSettings,
+	settings: OrbitalSettings,
 	pickerFolder: FolderLike | null,
 ): Promise<CreateNoteResult> {
 	const folderPath = resolveFolder(app, settings, pickerFolder);
@@ -87,7 +87,7 @@ export async function createNote(
 
 function resolveFolder(
 	app: AppMinimal,
-	settings: OrbitSettings,
+	settings: OrbitalSettings,
 	pickerFolder: FolderLike | null,
 ): string {
 	if (pickerFolder !== null) {

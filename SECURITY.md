@@ -2,11 +2,11 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security issue in Orbit, please **do not** open a public GitHub issue. Instead, email **marcus@mmomm.org** with:
+If you discover a security issue in Orbital, please **do not** open a public GitHub issue. Instead, email **marcus@mmomm.org** with:
 
 - A clear description of the issue
 - Steps to reproduce (or a proof-of-concept if applicable)
-- The Orbit version + Obsidian version + OS
+- The Orbital version + Obsidian version + OS
 
 I aim to respond within 7 days. Coordinated disclosure is appreciated for issues that affect user vault contents or credential handling.
 
@@ -14,7 +14,7 @@ I aim to respond within 7 days. Coordinated disclosure is appreciated for issues
 
 ## What ships to your vault
 
-Orbit is an Obsidian plugin. Only the bundled `main.js` (built with esbuild) runs inside Obsidian. Build/test/CI tooling **never executes in the user environment**.
+Orbital is an Obsidian plugin. Only the bundled `main.js` (built with esbuild) runs inside Obsidian. Build/test/CI tooling **never executes in the user environment**.
 
 ### Production dependencies (bundled in `main.js`)
 
@@ -47,4 +47,4 @@ GitHub Dependabot scans the full `package-lock.json` and may surface alerts for 
 
 ## Supported versions
 
-Only the latest minor version receives security patches. Orbit follows semantic versioning; the most recent release on `master` is the only supported branch.
+Only the latest minor version receives security patches. Orbital follows semantic versioning; the most recent release on `main` is the only supported branch.

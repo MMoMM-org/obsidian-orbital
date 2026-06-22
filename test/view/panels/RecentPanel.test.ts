@@ -134,7 +134,7 @@ describe("RecentPanel empty state", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const empty = container.querySelector(".orbit-recent-empty");
+		const empty = container.querySelector(".orbital-recent-empty");
 		expect(empty).not.toBeNull();
 		expect(empty?.textContent).toMatch(/no recent notes/i);
 	});
@@ -145,7 +145,7 @@ describe("RecentPanel empty state", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const rows = container.querySelectorAll(".orbit-recent-row");
+		const rows = container.querySelectorAll(".orbital-recent-row");
 		expect(rows.length).toBe(0);
 	});
 });
@@ -166,7 +166,7 @@ describe("RecentPanel row rendering", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const rows = container.querySelectorAll(".orbit-recent-row");
+		const rows = container.querySelectorAll(".orbital-recent-row");
 		expect(rows.length).toBe(2);
 	});
 
@@ -178,7 +178,7 @@ describe("RecentPanel row rendering", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const label = container.querySelector(".orbit-recent-basename");
+		const label = container.querySelector(".orbital-recent-basename");
 		expect(label?.textContent).toBe("my-note");
 	});
 
@@ -193,7 +193,7 @@ describe("RecentPanel row rendering", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const mutedPaths = container.querySelectorAll(".orbit-recent-path");
+		const mutedPaths = container.querySelectorAll(".orbital-recent-path");
 		expect(mutedPaths.length).toBe(0);
 	});
 
@@ -208,7 +208,7 @@ describe("RecentPanel row rendering", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const mutedPaths = container.querySelectorAll(".orbit-recent-path");
+		const mutedPaths = container.querySelectorAll(".orbital-recent-path");
 		expect(mutedPaths.length).toBe(2);
 		const pathTexts = Array.from(mutedPaths).map((el) => el.textContent ?? "");
 		expect(pathTexts.some((t) => t.includes("folderA"))).toBe(true);
@@ -223,7 +223,7 @@ describe("RecentPanel row rendering", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const row = container.querySelector(".orbit-recent-row");
+		const row = container.querySelector(".orbital-recent-row");
 		expect(row?.getAttribute("draggable")).toBe("true");
 	});
 
@@ -260,7 +260,7 @@ describe("RecentPanel click navigation", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const row = container.querySelector(".orbit-recent-row") as HTMLElement;
+		const row = container.querySelector(".orbital-recent-row") as HTMLElement;
 		row.click();
 
 		expect(deps.appInstance.workspace.getLeaf).toHaveBeenCalledWith(false);
@@ -282,7 +282,7 @@ describe("RecentPanel click navigation", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const row = container.querySelector(".orbit-recent-row") as HTMLElement;
+		const row = container.querySelector(".orbital-recent-row") as HTMLElement;
 		row.click();
 
 		expect(deps.appInstance.workspace.getLeaf).toHaveBeenCalledWith(true);
@@ -304,7 +304,7 @@ describe("RecentPanel missing-file self-heal", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const row = container.querySelector(".orbit-recent-row") as HTMLElement;
+		const row = container.querySelector(".orbital-recent-row") as HTMLElement;
 		row.click();
 
 		expect(Notice._instances.length).toBeGreaterThan(0);
@@ -325,7 +325,7 @@ describe("RecentPanel missing-file self-heal", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const row = container.querySelector(".orbit-recent-row") as HTMLElement;
+		const row = container.querySelector(".orbital-recent-row") as HTMLElement;
 		row.click();
 
 		// Allow the async delete + re-render to settle
@@ -374,7 +374,7 @@ describe("RecentPanel per-row remove", () => {
 		(removeBtns[0] as HTMLElement).click();
 
 		await vi.waitFor(() => {
-			const rows = container.querySelectorAll(".orbit-recent-row");
+			const rows = container.querySelectorAll(".orbital-recent-row");
 			expect(rows.length).toBe(1);
 		});
 	});
@@ -425,7 +425,7 @@ describe("RecentPanel clear list", () => {
 		clearBtn.click();
 
 		await vi.waitFor(() => {
-			const empty = container.querySelector(".orbit-recent-empty");
+			const empty = container.querySelector(".orbital-recent-empty");
 			expect(empty).not.toBeNull();
 		});
 	});
@@ -557,7 +557,7 @@ describe("RecentPanel focus management after row removal (Gap B)", () => {
 
 			await vi.waitFor(() => {
 				// After re-render, two rows remain
-				expect(container.querySelectorAll(".orbit-recent-row").length).toBe(2);
+				expect(container.querySelectorAll(".orbital-recent-row").length).toBe(2);
 			});
 
 			// Focus should have been moved to the row that was next (beta)
@@ -593,7 +593,7 @@ describe("RecentPanel focus management after row removal (Gap B)", () => {
 			(removeBtns[1] as HTMLElement).click();
 
 			await vi.waitFor(() => {
-				const rows = container.querySelectorAll(".orbit-recent-row");
+				const rows = container.querySelectorAll(".orbital-recent-row");
 				expect(rows.length).toBe(1);
 			});
 
@@ -620,7 +620,7 @@ describe("RecentPanel list truncation (Gap D)", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const rows = container.querySelectorAll(".orbit-recent-row");
+		const rows = container.querySelectorAll(".orbital-recent-row");
 		expect(rows.length).toBe(20);
 	});
 
@@ -635,7 +635,7 @@ describe("RecentPanel list truncation (Gap D)", () => {
 		panel.render(container);
 
 		// Only ~100 rows rendered initially (exact cap may be 100)
-		const rows = container.querySelectorAll(".orbit-recent-row");
+		const rows = container.querySelectorAll(".orbital-recent-row");
 		expect(rows.length).toBeLessThanOrEqual(100);
 	});
 
@@ -649,7 +649,7 @@ describe("RecentPanel list truncation (Gap D)", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const showMore = container.querySelector(".orbit-show-more");
+		const showMore = container.querySelector(".orbital-show-more");
 		expect(showMore).not.toBeNull();
 	});
 
@@ -663,7 +663,7 @@ describe("RecentPanel list truncation (Gap D)", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const showMore = container.querySelector(".orbit-show-more");
+		const showMore = container.querySelector(".orbital-show-more");
 		expect(showMore).toBeNull();
 	});
 
@@ -677,12 +677,12 @@ describe("RecentPanel list truncation (Gap D)", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const showMoreBtn = container.querySelector(".orbit-show-more") as HTMLElement;
+		const showMoreBtn = container.querySelector(".orbital-show-more") as HTMLElement;
 		expect(showMoreBtn).not.toBeNull();
 		showMoreBtn.click();
 
 		// After clicking, all 120 rows should be rendered
-		const rows = container.querySelectorAll(".orbit-recent-row");
+		const rows = container.querySelectorAll(".orbital-recent-row");
 		expect(rows.length).toBe(120);
 	});
 });

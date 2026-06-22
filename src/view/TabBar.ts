@@ -6,7 +6,7 @@
  * Arrow Left/Right cycle selection (with wrap-around); Home/End jump to ends.
  * Enter/Space activate the currently focused tab.
  *
- * The host (OrbitView) injects an onSelect callback that drives panel switching
+ * The host (OrbitalView) injects an onSelect callback that drives panel switching
  * and state persistence. TabBar owns only the DOM and keyboard logic.
  */
 
@@ -65,7 +65,7 @@ export class TabBar {
 		options: TabBarOptions,
 	) {
 		this.onSelect = options.onSelect;
-		this.idPrefix = options.idPrefix ?? "orbit-tab";
+		this.idPrefix = options.idPrefix ?? "orbital-tab";
 		this.focusedTabId = options.initialTab ?? "relations";
 		this.addListener = options.registerDomEvent ?? ((el, type, handler) => {
 			el.addEventListener(type, handler);
@@ -106,7 +106,7 @@ export class TabBar {
 		const tablist = (this.container as unknown as AugmentedEl).createEl("div", {
 			attr: {
 				role: "tablist",
-				class: "orbit-tab-bar nav-buttons-container",
+				class: "orbital-tab-bar nav-buttons-container",
 			},
 		});
 
@@ -130,7 +130,7 @@ export class TabBar {
 			},
 		});
 		(btn as unknown as AugmentedEl).createEl("span", {
-			cls: "orbit-tab-label",
+			cls: "orbital-tab-label",
 			text: def.label,
 		});
 

@@ -1,6 +1,6 @@
 # Configuration
 
-This page documents every configuration setting available in Orbit. Each row
+This page documents every configuration setting available in Orbital. Each row
 describes a single field: its name, expected type, default value, and what it controls.
 Fields marked `[NEEDS DESCRIPTION]` or `[NEEDS REVIEW]` require author attention before
 the documentation is complete. Fields marked `[NEEDS DEFAULT]` have no recorded default
@@ -22,5 +22,5 @@ and should be confirmed against the source code.
 | `showStatusBar` | `boolean` | `true` | When true, a status-bar item shows backlink/2nd-hop counts for the active note. |
 | `unlinkedMentionsEnabled` | `boolean` | `true` | When true, the Relations tab shows an "Unlinked mentions" section. |
 | `unlinkedOpenInNewTab` | `boolean` | `false` | When true, clicking an unlinked mention opens the note in a new tab. |
-| `debugLogging` | `boolean` | `false` | When true, Orbit emits verbose [Orbit] console.debug traces for diagnostics. |
+| `debugLogging` | `boolean` | `false` | When true, Orbital emits verbose [Orbital] console.debug traces for diagnostics. |
 | `recentFiles` | `{ path: string; basename: string }[]` | `[]` | Internal persisted state: the most-recently-visited notes list. Not user-configurable. |

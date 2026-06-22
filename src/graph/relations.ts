@@ -15,7 +15,7 @@
 
 import type { LinkGraphIndex } from "graph/LinkGraphIndex";
 import type {
-	OrbitSettings,
+	OrbitalSettings,
 	RelationItem,
 	RelationsResult,
 	SecondHopGroup,
@@ -136,7 +136,7 @@ function computeSecondHop(
 export function computeRelations(
 	index: LinkGraphIndex,
 	activePath: string,
-	settings: OrbitSettings,
+	settings: OrbitalSettings,
 	isExcluded: (path: string) => boolean,
 	metadataCache: RelationsMetadataCache,
 ): RelationsResult {

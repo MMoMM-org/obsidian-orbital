@@ -21,14 +21,14 @@ import { LinkGraphIndex } from "graph/LinkGraphIndex";
 import type { MetadataCache as IndexMetadataCache } from "graph/LinkGraphIndex";
 import { DanglingPanel } from "view/panels/DanglingPanel";
 import type { DanglingPanelDeps } from "view/panels/DanglingPanel";
-import type { OrbitSettings, DanglingGrouping, DanglingScope } from "types/index";
+import type { OrbitalSettings, DanglingGrouping, DanglingScope } from "types/index";
 import { DEFAULT_SETTINGS } from "types/index";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeSettings(overrides?: Partial<OrbitSettings>): OrbitSettings {
+function makeSettings(overrides?: Partial<OrbitalSettings>): OrbitalSettings {
 	return { ...DEFAULT_SETTINGS, ...overrides };
 }
 
@@ -94,7 +94,7 @@ function makeMockCreateNote() {
 }
 
 type DepsOverrides = {
-	settings?: Partial<OrbitSettings>;
+	settings?: Partial<OrbitalSettings>;
 	unresolved?: Record<string, Record<string, number>>;
 	grouping?: DanglingGrouping;
 	scope?: DanglingScope;
@@ -184,7 +184,7 @@ describe("DanglingPanel by-target grouping", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const headers = container.querySelectorAll(".orbit-dangling-group-header");
+		const headers = container.querySelectorAll(".orbital-dangling-group-header");
 		const headerTexts = Array.from(headers).map((h) => h.textContent?.trim() ?? "");
 		expect(headerTexts.some((t) => t.includes("MissingNote"))).toBe(true);
 		expect(headerTexts.some((t) => t.includes("AnotherMissing"))).toBe(true);
@@ -202,7 +202,7 @@ describe("DanglingPanel by-target grouping", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const badges = container.querySelectorAll(".orbit-dangling-count");
+		const badges = container.querySelectorAll(".orbital-dangling-count");
 		expect(badges.length).toBeGreaterThan(0);
 		expect(badges[0]?.textContent).toBe("3");
 	});
@@ -219,7 +219,7 @@ describe("DanglingPanel by-target grouping", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const badges = container.querySelectorAll(".orbit-dangling-count");
+		const badges = container.querySelectorAll(".orbital-dangling-count");
 		expect(badges.length).toBe(0);
 	});
 
@@ -235,7 +235,7 @@ describe("DanglingPanel by-target grouping", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const occurrenceItems = container.querySelectorAll(".orbit-dangling-occurrence");
+		const occurrenceItems = container.querySelectorAll(".orbital-dangling-occurrence");
 		expect(occurrenceItems.length).toBeGreaterThan(0);
 	});
 });
@@ -263,7 +263,7 @@ describe("DanglingPanel source-row navigation + collapse", () => {
 		panel.render(container);
 
 		const occ = container.querySelector(
-			".orbit-dangling-occurrence[data-path='notes/source-a.md']",
+			".orbital-dangling-occurrence[data-path='notes/source-a.md']",
 		) as HTMLElement;
 		expect(occ).not.toBeNull();
 		occ.click();
@@ -291,7 +291,7 @@ describe("DanglingPanel source-row navigation + collapse", () => {
 
 		(
 			container.querySelector(
-				".orbit-dangling-occurrence[data-path='notes/source-a.md']",
+				".orbital-dangling-occurrence[data-path='notes/source-a.md']",
 			) as HTMLElement
 		).click();
 
@@ -313,9 +313,9 @@ describe("DanglingPanel source-row navigation + collapse", () => {
 		panel.render(container);
 
 		const group = container.querySelector(
-			".orbit-dangling-group[data-target='MissingNote']",
+			".orbital-dangling-group[data-target='MissingNote']",
 		) as HTMLElement;
-		const label = group.querySelector(".orbit-dangling-group-label") as HTMLElement;
+		const label = group.querySelector(".orbital-dangling-group-label") as HTMLElement;
 		expect(group.classList.contains("is-collapsed")).toBe(false);
 
 		label.click();
@@ -335,9 +335,9 @@ describe("DanglingPanel source-row navigation + collapse", () => {
 		panel.render(container);
 
 		const group = container.querySelector(
-			".orbit-dangling-group[data-target='MissingNote']",
+			".orbital-dangling-group[data-target='MissingNote']",
 		) as HTMLElement;
-		const actionBtn = group.querySelector(".orbit-dangling-action-btn") as HTMLElement;
+		const actionBtn = group.querySelector(".orbital-dangling-action-btn") as HTMLElement;
 		actionBtn.click();
 
 		expect(group.classList.contains("is-collapsed")).toBe(false);
@@ -361,7 +361,7 @@ describe("DanglingPanel by-source grouping", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const headers = container.querySelectorAll(".orbit-dangling-group-header");
+		const headers = container.querySelectorAll(".orbital-dangling-group-header");
 		const headerTexts = Array.from(headers).map((h) => h.textContent?.trim() ?? "");
 		expect(headerTexts.some((t) => t.includes("source-a"))).toBe(true);
 		expect(headerTexts.some((t) => t.includes("source-b"))).toBe(true);
@@ -378,7 +378,7 @@ describe("DanglingPanel by-source grouping", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const targetItems = container.querySelectorAll(".orbit-dangling-target-item");
+		const targetItems = container.querySelectorAll(".orbital-dangling-target-item");
 		const texts = Array.from(targetItems).map((el) => el.textContent?.trim() ?? "");
 		expect(texts.some((t) => t.includes("MissingTarget"))).toBe(true);
 	});
@@ -798,7 +798,7 @@ describe("DanglingPanel empty state", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const emptyEl = container.querySelector(".orbit-dangling-empty");
+		const emptyEl = container.querySelector(".orbital-dangling-empty");
 		expect(emptyEl).not.toBeNull();
 		expect(emptyEl?.textContent).toMatch(/no dangling/i);
 	});
@@ -811,7 +811,7 @@ describe("DanglingPanel empty state", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const emptyEl = container.querySelector(".orbit-dangling-empty");
+		const emptyEl = container.querySelector(".orbital-dangling-empty");
 		expect(emptyEl).toBeNull();
 	});
 
@@ -826,7 +826,7 @@ describe("DanglingPanel empty state", () => {
 		panel.render(container);
 
 		// "notes/a.md" is not under "other-folder", so scope yields nothing
-		const emptyEl = container.querySelector(".orbit-dangling-empty");
+		const emptyEl = container.querySelector(".orbital-dangling-empty");
 		expect(emptyEl).not.toBeNull();
 	});
 });
@@ -886,8 +886,8 @@ describe("DanglingPanel deep-link via activeFilter", () => {
 		panel.render(container);
 
 		// Only TargetA group should be rendered, not TargetB
-		const targetARow = container.querySelector(".orbit-dangling-group[data-target='TargetA']");
-		const targetBRow = container.querySelector(".orbit-dangling-group[data-target='TargetB']");
+		const targetARow = container.querySelector(".orbital-dangling-group[data-target='TargetA']");
+		const targetBRow = container.querySelector(".orbital-dangling-group[data-target='TargetB']");
 		expect(targetARow).not.toBeNull();
 		expect(targetBRow).toBeNull();
 	});
@@ -904,7 +904,7 @@ describe("DanglingPanel deep-link via activeFilter", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const targetARow = container.querySelector(".orbit-dangling-group[data-target='TargetA']");
+		const targetARow = container.querySelector(".orbital-dangling-group[data-target='TargetA']");
 		expect(targetARow?.classList.contains("is-highlighted")).toBe(true);
 	});
 
@@ -937,7 +937,7 @@ describe("DanglingPanel deep-link via activeFilter", () => {
 		panel.render(container);
 
 		// Empty state still renders (no targets in vault)
-		expect(container.querySelector(".orbit-dangling-empty")).not.toBeNull();
+		expect(container.querySelector(".orbital-dangling-empty")).not.toBeNull();
 		// The filter is still reported as active by the deps (not cleared by render)
 		expect(deps._getActiveFilter()).toBe("Orphan");
 	});
@@ -960,8 +960,8 @@ describe("DanglingPanel activeFilter", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const targetARow = container.querySelector(".orbit-dangling-group[data-target='TargetA']");
-		const targetBRow = container.querySelector(".orbit-dangling-group[data-target='TargetB']");
+		const targetARow = container.querySelector(".orbital-dangling-group[data-target='TargetA']");
+		const targetBRow = container.querySelector(".orbital-dangling-group[data-target='TargetB']");
 		expect(targetARow).not.toBeNull();
 		expect(targetBRow).toBeNull();
 	});
@@ -1023,8 +1023,8 @@ describe("DanglingPanel activeFilter", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const targetARow = container.querySelector(".orbit-dangling-group[data-target='TargetA']");
-		const targetBRow = container.querySelector(".orbit-dangling-group[data-target='TargetB']");
+		const targetARow = container.querySelector(".orbital-dangling-group[data-target='TargetA']");
+		const targetBRow = container.querySelector(".orbital-dangling-group[data-target='TargetB']");
 		expect(targetARow).not.toBeNull();
 		expect(targetBRow).not.toBeNull();
 	});
@@ -1046,8 +1046,8 @@ describe("DanglingPanel activeFilter", () => {
 		const container2 = makeContainer();
 		panel.render(container2);
 
-		const targetARow = container2.querySelector(".orbit-dangling-group[data-target='TargetA']");
-		const targetBRow = container2.querySelector(".orbit-dangling-group[data-target='TargetB']");
+		const targetARow = container2.querySelector(".orbital-dangling-group[data-target='TargetA']");
+		const targetBRow = container2.querySelector(".orbital-dangling-group[data-target='TargetB']");
 		expect(targetARow).not.toBeNull();
 		expect(targetBRow).toBeNull();
 	});
@@ -1097,7 +1097,7 @@ describe("DanglingPanel XSS safety", () => {
 		const scriptTags = container.querySelectorAll("script");
 		expect(scriptTags.length).toBe(0);
 
-		const headers = container.querySelectorAll(".orbit-dangling-group-header");
+		const headers = container.querySelectorAll(".orbital-dangling-group-header");
 		const found = Array.from(headers).some((h) =>
 			h.textContent?.includes("<script>"),
 		);
@@ -1128,7 +1128,7 @@ describe("DanglingPanel list truncation (Gap D)", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const groups = container.querySelectorAll(".orbit-dangling-group");
+		const groups = container.querySelectorAll(".orbital-dangling-group");
 		expect(groups.length).toBe(5);
 	});
 
@@ -1141,7 +1141,7 @@ describe("DanglingPanel list truncation (Gap D)", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const groups = container.querySelectorAll(".orbit-dangling-group");
+		const groups = container.querySelectorAll(".orbital-dangling-group");
 		expect(groups.length).toBeLessThanOrEqual(100);
 	});
 
@@ -1154,7 +1154,7 @@ describe("DanglingPanel list truncation (Gap D)", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const showMore = container.querySelector(".orbit-show-more");
+		const showMore = container.querySelector(".orbital-show-more");
 		expect(showMore).not.toBeNull();
 	});
 
@@ -1167,7 +1167,7 @@ describe("DanglingPanel list truncation (Gap D)", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const showMore = container.querySelector(".orbit-show-more");
+		const showMore = container.querySelector(".orbital-show-more");
 		expect(showMore).toBeNull();
 	});
 
@@ -1180,10 +1180,10 @@ describe("DanglingPanel list truncation (Gap D)", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const showMoreBtn = container.querySelector(".orbit-show-more") as HTMLElement;
+		const showMoreBtn = container.querySelector(".orbital-show-more") as HTMLElement;
 		showMoreBtn.click();
 
-		const groups = container.querySelectorAll(".orbit-dangling-group");
+		const groups = container.querySelectorAll(".orbital-dangling-group");
 		expect(groups.length).toBe(110);
 	});
 });
@@ -1237,7 +1237,7 @@ describe("DanglingPanel by-source truncation", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const showMore = container.querySelector(".orbit-show-more");
+		const showMore = container.querySelector(".orbital-show-more");
 		expect(showMore).not.toBeNull();
 	});
 
@@ -1250,7 +1250,7 @@ describe("DanglingPanel by-source truncation", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const showMore = container.querySelector(".orbit-show-more");
+		const showMore = container.querySelector(".orbital-show-more");
 		expect(showMore).toBeNull();
 	});
 
@@ -1263,7 +1263,7 @@ describe("DanglingPanel by-source truncation", () => {
 		const container = makeContainer();
 		panel.render(container);
 
-		const showMoreBtn = container.querySelector(".orbit-show-more") as HTMLElement;
+		const showMoreBtn = container.querySelector(".orbital-show-more") as HTMLElement;
 		showMoreBtn.click();
 
 		const groups = container.querySelectorAll("[data-source]");

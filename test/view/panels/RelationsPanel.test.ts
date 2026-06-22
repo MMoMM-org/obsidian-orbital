@@ -22,7 +22,7 @@ import type { MetadataCache as IndexMetadataCache } from "graph/LinkGraphIndex";
 import { RelationsPanel } from "view/panels/RelationsPanel";
 import type { RelationsPanelDeps, RelationsPanelApp } from "view/panels/RelationsPanel";
 import type { UnlinkedMentionGroup } from "graph/unlinkedMentions";
-import type { OrbitSettings } from "types/index";
+import type { OrbitalSettings } from "types/index";
 import { DEFAULT_SETTINGS } from "types/index";
 
 // ---------------------------------------------------------------------------
@@ -62,7 +62,7 @@ function nullMentions(): RelationsPanelDeps["mentions"] {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeSettings(overrides?: Partial<OrbitSettings>): OrbitSettings {
+function makeSettings(overrides?: Partial<OrbitalSettings>): OrbitalSettings {
 	return { ...DEFAULT_SETTINGS, ...overrides };
 }
 
@@ -91,7 +91,7 @@ function makeContainer(): HTMLElement {
 }
 
 type MakeDepsOptions = {
-	settings?: Partial<OrbitSettings>;
+	settings?: Partial<OrbitalSettings>;
 	resolved?: Record<string, Record<string, number>>;
 	unresolved?: Record<string, Record<string, number>>;
 	isExcluded?: (path: string) => boolean;
@@ -175,7 +175,7 @@ describe("RelationsPanel section rendering", () => {
 		const container = makeContainer();
 		panel.render(container, "notes/active.md");
 
-		const sections = container.querySelectorAll(".orbit-relations-section");
+		const sections = container.querySelectorAll(".orbital-relations-section");
 		expect(sections.length).toBe(5);
 	});
 
@@ -191,7 +191,7 @@ describe("RelationsPanel section rendering", () => {
 
 		// Query the label spans specifically so count badges don't pollute textContent
 		const labels = Array.from(
-			container.querySelectorAll(".orbit-relations-section-label"),
+			container.querySelectorAll(".orbital-relations-section-label"),
 		).map((el) => el.textContent?.trim() ?? "");
 
 		expect(labels).toContain("Outgoing");
@@ -210,7 +210,7 @@ describe("RelationsPanel section rendering", () => {
 		panel.render(container, "notes/active.md");
 
 		const order = Array.from(
-			container.querySelectorAll(".orbit-relations-section"),
+			container.querySelectorAll(".orbital-relations-section"),
 		).map((el) => el.getAttribute("data-section"));
 		expect(order).toEqual([
 			"outgoing",
@@ -232,7 +232,7 @@ describe("RelationsPanel section rendering", () => {
 		const container = makeContainer();
 		panel.render(container, "notes/active.md");
 
-		const badges = container.querySelectorAll(".orbit-relations-count");
+		const badges = container.querySelectorAll(".orbital-relations-count");
 		expect(badges.length).toBeGreaterThan(0);
 	});
 
@@ -247,7 +247,7 @@ describe("RelationsPanel section rendering", () => {
 		const container = makeContainer();
 		panel.render(container, "notes/active.md");
 
-		const badges = container.querySelectorAll(".orbit-relations-count");
+		const badges = container.querySelectorAll(".orbital-relations-count");
 		expect(badges.length).toBe(0);
 	});
 
@@ -261,7 +261,7 @@ describe("RelationsPanel section rendering", () => {
 		const container = makeContainer();
 		panel.render(container, "notes/active.md");
 
-		const rows = container.querySelectorAll(".orbit-relations-item");
+		const rows = container.querySelectorAll(".orbital-relations-item");
 		const texts = Array.from(rows).map((r) => r.textContent?.trim() ?? "");
 		expect(texts.some((t) => t.includes("target"))).toBe(true);
 	});
@@ -278,7 +278,7 @@ describe("RelationsPanel empty states", () => {
 		const container = makeContainer();
 		panel.render(container, null);
 
-		const emptyState = container.querySelector(".orbit-relations-empty");
+		const emptyState = container.querySelector(".orbital-relations-empty");
 		expect(emptyState).not.toBeNull();
 		expect(emptyState?.textContent).toMatch(/no file open/i);
 	});
@@ -289,7 +289,7 @@ describe("RelationsPanel empty states", () => {
 		const container = makeContainer();
 		panel.render(container, null);
 
-		const sections = container.querySelectorAll(".orbit-relations-section");
+		const sections = container.querySelectorAll(".orbital-relations-section");
 		expect(sections.length).toBe(0);
 	});
 
@@ -302,7 +302,7 @@ describe("RelationsPanel empty states", () => {
 		const container = makeContainer();
 		panel.render(container, "notes/empty.md");
 
-		const sections = container.querySelectorAll(".orbit-relations-section");
+		const sections = container.querySelectorAll(".orbital-relations-section");
 		expect(sections.length).toBe(5);
 	});
 
@@ -316,10 +316,10 @@ describe("RelationsPanel empty states", () => {
 		panel.render(container, "notes/active.md");
 
 		const unlinked = container.querySelector(
-			".orbit-relations-section[data-section='unlinkedMentions']",
+			".orbital-relations-section[data-section='unlinkedMentions']",
 		);
 		expect(unlinked).toBeNull();
-		expect(container.querySelectorAll(".orbit-relations-section").length).toBe(4);
+		expect(container.querySelectorAll(".orbital-relations-section").length).toBe(4);
 	});
 });
 
@@ -359,7 +359,7 @@ describe("RelationsPanel click navigation", () => {
 		const container = makeContainer();
 		panel.render(container, "notes/active.md");
 
-		const row = container.querySelector(".orbit-relations-item") as HTMLElement;
+		const row = container.querySelector(".orbital-relations-item") as HTMLElement;
 		expect(row).not.toBeNull();
 		row.click();
 
@@ -403,7 +403,7 @@ describe("RelationsPanel click navigation", () => {
 		const container = makeContainer();
 		panel.render(container, "notes/active.md");
 
-		const row = container.querySelector(".orbit-relations-item") as HTMLElement;
+		const row = container.querySelector(".orbital-relations-item") as HTMLElement;
 		row.click();
 
 		expect(appInstance.workspace.getLeaf).toHaveBeenCalledWith(true);
@@ -448,7 +448,7 @@ describe("RelationsPanel hover", () => {
 		const container = makeContainer();
 		panel.render(container, "notes/active.md");
 
-		const row = container.querySelector(".orbit-relations-item") as HTMLElement;
+		const row = container.querySelector(".orbital-relations-item") as HTMLElement;
 		row.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
 
 		expect(appInstance.workspace.trigger).toHaveBeenCalledWith(
@@ -507,7 +507,7 @@ describe("RelationsPanel Missing section", () => {
 		expect(manageBtns.length).toBe(2);
 
 		const targetTexts = Array.from(
-			container.querySelectorAll(".orbit-relations-missing-target"),
+			container.querySelectorAll(".orbital-relations-missing-target"),
 		).map((el) => el.textContent?.trim() ?? "");
 		expect(targetTexts).toContain("alpha");
 		expect(targetTexts).toContain("beta");
@@ -527,7 +527,7 @@ describe("RelationsPanel collapse state", () => {
 
 		// The outgoing section should not have the collapsed class
 		const outgoingSection = container.querySelector(
-			".orbit-relations-section[data-section='outgoing']",
+			".orbital-relations-section[data-section='outgoing']",
 		);
 		expect(outgoingSection?.classList.contains("is-collapsed")).toBe(false);
 	});
@@ -539,7 +539,7 @@ describe("RelationsPanel collapse state", () => {
 		panel.render(container, "notes/active.md");
 
 		const outgoingSection = container.querySelector(
-			".orbit-relations-section[data-section='outgoing']",
+			".orbital-relations-section[data-section='outgoing']",
 		);
 		expect(outgoingSection?.classList.contains("is-collapsed")).toBe(true);
 	});
@@ -551,7 +551,7 @@ describe("RelationsPanel collapse state", () => {
 		panel.render(container, "notes/active.md");
 
 		const outgoingHeader = container.querySelector(
-			".orbit-relations-section[data-section='outgoing'] .orbit-relations-section-header",
+			".orbital-relations-section[data-section='outgoing'] .orbital-relations-section-header",
 		) as HTMLElement;
 		outgoingHeader.click();
 
@@ -566,7 +566,7 @@ describe("RelationsPanel collapse state", () => {
 		panel.render(container, "notes/active.md");
 
 		const outgoingHeader = container.querySelector(
-			".orbit-relations-section[data-section='outgoing'] .orbit-relations-section-header",
+			".orbital-relations-section[data-section='outgoing'] .orbital-relations-section-header",
 		) as HTMLElement;
 		outgoingHeader.click();
 
@@ -592,7 +592,7 @@ describe("RelationsPanel truncation", () => {
 		const container = makeContainer();
 		panel.render(container, "notes/active.md");
 
-		const truncationHint = container.querySelector(".orbit-relations-truncated");
+		const truncationHint = container.querySelector(".orbital-relations-truncated");
 		expect(truncationHint).not.toBeNull();
 	});
 
@@ -607,7 +607,7 @@ describe("RelationsPanel truncation", () => {
 		const container = makeContainer();
 		panel.render(container, "notes/active.md");
 
-		const truncationHint = container.querySelector(".orbit-relations-truncated");
+		const truncationHint = container.querySelector(".orbital-relations-truncated");
 		expect(truncationHint).toBeNull();
 	});
 });
@@ -628,7 +628,7 @@ describe("RelationsPanel 2nd-hop grouping", () => {
 		const container = makeContainer();
 		panel.render(container, "notes/active.md");
 
-		const viaLabels = container.querySelectorAll(".orbit-relations-via-label");
+		const viaLabels = container.querySelectorAll(".orbital-relations-via-label");
 		expect(viaLabels.length).toBeGreaterThan(0);
 		expect(viaLabels[0]?.textContent).toMatch(/hop1/);
 	});
@@ -661,8 +661,8 @@ describe("RelationsPanel list truncation (Gap D)", () => {
 		const container = makeContainer();
 		panel.render(container, "notes/active.md");
 
-		const outgoing = container.querySelector(".orbit-relations-section[data-section='outgoing']");
-		const items = outgoing?.querySelectorAll(".orbit-relations-item") ?? [];
+		const outgoing = container.querySelector(".orbital-relations-section[data-section='outgoing']");
+		const items = outgoing?.querySelectorAll(".orbital-relations-item") ?? [];
 		expect(items.length).toBe(5);
 	});
 
@@ -674,8 +674,8 @@ describe("RelationsPanel list truncation (Gap D)", () => {
 		const container = makeContainer();
 		panel.render(container, "notes/active.md");
 
-		const outgoing = container.querySelector(".orbit-relations-section[data-section='outgoing']");
-		const items = outgoing?.querySelectorAll(".orbit-relations-item") ?? [];
+		const outgoing = container.querySelector(".orbital-relations-section[data-section='outgoing']");
+		const items = outgoing?.querySelectorAll(".orbital-relations-item") ?? [];
 		expect(items.length).toBeLessThanOrEqual(100);
 	});
 
@@ -687,8 +687,8 @@ describe("RelationsPanel list truncation (Gap D)", () => {
 		const container = makeContainer();
 		panel.render(container, "notes/active.md");
 
-		const outgoing = container.querySelector(".orbit-relations-section[data-section='outgoing']");
-		const showMore = outgoing?.querySelector(".orbit-show-more");
+		const outgoing = container.querySelector(".orbital-relations-section[data-section='outgoing']");
+		const showMore = outgoing?.querySelector(".orbital-show-more");
 		expect(showMore).not.toBeNull();
 	});
 
@@ -700,8 +700,8 @@ describe("RelationsPanel list truncation (Gap D)", () => {
 		const container = makeContainer();
 		panel.render(container, "notes/active.md");
 
-		const outgoing = container.querySelector(".orbit-relations-section[data-section='outgoing']");
-		const showMore = outgoing?.querySelector(".orbit-show-more");
+		const outgoing = container.querySelector(".orbital-relations-section[data-section='outgoing']");
+		const showMore = outgoing?.querySelector(".orbital-show-more");
 		expect(showMore).toBeNull();
 	});
 
@@ -713,12 +713,12 @@ describe("RelationsPanel list truncation (Gap D)", () => {
 		const container = makeContainer();
 		panel.render(container, "notes/active.md");
 
-		const outgoing = container.querySelector(".orbit-relations-section[data-section='outgoing']");
-		const showMoreBtn = outgoing?.querySelector(".orbit-show-more") as HTMLElement | null;
+		const outgoing = container.querySelector(".orbital-relations-section[data-section='outgoing']");
+		const showMoreBtn = outgoing?.querySelector(".orbital-show-more") as HTMLElement | null;
 		expect(showMoreBtn).not.toBeNull();
 		showMoreBtn!.click();
 
-		const items = outgoing?.querySelectorAll(".orbit-relations-item") ?? [];
+		const items = outgoing?.querySelectorAll(".orbital-relations-item") ?? [];
 		expect(items.length).toBe(110);
 	});
 
@@ -733,9 +733,9 @@ describe("RelationsPanel list truncation (Gap D)", () => {
 		const container = makeContainer();
 		panel.render(container, "notes/active.md");
 
-		const backlinks = container.querySelector(".orbit-relations-section[data-section='backlinks']");
+		const backlinks = container.querySelector(".orbital-relations-section[data-section='backlinks']");
 		expect(backlinks).not.toBeNull();
-		const showMore = backlinks?.querySelector(".orbit-show-more");
+		const showMore = backlinks?.querySelector(".orbital-show-more");
 		expect(showMore).not.toBeNull();
 	});
 
@@ -749,12 +749,12 @@ describe("RelationsPanel list truncation (Gap D)", () => {
 		const container = makeContainer();
 		panel.render(container, "notes/active.md");
 
-		const backlinks = container.querySelector(".orbit-relations-section[data-section='backlinks']");
-		const showMoreBtn = backlinks?.querySelector(".orbit-show-more") as HTMLElement | null;
+		const backlinks = container.querySelector(".orbital-relations-section[data-section='backlinks']");
+		const showMoreBtn = backlinks?.querySelector(".orbital-show-more") as HTMLElement | null;
 		expect(showMoreBtn).not.toBeNull();
 		showMoreBtn!.click();
 
-		const items = backlinks?.querySelectorAll(".orbit-relations-item") ?? [];
+		const items = backlinks?.querySelectorAll(".orbital-relations-item") ?? [];
 		expect(items.length).toBe(110);
 	});
 });
@@ -766,7 +766,7 @@ describe("RelationsPanel list truncation (Gap D)", () => {
 describe("RelationsPanel unlinked mentions", () => {
 	function unlinkedSection(container: HTMLElement): HTMLElement | null {
 		return container.querySelector(
-			".orbit-relations-section[data-section='unlinkedMentions']",
+			".orbital-relations-section[data-section='unlinkedMentions']",
 		);
 	}
 
@@ -782,7 +782,7 @@ describe("RelationsPanel unlinked mentions", () => {
 		const section = unlinkedSection(container);
 		expect(section?.classList.contains("is-collapsed")).toBe(true);
 		expect(deps.mentionsMock.computeGroups).not.toHaveBeenCalled();
-		expect(section?.querySelector(".orbit-relations-mention-group")).toBeNull();
+		expect(section?.querySelector(".orbital-relations-mention-group")).toBeNull();
 	});
 
 	it("shows a scanning placeholder and kicks the scan when expanded without a cached result", () => {
@@ -795,7 +795,7 @@ describe("RelationsPanel unlinked mentions", () => {
 		panel.render(container, "notes/active.md");
 
 		const section = unlinkedSection(container);
-		expect(section?.querySelector(".orbit-relations-mention-loading")).not.toBeNull();
+		expect(section?.querySelector(".orbital-relations-mention-loading")).not.toBeNull();
 		expect(deps.mentionsMock.computeGroups).toHaveBeenCalledWith("notes/active.md");
 	});
 
@@ -810,8 +810,8 @@ describe("RelationsPanel unlinked mentions", () => {
 		panel.render(container, "notes/active.md");
 
 		const section = unlinkedSection(container)!;
-		expect(section.querySelector(".orbit-relations-mention-name")?.textContent).toBe("Hub");
-		expect(section.querySelector(".orbit-relations-mention-highlight")?.textContent).toBe("Note");
+		expect(section.querySelector(".orbital-relations-mention-name")?.textContent).toBe("Hub");
+		expect(section.querySelector(".orbital-relations-mention-highlight")?.textContent).toBe("Note");
 		expect(deps.mentionsMock.computeGroups).not.toHaveBeenCalled();
 	});
 
@@ -840,12 +840,12 @@ describe("RelationsPanel unlinked mentions", () => {
 		const section = unlinkedSection(container)!;
 		// Per-note "Link all" lives in the title row's action cluster.
 		const linkAll = section.querySelector(
-			".orbit-relations-mention-group-header .orbit-relations-mention-link-btn",
+			".orbital-relations-mention-group-header .orbital-relations-mention-link-btn",
 		);
 		expect(linkAll?.textContent).toBe("Link all");
 		// Per-occurrence "Link" lives on the snippet row.
 		const linkOne = section.querySelector(
-			".orbit-relations-mention-snippet .orbit-relations-mention-link-btn",
+			".orbital-relations-mention-snippet .orbital-relations-mention-link-btn",
 		);
 		expect(linkOne?.textContent).toBe("Link");
 		// Neither relies on the native replace-button (hover-hidden) class.
@@ -862,7 +862,7 @@ describe("RelationsPanel unlinked mentions", () => {
 		panel.render(container, "notes/active.md");
 
 		const badge = unlinkedSection(container)!.querySelector(
-			".orbit-relations-mention-linked-badge",
+			".orbital-relations-mention-linked-badge",
 		);
 		expect(badge).not.toBeNull();
 	});
@@ -880,7 +880,7 @@ describe("RelationsPanel unlinked mentions", () => {
 		panel.render(container, "notes/active.md");
 
 		const count = unlinkedSection(container)!
-			.querySelector(".orbit-relations-section-header .orbit-relations-count")?.textContent;
+			.querySelector(".orbital-relations-section-header .orbital-relations-count")?.textContent;
 		expect(count).toBe("2");
 	});
 
@@ -899,7 +899,7 @@ describe("RelationsPanel unlinked mentions", () => {
 		panel.render(container, "notes/active.md");
 
 		const name = unlinkedSection(container)!.querySelector(
-			".orbit-relations-mention-name",
+			".orbital-relations-mention-name",
 		) as HTMLElement;
 		name.click();
 
@@ -920,7 +920,7 @@ describe("RelationsPanel unlinked mentions", () => {
 		panel.render(container, "notes/active.md");
 
 		const btn = unlinkedSection(container)!.querySelector(
-			".orbit-relations-mention-group-header .orbit-relations-mention-link-btn",
+			".orbital-relations-mention-group-header .orbital-relations-mention-link-btn",
 		) as HTMLElement;
 		btn.click();
 
@@ -939,7 +939,7 @@ describe("RelationsPanel unlinked mentions", () => {
 		panel.render(container, "notes/active.md");
 
 		const btn = unlinkedSection(container)!.querySelector(
-			".orbit-relations-mention-snippet .orbit-relations-mention-link-btn",
+			".orbital-relations-mention-snippet .orbital-relations-mention-link-btn",
 		) as HTMLElement;
 		btn.click();
 
@@ -957,7 +957,7 @@ describe("RelationsPanel unlinked mentions", () => {
 		panel.render(container, "notes/active.md");
 
 		const header = unlinkedSection(container)!.querySelector(
-			".orbit-relations-section-header",
+			".orbital-relations-section-header",
 		) as HTMLElement;
 		header.click();
 

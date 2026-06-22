@@ -2,9 +2,9 @@ import { Plugin, addIcon, debounce, setIcon, setTooltip, TFile, TAbstractFile, M
 import type { Debouncer } from "obsidian";
 import { computeRelations } from "graph/relations";
 import { SettingsTab } from "settings/SettingsTab";
-import { DEFAULT_SETTINGS, type OrbitSettings } from "types/index";
-import { OrbitView, VIEW_TYPE } from "view/OrbitView";
-import type { RelationsDeps, DanglingDeps, RecentDeps } from "view/OrbitView";
+import { DEFAULT_SETTINGS, type OrbitalSettings } from "types/index";
+import { OrbitalView, VIEW_TYPE } from "view/OrbitalView";
+import type { RelationsDeps, DanglingDeps, RecentDeps } from "view/OrbitalView";
 import { LinkGraphIndex } from "graph/LinkGraphIndex";
 import { ExclusionMatcher } from "shared/ExclusionMatcher";
 import { LinkRewriteService } from "links/LinkRewriteService";
@@ -23,14 +23,14 @@ import type { Logger } from "shared/logger";
  * Inner SVG markup for a 0 0 100 100 viewBox; uses currentColor so it adopts
  * Obsidian's icon theming. Registered via addIcon() and used as the view icon.
  */
-const ORBIT_ICON_ID = "orbit";
+const ORBIT_ICON_ID = "orbital";
 const ORBIT_ICON_SVG =
 	'<circle cx="50" cy="50" r="12" fill="currentColor"/>' +
 	'<ellipse cx="50" cy="50" rx="42" ry="20" fill="none" stroke="currentColor" stroke-width="7" transform="rotate(-25 50 50)"/>' +
 	'<circle cx="84" cy="33" r="8" fill="currentColor"/>';
 
-export default class OrbitPlugin extends Plugin {
-	settings: OrbitSettings = DEFAULT_SETTINGS;
+export default class OrbitalPlugin extends Plugin {
+	settings: OrbitalSettings = DEFAULT_SETTINGS;
 
 	/** Plugin-scoped link graph index — survives view open/close. */
 	_index: LinkGraphIndex = new LinkGraphIndex(
@@ -84,7 +84,7 @@ export default class OrbitPlugin extends Plugin {
 			(path: string) => this._isExcluded(path),
 		);
 
-		this.registerView(VIEW_TYPE, (leaf) => new OrbitView(
+		this.registerView(VIEW_TYPE, (leaf) => new OrbitalView(
 			leaf,
 			undefined,
 			this._buildRelationsDeps(),
@@ -120,7 +120,7 @@ export default class OrbitPlugin extends Plugin {
 	}
 
 	async loadSettings(): Promise<void> {
-		const stored = (await this.loadData()) as Partial<OrbitSettings> | null;
+		const stored = (await this.loadData()) as Partial<OrbitalSettings> | null;
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, stored);
 	}
 
@@ -138,7 +138,7 @@ export default class OrbitPlugin extends Plugin {
 	 * isExcluded: delegates to _isExcluded (single source of truth).
 	 *
 	 * onManage: (target) → void
-	 *   Switches the active OrbitView to the 'dangling' tab and stashes the
+	 *   Switches the active OrbitalView to the 'dangling' tab and stashes the
 	 *   target for T5.1 deep-link wiring. Uses dynamic view lookup so it works
 	 *   regardless of how many leaves are open.
 	 */
@@ -156,7 +156,7 @@ export default class OrbitPlugin extends Plugin {
 				const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE);
 				for (const leaf of leaves) {
 					const view = leaf.view;
-					if (view instanceof OrbitView) {
+					if (view instanceof OrbitalView) {
 						// setState sets activeDanglingFilter, which DanglingPanel reads
 						// directly via getActiveFilter() on each render.
 						void view.setState(
@@ -344,7 +344,7 @@ export default class OrbitPlugin extends Plugin {
 					resolvedFiles: Object.keys(this.app.metadataCache.resolvedLinks ?? {}).length,
 					unresolvedFiles: Object.keys(this.app.metadataCache.unresolvedLinks ?? {}).length,
 				});
-				// An Orbit pane opened before this point rendered against an empty
+				// An Orbital pane opened before this point rendered against an empty
 				// index; repaint so its counts update from 0 to the real values.
 				this._repaintActivePanel();
 			}
@@ -374,13 +374,13 @@ export default class OrbitPlugin extends Plugin {
 		});
 	}
 
-	/** Repaint the active OrbitView panel if a view is open, and refresh the status bar. */
+	/** Repaint the active OrbitalView panel if a view is open, and refresh the status bar. */
 	private _repaintActivePanel(): void {
 		this._updateStatusBar();
 		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE);
 		for (const leaf of leaves) {
 			const view = leaf.view;
-			if (view instanceof OrbitView) {
+			if (view instanceof OrbitalView) {
 				view.refreshActivePanel();
 			}
 		}
@@ -394,7 +394,7 @@ export default class OrbitPlugin extends Plugin {
 	private _buildStatusBar(): void {
 		if (!this.settings.showStatusBar || this._statusBarItem !== null) return;
 		const item = this.addStatusBarItem();
-		item.addClass("orbit-statusbar", "mod-clickable");
+		item.addClass("orbital-statusbar", "mod-clickable");
 		this.registerDomEvent(item, "click", () => {
 			void this._openRelations();
 		});
@@ -421,7 +421,7 @@ export default class OrbitPlugin extends Plugin {
 		if (item === null) return;
 		item.empty();
 
-		const icon = item.createSpan({ cls: "orbit-statusbar-icon" });
+		const icon = item.createSpan({ cls: "orbital-statusbar-icon" });
 		setIcon(icon, ORBIT_ICON_ID);
 
 		const activePath = this.app.workspace.getActiveFile()?.path ?? null;
@@ -430,7 +430,7 @@ export default class OrbitPlugin extends Plugin {
 
 		if (activePath === null) {
 			label = "–";
-			tooltip = "Orbit — no note open";
+			tooltip = "Orbital — no note open";
 		} else {
 			const result = computeRelations(
 				this._index,
@@ -443,21 +443,21 @@ export default class OrbitPlugin extends Plugin {
 			const secondHop = result.secondHop.reduce((sum, g) => sum + g.items.length, 0);
 			label = `${backlinks}/${secondHop}`;
 			tooltip =
-				`Orbit — ${backlinks} backlink${backlinks === 1 ? "" : "s"}, ` +
+				`Orbital — ${backlinks} backlink${backlinks === 1 ? "" : "s"}, ` +
 				`${secondHop} 2nd-hop note${secondHop === 1 ? "" : "s"}.\nClick to open Relations.`;
 		}
 
-		item.createSpan({ cls: "orbit-statusbar-text", text: label });
+		item.createSpan({ cls: "orbital-statusbar-text", text: label });
 		setTooltip(item, tooltip);
 	}
 
-	/** Open (or focus) the Orbit view and switch it to the Relations tab. */
+	/** Open (or focus) the Orbital view and switch it to the Relations tab. */
 	private async _openRelations(): Promise<void> {
 		await this.activateView();
 		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE);
 		for (const leaf of leaves) {
 			const view = leaf.view;
-			if (view instanceof OrbitView) {
+			if (view instanceof OrbitalView) {
 				void view.setState(
 					{ ...view.getState(), activeTab: "relations" },
 					{ history: false },

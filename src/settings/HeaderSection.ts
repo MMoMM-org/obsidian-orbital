@@ -38,7 +38,7 @@ interface HeaderSectionDeps {
 	plugin: {manifest: PluginManifest};
 }
 
-const REPO_URL = "https://github.com/MMoMM-org/obsidian-orbit";
+const REPO_URL = "https://github.com/MMoMM-org/obsidian-orbital";
 const TAGLINE = "See what orbits your notes.";
 
 function parseAuthorDisplayName(author: string): string {
@@ -58,28 +58,28 @@ export class HeaderSection {
 		const {manifest} = this.plugin;
 		const manifestWithUrl = manifest as PluginManifest & {authorUrl?: string};
 
-		const textCol = containerEl.createDiv({cls: "orbit-header-text"});
-		const identity = textCol.createDiv({cls: "orbit-header-identity"});
+		const textCol = containerEl.createDiv({cls: "orbital-header-text"});
+		const identity = textCol.createDiv({cls: "orbital-header-identity"});
 
-		identity.createSpan({text: manifest.name, cls: "orbit-plugin-name"});
+		identity.createSpan({text: manifest.name, cls: "orbital-plugin-name"});
 		identity.createSpan({text: ` v${manifest.version}`});
 
 		const authorName = parseAuthorDisplayName(manifest.author ?? "");
-		identity.createSpan({text: " · ", cls: "orbit-header-sep"});
+		identity.createSpan({text: " · ", cls: "orbital-header-sep"});
 		if (manifestWithUrl.authorUrl !== undefined) {
 			identity.createEl("a", {text: authorName, href: manifestWithUrl.authorUrl});
 		} else {
 			identity.createSpan({text: authorName});
 		}
 
-		identity.createSpan({text: " · ", cls: "orbit-header-sep"});
+		identity.createSpan({text: " · ", cls: "orbital-header-sep"});
 		identity.createEl("a", {text: "Documentation", href: REPO_URL});
 
-		textCol.createEl("p", {text: TAGLINE, cls: "orbit-tagline"});
+		textCol.createEl("p", {text: TAGLINE, cls: "orbital-tagline"});
 
 		if (hankoImageUrl !== null) {
 			containerEl.createEl("img", {
-				cls: "orbit-header-hanko",
+				cls: "orbital-header-hanko",
 				attr: {
 					src: hankoImageUrl,
 					alt: `${manifest.name} hanko`,

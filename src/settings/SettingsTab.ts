@@ -1,14 +1,14 @@
-import type OrbitPlugin from "main";
+import type OrbitalPlugin from "main";
 import { type App, PluginSettingTab, Setting } from "obsidian";
 import type { DanglingGrouping, DanglingScope, TabId } from "types/index";
 
 import { HeaderSection } from "./HeaderSection";
 
 export class SettingsTab extends PluginSettingTab {
-	plugin: OrbitPlugin;
+	plugin: OrbitalPlugin;
 	private readonly header: HeaderSection;
 
-	constructor(app: App, plugin: OrbitPlugin) {
+	constructor(app: App, plugin: OrbitalPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 		this.header = new HeaderSection({ plugin });
@@ -17,9 +17,9 @@ export class SettingsTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
-		containerEl.addClass("orbit-settings");
+		containerEl.addClass("orbital-settings");
 
-		const headerEl = containerEl.createDiv({ cls: "orbit-settings-header" });
+		const headerEl = containerEl.createDiv({ cls: "orbital-settings-header" });
 		this.header.render(headerEl);
 
 		this.renderGeneralSection(containerEl);

@@ -22,8 +22,8 @@ arrives, it resolves `null` as before. See `src/modals/NotePickerModal.ts`
 
 **Related:** chaining a second modal right after a picker closes can also be
 swallowed — open the follow-up modal on a deferred macrotask too (see
-`DanglingPanel.handleAlias`). Toggle **Settings → Orbit → Advanced → Debug logging**
-for `[Orbit] …` traces (gated via `src/shared/logger.ts`).
+`DanglingPanel.handleAlias`). Toggle **Settings → Orbital → Advanced → Debug logging**
+for `[Orbital] …` traces (gated via `src/shared/logger.ts`).
 
 ## `leaf.openLinkText(..., truthy)` throws "Cannot create property 'state' on …"
 

@@ -1,6 +1,6 @@
 {
-	"id": "orbit",
-	"name": "Orbit",
+	"id": "orbital",
+	"name": "Orbital",
 	"version": "0.9.0",
 	"minAppVersion": "1.5.7",
 	"description": "Explore note relations, fix dangling links in bulk, and track recent files — all in one sidebar pane.",

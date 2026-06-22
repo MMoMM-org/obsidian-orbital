@@ -28,14 +28,14 @@ function makeApp(): App {
 }
 
 /**
- * Re-import OrbitPlugin fresh each time to avoid module-level singleton state.
+ * Re-import OrbitalPlugin fresh each time to avoid module-level singleton state.
  * Each test call gets an isolated plugin instance.
  */
 async function makePlugin(app: App) {
 	// Bypass Vite module cache with a cache-busting query param isn't straightforward,
 	// so we keep a single static import and construct fresh instances.
-	const { default: OrbitPlugin } = await import("main");
-	return new OrbitPlugin(app as unknown as Parameters<typeof OrbitPlugin>[0]);
+	const { default: OrbitalPlugin } = await import("main");
+	return new OrbitalPlugin(app as unknown as Parameters<typeof OrbitalPlugin>[0]);
 }
 
 // ---------------------------------------------------------------------------

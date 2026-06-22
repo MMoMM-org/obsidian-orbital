@@ -6,7 +6,7 @@
  *
  * Design decisions:
  * - Pure render: `render(container)` always rebuilds the subtree from scratch;
- *   callers re-invoke on store changes (driven by OrbitView in T4.3b).
+ *   callers re-invoke on store changes (driven by OrbitalView in T4.3b).
  * - No innerHTML: all nodes via createEl/createDiv/createSpan (CON-3).
  * - Collision disambiguation: when two visible entries share a basename, a
  *   muted folder path is shown next to each one.
@@ -132,7 +132,7 @@ export class RecentPanel {
 
 		const collisionSet = this.buildCollisionSet(entries);
 		const list = (container as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-recent-list",
+			cls: "orbital-recent-list",
 		});
 
 		this.renderRowsWithCap(list, Array.from(entries), collisionSet);
@@ -151,7 +151,7 @@ export class RecentPanel {
 		if (entries.length > RENDER_CAP) {
 			const overflow = entries.slice(RENDER_CAP);
 			const showMoreBtn = (list as unknown as AugmentedEl).createEl("button", {
-				cls: "orbit-show-more",
+				cls: "orbital-show-more",
 				text: `Show ${overflow.length} more…`,
 			});
 
@@ -172,18 +172,18 @@ export class RecentPanel {
 		if (entries.length === 0) return;
 
 		const toolbar = (container as unknown as AugmentedEl).createDiv({
-			cls: "orbit-recent-toolbar",
+			cls: "orbital-recent-toolbar",
 		});
 
 		const clearBtn = (toolbar as unknown as AugmentedEl).createEl("button", {
-			cls: "clickable-icon orbit-recent-clear-btn",
+			cls: "clickable-icon orbital-recent-clear-btn",
 			attr: { "aria-label": "Clear list" },
 		});
 
 		setIcon(clearBtn, "trash");
 
 		const clearLabel = (clearBtn as unknown as AugmentedEl).createSpan({
-			cls: "orbit-recent-clear-label",
+			cls: "orbital-recent-clear-label",
 			text: "Clear list",
 		});
 		clearLabel.setAttribute("aria-hidden", "true");
@@ -205,7 +205,7 @@ export class RecentPanel {
 		showPath: boolean,
 	): void {
 		const row = (container as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-recent-row nav-file tree-item-self is-clickable",
+			cls: "orbital-recent-row nav-file tree-item-self is-clickable",
 			attr: {
 				draggable: "true",
 				"data-path": entry.path,
@@ -214,25 +214,25 @@ export class RecentPanel {
 
 		// Label area
 		const labelWrap = (row as unknown as AugmentedEl).createDiv({
-			cls: "orbit-recent-label",
+			cls: "orbital-recent-label",
 		});
 
 		(labelWrap as unknown as AugmentedEl).createSpan({
-			cls: "orbit-recent-basename",
+			cls: "orbital-recent-basename",
 			text: entry.basename,
 		});
 
 		if (showPath) {
 			const folder = this.folderOf(entry.path);
 			(labelWrap as unknown as AugmentedEl).createSpan({
-				cls: "orbit-recent-path",
+				cls: "orbital-recent-path",
 				text: folder,
 			});
 		}
 
 		// Action buttons area (always-visible, ≥44px via CSS)
 		const actions = (row as unknown as AugmentedEl).createDiv({
-			cls: "orbit-recent-actions",
+			cls: "orbital-recent-actions",
 		});
 
 		// Mobile insert button
@@ -247,7 +247,7 @@ export class RecentPanel {
 		this.deps.registerDomEvent(row, "click", (evt) => {
 			// Ignore clicks that originated from the action buttons
 			const target = evt.target as HTMLElement;
-			if (target.closest(".orbit-recent-actions") !== null) return;
+			if (target.closest(".orbital-recent-actions") !== null) return;
 
 			void this.handleRowClick(entry, evt);
 		});
@@ -268,7 +268,7 @@ export class RecentPanel {
 		entry: RecentFileEntry,
 	): void {
 		const btn = (container as unknown as AugmentedEl).createEl("button", {
-			cls: "clickable-icon orbit-recent-action-btn",
+			cls: "clickable-icon orbital-recent-action-btn",
 			attr: { "aria-label": "Remove from recent list" },
 		});
 
@@ -291,7 +291,7 @@ export class RecentPanel {
 						: null;
 					const target = escapedPath !== null
 						? currentContainer.querySelector<HTMLElement>(`[data-path="${escapedPath}"]`)
-						: currentContainer.querySelector<HTMLElement>(".orbit-recent-row");
+						: currentContainer.querySelector<HTMLElement>(".orbital-recent-row");
 					target?.focus();
 				}
 			});
@@ -299,13 +299,13 @@ export class RecentPanel {
 	}
 
 	/**
-	 * Returns the data-path of the next or previous .orbit-recent-row sibling
+	 * Returns the data-path of the next or previous .orbital-recent-row sibling
 	 * relative to `row` within the same list container, or null if none exists.
 	 */
 	private findSiblingRow(row: HTMLElement, direction: "next" | "prev"): string | null {
 		const parent = row.parentElement;
 		if (parent === null) return null;
-		const rows = Array.from(parent.querySelectorAll(".orbit-recent-row"));
+		const rows = Array.from(parent.querySelectorAll(".orbital-recent-row"));
 		const idx = rows.indexOf(row);
 		if (idx === -1) return null;
 		const sibling = direction === "next" ? rows[idx + 1] : rows[idx - 1];
@@ -314,7 +314,7 @@ export class RecentPanel {
 
 	private renderInsertBtn(container: HTMLElement, entry: RecentFileEntry): void {
 		const btn = (container as unknown as AugmentedEl).createEl("button", {
-			cls: "clickable-icon orbit-recent-action-btn",
+			cls: "clickable-icon orbital-recent-action-btn",
 			attr: { "aria-label": "Insert link" },
 		});
 
@@ -351,7 +351,7 @@ export class RecentPanel {
 
 	private renderEmptyState(container: HTMLElement): void {
 		(container as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-recent-empty",
+			cls: "orbital-recent-empty",
 			text: "No recent notes yet.",
 		});
 	}

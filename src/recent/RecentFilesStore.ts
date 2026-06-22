@@ -1,6 +1,6 @@
-import type { OrbitSettings } from "types/index";
+import type { OrbitalSettings } from "types/index";
 
-/** Entry shape mirroring OrbitSettings.recentFiles. */
+/** Entry shape mirroring OrbitalSettings.recentFiles. */
 export type RecentFileEntry = { path: string; basename: string };
 
 /**
@@ -12,7 +12,7 @@ export type RecentFileEntry = { path: string; basename: string };
 export interface RecentFilesStoreDeps {
 	/** Returns the live settings object — read on every mutation so changes to
 	 *  recentListLength or recentFiles take effect immediately. */
-	getSettings: () => OrbitSettings;
+	getSettings: () => OrbitalSettings;
 	/** Persists the settings object to disk (plugin.saveSettings). */
 	saveSettings: () => Promise<void>;
 	/** Returns true when a file at the given path should be excluded from recents. */

@@ -1,5 +1,5 @@
 /**
- * OrbitView — the main three-tab sidebar view for the Orbit plugin.
+ * OrbitalView — the main three-tab sidebar view for the Orbital plugin.
  *
  * Extends Obsidian's ItemView and hosts the TabBar + a single active panel
  * at a time. Panel render functions are injected via a registry keyed by
@@ -10,12 +10,12 @@
  * internal refs are cleared via this.register.
  *
  * Relations wiring (T2.4):
- *   Pass `relationsDeps` to the constructor and OrbitView will build the
+ *   Pass `relationsDeps` to the constructor and OrbitalView will build the
  *   real RelationsPanel for the 'relations' tab, backed by the plugin's
  *   shared index and settings.
  *
  * Dangling wiring (T3.4b):
- *   Pass `danglingDeps` to the constructor and OrbitView will build the
+ *   Pass `danglingDeps` to the constructor and OrbitalView will build the
  *   real DanglingPanel for the 'dangling' tab, backed by the plugin's
  *   shared index, settings, and link-rewrite service.
  *
@@ -28,7 +28,7 @@
 
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import type { ViewStateResult } from "obsidian";
-import type { OrbitViewState, TabId, DanglingGrouping } from "types/index";
+import type { OrbitalViewState, TabId, DanglingGrouping } from "types/index";
 import { TabBar, TAB_DEFINITIONS } from "view/TabBar";
 import { RelationsPanel } from "view/panels/RelationsPanel";
 import type { RelationsPanelDeps } from "view/panels/RelationsPanel";
@@ -37,7 +37,7 @@ import type { DanglingPanelDeps } from "view/panels/DanglingPanel";
 import { RecentPanel } from "view/panels/RecentPanel";
 import type { RecentPanelDeps } from "view/panels/RecentPanel";
 
-export const VIEW_TYPE = "orbit";
+export const VIEW_TYPE = "orbital";
 
 const VALID_TABS: ReadonlySet<string> = new Set(
 	TAB_DEFINITIONS.map((t) => t.id),
@@ -52,13 +52,13 @@ export type PanelRenderer = (container: HTMLElement, activePath: string | null) 
 /**
  * Dependencies the plugin supplies for building the Relations panel.
  * Everything except `getCollapsed`, `setCollapsed`, and `registerDomEvent`
- * (those are owned by OrbitView itself).
+ * (those are owned by OrbitalView itself).
  */
 export type RelationsDeps = Omit<RelationsPanelDeps, "getCollapsed" | "setCollapsed" | "registerDomEvent" | "requestRefresh">;
 
 /**
  * Dependencies the plugin supplies for building the Dangling panel.
- * OrbitView fills the view-owned deps: getGrouping/setGrouping, getScope/setScope,
+ * OrbitalView fills the view-owned deps: getGrouping/setGrouping, getScope/setScope,
  * getFolderPath, getActiveFilter/setActiveFilter/clearActiveFilter, and registerDomEvent.
  */
 export type DanglingDeps = Omit<
@@ -76,24 +76,24 @@ export type DanglingDeps = Omit<
 
 /**
  * Dependencies the plugin supplies for building the Recent panel.
- * OrbitView fills only `registerDomEvent` (view-lifecycle owned).
+ * OrbitalView fills only `registerDomEvent` (view-lifecycle owned).
  */
 export type RecentDeps = Omit<RecentPanelDeps, "registerDomEvent">;
 
 const DEFAULT_PANEL_RENDERERS: Record<TabId, PanelRenderer> = {
 	relations: (el) => {
-		el.createDiv({ cls: "orbit-panel-placeholder", text: "Relations" });
+		el.createDiv({ cls: "orbital-panel-placeholder", text: "Relations" });
 	},
 	dangling: (el) => {
-		el.createDiv({ cls: "orbit-panel-placeholder", text: "Dangling links" });
+		el.createDiv({ cls: "orbital-panel-placeholder", text: "Dangling links" });
 	},
 	recent: (el) => {
-		el.createDiv({ cls: "orbit-panel-placeholder", text: "Recent notes" });
+		el.createDiv({ cls: "orbital-panel-placeholder", text: "Recent notes" });
 	},
 };
 
-export class OrbitView extends ItemView {
-	private state: OrbitViewState = {
+export class OrbitalView extends ItemView {
+	private state: OrbitalViewState = {
 		activeTab: "relations",
 		danglingScope: "vault",
 		danglingGrouping: "target",
@@ -116,19 +116,19 @@ export class OrbitView extends ItemView {
 		 */
 		panelRenderers?: Partial<Record<TabId, PanelRenderer>>,
 		/**
-		 * When supplied, OrbitView constructs the real RelationsPanel backed
+		 * When supplied, OrbitalView constructs the real RelationsPanel backed
 		 * by the plugin's index + settings. When absent, the default placeholder
 		 * is used (tests that don't need the real panel can omit this).
 		 */
 		relationsDeps?: RelationsDeps,
 		/**
-		 * When supplied, OrbitView constructs the real DanglingPanel backed
+		 * When supplied, OrbitalView constructs the real DanglingPanel backed
 		 * by the plugin's index, settings, and link-rewrite service.
 		 * When absent, the default placeholder is used.
 		 */
 		danglingDeps?: DanglingDeps,
 		/**
-		 * When supplied, OrbitView constructs the real RecentPanel backed
+		 * When supplied, OrbitalView constructs the real RecentPanel backed
 		 * by the plugin's shared RecentFilesStore and DragInsertHelper.
 		 * When absent, the default placeholder is used.
 		 */
@@ -171,7 +171,7 @@ export class OrbitView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return "Orbit";
+		return "Orbital";
 	}
 
 	getIcon(): string {
@@ -198,7 +198,7 @@ export class OrbitView extends ItemView {
 			},
 		});
 
-		this.panelContainer = this.contentEl.createDiv({ cls: "orbit-panel-container" });
+		this.panelContainer = this.contentEl.createDiv({ cls: "orbital-panel-container" });
 		this.renderPanel(this.state.activeTab);
 
 		// Register a cleanup function so _runCleanup() can be asserted in tests.
@@ -231,7 +231,7 @@ export class OrbitView extends ItemView {
 	async setState(state: unknown, result: ViewStateResult): Promise<void> {
 		await super.setState(state, result);
 
-		const incoming = state as Partial<OrbitViewState>;
+		const incoming = state as Partial<OrbitalViewState>;
 		const newTab = incoming.activeTab;
 		const resolvedTab: TabId = (newTab && VALID_TABS.has(newTab))
 			? newTab
@@ -311,7 +311,7 @@ export class OrbitView extends ItemView {
 	 * Constructs a new DanglingPanel on each render call so the panel always
 	 * reflects the latest deps state (settings, index) without stale closures.
 	 * View-owned deps (grouping, scope, folderPath, activeFilter) are
-	 * read from OrbitView's own state at render time.
+	 * read from OrbitalView's own state at render time.
 	 */
 	private _buildDanglingRenderer(deps: DanglingDeps): PanelRenderer {
 		// activePath is intentionally omitted: DanglingPanel resolves its own path via getFolderPath/getActiveFile.
@@ -384,8 +384,8 @@ export class OrbitView extends ItemView {
 		const panelEl = this.panelContainer.createEl("div", {
 			attr: {
 				role: "tabpanel",
-				"aria-labelledby": `orbit-tab-${tabId}`,
-				id: `orbit-tab-panel-${tabId}`,
+				"aria-labelledby": `orbital-tab-${tabId}`,
+				id: `orbital-tab-panel-${tabId}`,
 				tabindex: "-1",
 			},
 		});

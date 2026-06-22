@@ -11,14 +11,14 @@
 import { describe, it, expect, vi } from "vitest";
 import { RecentFilesStore } from "recent/RecentFilesStore";
 import type { RecentFilesStoreDeps } from "recent/RecentFilesStore";
-import type { OrbitSettings } from "types/index";
+import type { OrbitalSettings } from "types/index";
 import { DEFAULT_SETTINGS } from "types/index";
 
 // ---------------------------------------------------------------------------
 // Helpers / factories
 // ---------------------------------------------------------------------------
 
-function makeSettings(overrides?: Partial<OrbitSettings>): OrbitSettings {
+function makeSettings(overrides?: Partial<OrbitalSettings>): OrbitalSettings {
 	return {
 		...DEFAULT_SETTINGS,
 		recentListLength: 5,
@@ -27,7 +27,7 @@ function makeSettings(overrides?: Partial<OrbitSettings>): OrbitSettings {
 	};
 }
 
-function makeDeps(settings: OrbitSettings): RecentFilesStoreDeps & {
+function makeDeps(settings: OrbitalSettings): RecentFilesStoreDeps & {
 	saveSettings: ReturnType<typeof vi.fn>;
 	isExcluded: ReturnType<typeof vi.fn>;
 } {

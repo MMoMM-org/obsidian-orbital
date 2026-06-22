@@ -52,7 +52,7 @@ collapsed → no scan; expanded + cached → render synchronously from `peek`;
 expanded + uncached → "Scanning…" placeholder, kick `computeGroups`, then
 `requestRefresh` re-renders from the now-warm cache (service de-dupes in-flight
 scans so it terminates in one round-trip). Default-collapsed is seeded in
-`OrbitView` initial `collapsedSections: ["unlinkedMentions"]`.
+`OrbitalView` initial `collapsedSections: ["unlinkedMentions"]`.
 
 Deliberate v1 limits: no global "Link all" (only per-note / per-occurrence);
 click opens the file but does not jump to the match offset; match options
@@ -65,6 +65,6 @@ The mention section reuses Obsidian's core search-result/tree-item class names
 `tree-item-flair`, `search-result-file-matches`, `search-result-file-match`,
 `search-result-file-matched-text`, `search-result-file-match-replace-button`)
 so it inherits the exact look of the core Backlinks pane and the user's theme.
-Orbit-prefixed classes are kept alongside as stable test/style hooks. Groups
+orbital-prefixed classes are kept alongside as stable test/style hooks. Groups
 render expanded by default (like the native pane). We omit the native
 "Show more context" hover buttons.
