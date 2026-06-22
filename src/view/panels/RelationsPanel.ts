@@ -7,7 +7,7 @@
  *
  * Design decisions:
  * - Pure render: `render(container, activePath)` always rebuilds the subtree
- *   from scratch; callers re-invoke on vault changes (driven by OrbitView).
+ *   from scratch; callers re-invoke on vault changes (driven by OrbitalView).
  * - No innerHTML: all nodes created via Obsidian's `createEl`/`createDiv`/
  *   `createSpan` helpers (augmented on HTMLElement in production and in tests).
  * - DOM listeners routed through the injected `registerDomEvent` delegate
@@ -21,7 +21,7 @@ import { computeRelations } from "graph/relations";
 import type { RelationsMetadataCache } from "graph/relations";
 import type { LinkGraphIndex } from "graph/LinkGraphIndex";
 import type { UnlinkedMentionGroup, UnlinkedMentionItem } from "graph/unlinkedMentions";
-import type { OrbitSettings, RelationItem, MissingItem, SecondHopGroup } from "types/index";
+import type { OrbitalSettings, RelationItem, MissingItem, SecondHopGroup } from "types/index";
 
 // ---------------------------------------------------------------------------
 // Structural app subset
@@ -59,7 +59,7 @@ export interface RelationsPanelDeps {
 	/** Pre-built link graph index. */
 	index: LinkGraphIndex;
 	/** Returns current plugin settings (called on each render). */
-	getSettings: () => OrbitSettings;
+	getSettings: () => OrbitalSettings;
 	/**
 	 * Structural Obsidian App subset — provides workspace + metadataCache.
 	 * Production: pass the real `this.app`. Tests: pass a mock App instance.
@@ -238,39 +238,39 @@ export class RelationsPanel {
 		container: HTMLElement,
 		activePath: string,
 		collapsed: string[],
-		settings: OrbitSettings,
+		settings: OrbitalSettings,
 	): void {
 		const key = "unlinkedMentions";
 		const isCollapsed = collapsed.includes(key);
 		const cached = this.deps.mentions.peek(activePath);
 
 		const section = (container as unknown as AugmentedEl).createEl("div", {
-			cls: `orbit-relations-section${isCollapsed ? " is-collapsed" : ""}`,
+			cls: `orbital-relations-section${isCollapsed ? " is-collapsed" : ""}`,
 			attr: { "data-section": key },
 		});
 
 		const header = (section as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-relations-section-header tree-item-self is-clickable",
+			cls: "orbital-relations-section-header tree-item-self is-clickable",
 		});
 		const label = SECTIONS.find((s) => s.key === key)?.label ?? key;
-		(header as unknown as AugmentedEl).createSpan({ cls: "orbit-relations-section-label", text: label });
+		(header as unknown as AugmentedEl).createSpan({ cls: "orbital-relations-section-label", text: label });
 
 		if (settings.showCounts && cached !== null) {
 			const total = cached.reduce((sum, g) => sum + g.matches.length, 0);
 			(header as unknown as AugmentedEl).createSpan({
-				cls: "orbit-relations-count",
+				cls: "orbital-relations-count",
 				text: String(total),
 			});
 		}
 
 		const children = (section as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-relations-section-children tree-item-children",
+			cls: "orbital-relations-section-children tree-item-children",
 		});
 
 		if (!isCollapsed) {
 			if (cached === null) {
 				(children as unknown as AugmentedEl).createEl("div", {
-					cls: "orbit-relations-mention-loading",
+					cls: "orbital-relations-mention-loading",
 					text: "Scanning…",
 				});
 				void this.deps.mentions
@@ -278,7 +278,7 @@ export class RelationsPanel {
 					.then(() => this.deps.requestRefresh());
 			} else if (cached.length === 0) {
 				(children as unknown as AugmentedEl).createEl("div", {
-					cls: "orbit-relations-empty",
+					cls: "orbital-relations-empty",
 					text: "No unlinked mentions.",
 				});
 			} else {
@@ -299,48 +299,48 @@ export class RelationsPanel {
 	/**
 	 * Render one source-note group using Obsidian's native search-result / tree-item
 	 * class names so it inherits the exact look of the core Backlinks pane (collapse
-	 * chevron, snippet cards, matched-text highlight). Orbit-prefixed classes are kept
+	 * chevron, snippet cards, matched-text highlight). Orbital-prefixed classes are kept
 	 * alongside as stable hooks for styling/tests.
 	 */
 	private renderMentionGroup(
 		container: HTMLElement,
 		group: UnlinkedMentionGroup,
 		activePath: string,
-		settings: OrbitSettings,
+		settings: OrbitalSettings,
 	): void {
 		const groupEl = (container as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-relations-mention-group tree-item search-result",
+			cls: "orbital-relations-mention-group tree-item search-result",
 		});
 
 		const headerEl = (groupEl as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-relations-mention-group-header tree-item-self search-result-file-title is-clickable",
+			cls: "orbital-relations-mention-group-header tree-item-self search-result-file-title is-clickable",
 		});
 
 		const caret = (headerEl as unknown as AugmentedEl).createDiv({
-			cls: "orbit-relations-mention-caret tree-item-icon collapse-icon",
+			cls: "orbital-relations-mention-caret tree-item-icon collapse-icon",
 		});
 		setIcon(caret, "right-triangle");
 
 		const nameEl = (headerEl as unknown as AugmentedEl).createDiv({
-			cls: "orbit-relations-mention-name tree-item-inner",
+			cls: "orbital-relations-mention-name tree-item-inner",
 			text: group.display,
 		});
 
 		// Right-aligned action cluster: badge, Link-all button, count flair.
 		const actions = (headerEl as unknown as AugmentedEl).createDiv({
-			cls: "orbit-relations-mention-actions",
+			cls: "orbital-relations-mention-actions",
 		});
 
 		if (group.alreadyLinks) {
 			(actions as unknown as AugmentedEl).createEl("span", {
-				cls: "orbit-relations-mention-linked-badge",
+				cls: "orbital-relations-mention-linked-badge",
 				text: "🔗",
 				attr: { "aria-label": "Already links to the active note" },
 			});
 		}
 
 		const linkAllBtn = (actions as unknown as AugmentedEl).createEl("button", {
-			cls: "orbit-relations-mention-link-btn",
+			cls: "orbital-relations-mention-link-btn",
 			text: "Link all",
 			attr: { "aria-label": "Link all mentions in this note" },
 		});
@@ -350,13 +350,13 @@ export class RelationsPanel {
 				cls: "tree-item-flair-outer",
 			});
 			(flairOuter as unknown as AugmentedEl).createSpan({
-				cls: "orbit-relations-count tree-item-flair",
+				cls: "orbital-relations-count tree-item-flair",
 				text: String(group.matches.length),
 			});
 		}
 
 		const snippetsEl = (groupEl as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-relations-mention-snippets search-result-file-matches",
+			cls: "orbital-relations-mention-snippets search-result-file-matches",
 		});
 		for (const item of group.matches) {
 			this.renderMentionSnippet(snippetsEl, group, item, activePath, settings);
@@ -397,24 +397,24 @@ export class RelationsPanel {
 		group: UnlinkedMentionGroup,
 		item: UnlinkedMentionItem,
 		activePath: string,
-		settings: OrbitSettings,
+		settings: OrbitalSettings,
 	): void {
 		const row = (container as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-relations-mention-snippet search-result-file-match tappable",
+			cls: "orbital-relations-mention-snippet search-result-file-match tappable",
 		});
 
 		const textWrap = (row as unknown as AugmentedEl).createSpan({
-			cls: "orbit-relations-mention-snippet-text",
+			cls: "orbital-relations-mention-snippet-text",
 		});
 		(textWrap as unknown as AugmentedEl).createSpan({ text: item.snippet.before });
 		(textWrap as unknown as AugmentedEl).createSpan({
-			cls: "orbit-relations-mention-highlight search-result-file-matched-text",
+			cls: "orbital-relations-mention-highlight search-result-file-matched-text",
 			text: item.snippet.hit,
 		});
 		(textWrap as unknown as AugmentedEl).createSpan({ text: item.snippet.after });
 
 		const linkBtn = (row as unknown as AugmentedEl).createEl("button", {
-			cls: "orbit-relations-mention-link-btn",
+			cls: "orbital-relations-mention-link-btn",
 			text: "Link",
 			attr: { "aria-label": "Link this mention" },
 		});
@@ -443,7 +443,7 @@ export class RelationsPanel {
 		path: string,
 		activePath: string,
 		evt: MouseEvent,
-		settings: OrbitSettings,
+		settings: OrbitalSettings,
 	): void {
 		const newLeaf = Keymap.isModEvent(evt) || settings.unlinkedOpenInNewTab;
 		const leaf = this.deps.app.workspace.getLeaf(newLeaf);
@@ -465,26 +465,26 @@ export class RelationsPanel {
 		const settings = this.deps.getSettings();
 
 		const section = (container as unknown as AugmentedEl).createEl("div", {
-			cls: `orbit-relations-section${isCollapsed ? " is-collapsed" : ""}`,
+			cls: `orbital-relations-section${isCollapsed ? " is-collapsed" : ""}`,
 			attr: { "data-section": key },
 		});
 
 		const header = (section as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-relations-section-header tree-item-self is-clickable",
+			cls: "orbital-relations-section-header tree-item-self is-clickable",
 		});
 
 		const label = SECTIONS.find((s) => s.key === key)?.label ?? key;
-		(header as unknown as AugmentedEl).createSpan({ cls: "orbit-relations-section-label", text: label });
+		(header as unknown as AugmentedEl).createSpan({ cls: "orbital-relations-section-label", text: label });
 
 		if (settings.showCounts) {
 			(header as unknown as AugmentedEl).createSpan({
-				cls: "orbit-relations-count",
+				cls: "orbital-relations-count",
 				text: String(count),
 			});
 		}
 
 		const children = (section as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-relations-section-children tree-item-children",
+			cls: "orbital-relations-section-children tree-item-children",
 		});
 
 		renderChildren(children);
@@ -503,13 +503,13 @@ export class RelationsPanel {
 		container: HTMLElement,
 		item: RelationItem,
 		activePath: string,
-		_settings: OrbitSettings,
+		_settings: OrbitalSettings,
 	): void {
 		const row = (container as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-relations-item tree-item nav-file-title is-clickable",
+			cls: "orbital-relations-item tree-item nav-file-title is-clickable",
 			attr: { "data-path": item.path },
 		});
-		(row as unknown as AugmentedEl).createSpan({ cls: "orbit-relations-item-label", text: item.display });
+		(row as unknown as AugmentedEl).createSpan({ cls: "orbital-relations-item-label", text: item.display });
 
 		this.deps.registerDomEvent(row, "click", (evt) => {
 			// getLeaf picks the leaf; openLinkText takes no newLeaf arg (its 3rd
@@ -534,16 +534,16 @@ export class RelationsPanel {
 		container: HTMLElement,
 		group: SecondHopGroup,
 		activePath: string,
-		settings: OrbitSettings,
+		settings: OrbitalSettings,
 	): void {
 		const groupEl = (container as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-relations-via-group",
+			cls: "orbital-relations-via-group",
 		});
 		(groupEl as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-relations-via-label",
+			cls: "orbital-relations-via-label",
 			text: group.via.display,
 		});
-		const itemsEl = (groupEl as unknown as AugmentedEl).createEl("div", { cls: "orbit-relations-via-items" });
+		const itemsEl = (groupEl as unknown as AugmentedEl).createEl("div", { cls: "orbital-relations-via-items" });
 		for (const item of group.items) {
 			this.renderResolvedItem(itemsEl, item, activePath, settings);
 		}
@@ -551,14 +551,14 @@ export class RelationsPanel {
 
 	private renderMissingItem(container: HTMLElement, item: MissingItem): void {
 		const row = (container as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-relations-missing-row",
+			cls: "orbital-relations-missing-row",
 		});
 		(row as unknown as AugmentedEl).createSpan({
-			cls: "orbit-relations-missing-target",
+			cls: "orbital-relations-missing-target",
 			text: item.target,
 		});
 		const btn = (row as unknown as AugmentedEl).createEl("button", {
-			cls: "orbit-relations-manage-btn",
+			cls: "orbital-relations-manage-btn",
 			attr: { "aria-label": "Manage missing link" },
 		});
 		btn.textContent = "Manage →";
@@ -570,7 +570,7 @@ export class RelationsPanel {
 
 	private renderTruncationHint(container: HTMLElement): void {
 		(container as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-relations-truncated",
+			cls: "orbital-relations-truncated",
 			text: "Showing partial results — lower the 2nd-hop cap to see all.",
 		});
 	}
@@ -593,7 +593,7 @@ export class RelationsPanel {
 
 		const remaining = list.slice(RENDER_CAP);
 		const showMoreBtn = (container as unknown as AugmentedEl).createEl("button", {
-			cls: "orbit-show-more",
+			cls: "orbital-show-more",
 			text: `Show ${remaining.length} more…`,
 		});
 
@@ -605,7 +605,7 @@ export class RelationsPanel {
 
 	private renderEmptyState(container: HTMLElement): void {
 		(container as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-relations-empty",
+			cls: "orbital-relations-empty",
 			text: "No file open. Open a note to see its relations.",
 		});
 	}

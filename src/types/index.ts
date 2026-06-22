@@ -2,7 +2,7 @@ export type DanglingGrouping = "target" | "source";
 export type DanglingScope = "vault" | "folder";
 export type TabId = "relations" | "dangling" | "recent";
 
-export interface OrbitSettings {
+export interface OrbitalSettings {
 	/** Number of recently visited notes to show. */
 	recentListLength: number;
 	/** File path patterns to exclude (one per line, plain text or regex). */
@@ -31,13 +31,13 @@ export interface OrbitSettings {
 	unlinkedMentionsEnabled: boolean;
 	/** When true, clicking an unlinked mention opens the note in a new tab. */
 	unlinkedOpenInNewTab: boolean;
-	/** When true, Orbit emits verbose [Orbit] console.debug traces for diagnostics. */
+	/** When true, Orbital emits verbose [Orbital] console.debug traces for diagnostics. */
 	debugLogging: boolean;
 	/** Internal persisted state: the most-recently-visited notes list. Not user-configurable. */
 	recentFiles: { path: string; basename: string }[];
 }
 
-export const DEFAULT_SETTINGS: OrbitSettings = {
+export const DEFAULT_SETTINGS: OrbitalSettings = {
 	recentListLength: 20,
 	excludePathPatterns: [],
 	excludeTagPatterns: [],
@@ -57,7 +57,7 @@ export const DEFAULT_SETTINGS: OrbitSettings = {
 };
 
 // Ephemeral per-leaf view state (getState/setState, NOT saveData)
-export interface OrbitViewState {
+export interface OrbitalViewState {
 	activeTab: TabId;
 	danglingScope: DanglingScope;
 	danglingGrouping: DanglingGrouping;

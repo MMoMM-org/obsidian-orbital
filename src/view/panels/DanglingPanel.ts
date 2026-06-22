@@ -6,21 +6,21 @@
  *
  * Design decisions:
  * - Pure render: `render(container)` always rebuilds from scratch; callers
- *   re-invoke on vault changes or toggle events (driven by OrbitView).
+ *   re-invoke on vault changes or toggle events (driven by OrbitalView).
  * - Default grouping: by-target (ADR-4). Toggle switches to by-source.
  * - Default scope: vault. Toggle switches to folder (uses getFolderPath()).
  * - No innerHTML: all nodes via createEl/createDiv/createSpan (CON-3).
  * - Actions use mobile-reachable clickable-icon buttons (not hover-only).
  * - DOM listeners routed through injected registerDomEvent for lifecycle safety.
  * - Bulk results surfaced via Notice + aria-live="polite" region.
- * - "Manage →" deep-link: reads activeDanglingFilter (set by OrbitView.setState),
+ * - "Manage →" deep-link: reads activeDanglingFilter (set by OrbitalView.setState),
  *   scrolls to and highlights the matching group row.
  */
 
 import { Keymap, Notice, setIcon } from "obsidian";
 import type { LinkGraphIndex } from "graph/LinkGraphIndex";
 import type {
-	OrbitSettings,
+	OrbitalSettings,
 	DanglingTarget,
 	DanglingGrouping,
 	DanglingScope,
@@ -93,7 +93,7 @@ interface RenameTargetPickerConstructor {
 type CreateNoteFn = (
 	target: string,
 	app: DanglingPanelApp,
-	settings: OrbitSettings,
+	settings: OrbitalSettings,
 	pickerFolder: TFolder | null,
 ) => Promise<{ file: { path: string }; existed: boolean }>;
 
@@ -105,7 +105,7 @@ export interface DanglingPanelDeps {
 	/** Pre-built link graph index. */
 	index: LinkGraphIndex;
 	/** Returns current plugin settings (called on each render). */
-	getSettings: () => OrbitSettings;
+	getSettings: () => OrbitalSettings;
 	/** Structural Obsidian App subset. */
 	app: DanglingPanelApp;
 	/** Returns the current grouping mode. */
@@ -124,7 +124,7 @@ export interface DanglingPanelDeps {
 	 * across re-renders until clearActiveFilter is called (e.g. user clicks "Show all").
 	 */
 	getActiveFilter: () => string | null;
-	/** Persists the active filter target in OrbitView state. */
+	/** Persists the active filter target in OrbitalView state. */
 	setActiveFilter: (target: string) => void;
 	/** Clears the active filter and restores the full list. */
 	clearActiveFilter: () => void;
@@ -201,7 +201,7 @@ export class DanglingPanel {
 		const allTargets = this.deps.index.danglingTargets(scope);
 		const grouping = this.deps.getGrouping();
 
-		// Read the persistent active filter (set via OrbitView.setState by the
+		// Read the persistent active filter (set via OrbitalView.setState by the
 		// "Manage →" deep-link in RelationsPanel, or by a previous render cycle).
 		const activeFilter = this.deps.getActiveFilter();
 
@@ -234,7 +234,7 @@ export class DanglingPanel {
 
 	private renderToolbar(container: HTMLElement, activeFilter: string | null): void {
 		const toolbar = (container as unknown as AugmentedEl).createDiv({
-			cls: "orbit-dangling-toolbar",
+			cls: "orbital-dangling-toolbar",
 		});
 
 		const grouping = this.deps.getGrouping();
@@ -244,7 +244,7 @@ export class DanglingPanel {
 		const groupingLabel = grouping === "target" ? "Group by source" : "Group by target";
 		const groupingBtn = (toolbar as unknown as AugmentedEl).createEl("button", {
 			text: groupingLabel,
-			cls: "orbit-dangling-toggle-btn",
+			cls: "orbital-dangling-toggle-btn",
 			attr: {
 				"data-action": "toggle-grouping",
 				"aria-label": groupingLabel,
@@ -259,7 +259,7 @@ export class DanglingPanel {
 		const scopeLabel = scope === "vault" ? "Vault" : "Folder";
 		const scopeBtn = (toolbar as unknown as AugmentedEl).createEl("button", {
 			text: scopeLabel,
-			cls: "orbit-dangling-toggle-btn",
+			cls: "orbital-dangling-toggle-btn",
 			attr: {
 				"data-action": "toggle-scope",
 				"aria-label": scope === "vault" ? "Switch to folder scope" : "Switch to vault scope",
@@ -275,7 +275,7 @@ export class DanglingPanel {
 			const showAllLabel = "Show all";
 			const showAllBtn = (toolbar as unknown as AugmentedEl).createEl("button", {
 				text: showAllLabel,
-				cls: "orbit-dangling-toggle-btn orbit-dangling-show-all-btn",
+				cls: "orbital-dangling-toggle-btn orbital-dangling-show-all-btn",
 				attr: {
 					"data-action": "clear-filter",
 					"aria-label": showAllLabel,
@@ -294,7 +294,7 @@ export class DanglingPanel {
 
 	private renderLiveRegion(container: HTMLElement): HTMLElement {
 		const region = (container as unknown as AugmentedEl).createDiv({
-			cls: "orbit-dangling-live",
+			cls: "orbital-dangling-live",
 		});
 		region.setAttribute("aria-live", "polite");
 		return region;
@@ -308,7 +308,7 @@ export class DanglingPanel {
 		container: HTMLElement,
 		targets: DanglingTarget[],
 		scope: RewriteScope,
-		settings: OrbitSettings,
+		settings: OrbitalSettings,
 		liveRegion: HTMLElement,
 		activeFilter: string | null,
 	): void {
@@ -333,7 +333,7 @@ export class DanglingPanel {
 		reveal: () => void,
 	): void {
 		const btn = (container as unknown as AugmentedEl).createEl("button", {
-			cls: "orbit-show-more",
+			cls: "orbital-show-more",
 			text: `Show ${remainingCount} more…`,
 		});
 
@@ -347,26 +347,26 @@ export class DanglingPanel {
 		container: HTMLElement,
 		dt: DanglingTarget,
 		scope: RewriteScope,
-		settings: OrbitSettings,
+		settings: OrbitalSettings,
 		liveRegion: HTMLElement,
 		activeFilter: string | null,
 	): void {
 		const isHighlighted = activeFilter === dt.target;
 
 		const groupEl = (container as unknown as AugmentedEl).createEl("div", {
-			cls: `orbit-dangling-group tree-item${isHighlighted ? " is-highlighted" : ""}`,
+			cls: `orbital-dangling-group tree-item${isHighlighted ? " is-highlighted" : ""}`,
 			attr: { "data-target": dt.target },
 		});
 
 		// Group header row
 		const header = (groupEl as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-dangling-group-header tree-item-self",
+			cls: "orbital-dangling-group-header tree-item-self",
 		});
 
 		// Clicking the target label collapses/expands the source list below it.
 		// Bound to the label only so the inline action buttons keep working.
 		const labelEl = (header as unknown as AugmentedEl).createSpan({
-			cls: "orbit-dangling-group-label is-clickable",
+			cls: "orbital-dangling-group-label is-clickable",
 			text: dt.target,
 		});
 		this.deps.registerDomEvent(labelEl, "click", () => {
@@ -375,30 +375,30 @@ export class DanglingPanel {
 
 		if (settings.showCounts) {
 			(header as unknown as AugmentedEl).createSpan({
-				cls: "orbit-dangling-count",
+				cls: "orbital-dangling-count",
 				text: String(dt.totalCount),
 			});
 		}
 
 		// Inline action buttons
 		const actions = (header as unknown as AugmentedEl).createDiv({
-			cls: "orbit-dangling-actions",
+			cls: "orbital-dangling-actions",
 		});
 
 		this.renderActionButtons(actions, dt.target, scope, liveRegion);
 
 		// Children: source occurrences
 		const children = (groupEl as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-dangling-group-children tree-item-children",
+			cls: "orbital-dangling-group-children tree-item-children",
 		});
 
 		for (const occ of dt.occurrences) {
 			const occRow = (children as unknown as AugmentedEl).createEl("div", {
-				cls: "orbit-dangling-occurrence tree-item is-clickable",
+				cls: "orbital-dangling-occurrence tree-item is-clickable",
 				attr: { "data-path": occ.sourcePath },
 			});
 			(occRow as unknown as AugmentedEl).createSpan({
-				cls: "orbit-dangling-occurrence-label",
+				cls: "orbital-dangling-occurrence-label",
 				text: occ.sourcePath,
 			});
 			// Clicking a source row opens that note (Cmd/Ctrl-click → new pane),
@@ -410,7 +410,7 @@ export class DanglingPanel {
 			});
 			if (settings.showCounts && occ.count > 1) {
 				(occRow as unknown as AugmentedEl).createSpan({
-					cls: "orbit-dangling-count",
+					cls: "orbital-dangling-count",
 					text: String(occ.count),
 				});
 			}
@@ -430,7 +430,7 @@ export class DanglingPanel {
 		container: HTMLElement,
 		targets: DanglingTarget[],
 		scope: RewriteScope,
-		settings: OrbitSettings,
+		settings: OrbitalSettings,
 		liveRegion: HTMLElement,
 	): void {
 		// Invert: build Map<sourcePath → DanglingTarget[]>
@@ -474,34 +474,34 @@ export class DanglingPanel {
 		sourcePath: string,
 		sourceTargets: DanglingTarget[],
 		scope: RewriteScope,
-		settings: OrbitSettings,
+		settings: OrbitalSettings,
 		liveRegion: HTMLElement,
 	): void {
 		const groupEl = (container as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-dangling-group tree-item",
+			cls: "orbital-dangling-group tree-item",
 			attr: { "data-source": sourcePath },
 		});
 
 		const header = (groupEl as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-dangling-group-header tree-item-self",
+			cls: "orbital-dangling-group-header tree-item-self",
 		});
 
 		(header as unknown as AugmentedEl).createSpan({
-			cls: "orbit-dangling-group-label",
+			cls: "orbital-dangling-group-label",
 			text: sourcePath,
 		});
 
 		const children = (groupEl as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-dangling-group-children tree-item-children",
+			cls: "orbital-dangling-group-children tree-item-children",
 		});
 
 		for (const dt of sourceTargets) {
 			const itemEl = (children as unknown as AugmentedEl).createEl("div", {
-				cls: "orbit-dangling-target-item tree-item",
+				cls: "orbital-dangling-target-item tree-item",
 			});
 
 			(itemEl as unknown as AugmentedEl).createSpan({
-				cls: "orbit-dangling-target-label",
+				cls: "orbital-dangling-target-label",
 				text: dt.target,
 			});
 
@@ -509,7 +509,7 @@ export class DanglingPanel {
 				const occ = dt.occurrences.find((o) => o.sourcePath === sourcePath);
 				if (occ !== undefined) {
 					(itemEl as unknown as AugmentedEl).createSpan({
-						cls: "orbit-dangling-count",
+						cls: "orbital-dangling-count",
 						text: String(occ.count),
 					});
 				}
@@ -518,7 +518,7 @@ export class DanglingPanel {
 			// Actions available on each target item within source grouping.
 			// Pass sourcePath so delete can offer "Only in note: <name>" scoping.
 			const actions = (itemEl as unknown as AugmentedEl).createDiv({
-				cls: "orbit-dangling-actions",
+				cls: "orbital-dangling-actions",
 			});
 
 			this.renderActionButtons(actions, dt.target, scope, liveRegion, sourcePath);
@@ -561,7 +561,7 @@ export class DanglingPanel {
 		onClick: () => void,
 	): void {
 		const btn = (container as unknown as AugmentedEl).createEl("button", {
-			cls: "clickable-icon orbit-dangling-action-btn",
+			cls: "clickable-icon orbital-dangling-action-btn",
 			attr: { "aria-label": ariaLabel },
 		});
 
@@ -749,7 +749,7 @@ export class DanglingPanel {
 	/** Surface an otherwise-silent handler error as a Notice (and to the console). */
 	private notifyError(action: string, err: unknown): void {
 		const msg = err instanceof Error ? err.message : String(err);
-		console.error(`[Orbit] ${action} failed:`, err);
+		console.error(`[Orbital] ${action} failed:`, err);
 		new Notice(`${action} failed: ${msg}`);
 	}
 
@@ -780,7 +780,7 @@ export class DanglingPanel {
 
 	private renderEmptyState(container: HTMLElement): void {
 		(container as unknown as AugmentedEl).createEl("div", {
-			cls: "orbit-dangling-empty",
+			cls: "orbital-dangling-empty",
 			text: "No dangling links in this scope.",
 		});
 	}

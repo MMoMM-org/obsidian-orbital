@@ -216,7 +216,7 @@ describe("ConfirmRewriteModal", () => {
 			pickBtn.click();
 			await new Promise((r) => setTimeout(r, 0));
 
-			const input = modal.contentEl.querySelector(".orbit-confirm-input") as HTMLInputElement;
+			const input = modal.contentEl.querySelector(".orbital-confirm-input") as HTMLInputElement;
 			expect(input.value).toBe("Evergreen Notes");
 
 			const confirmBtn = modal.contentEl.querySelector("[data-action='confirm']") as HTMLButtonElement;
@@ -304,7 +304,7 @@ describe("ConfirmRewriteModal", () => {
 			modal.onOpen();
 
 			const checkbox = modal.contentEl.querySelector<HTMLInputElement>(
-				"input[id='orbit-confirm-delete-only-note']",
+				"input[id='orbital-confirm-delete-only-note']",
 			);
 			expect(checkbox).not.toBeNull();
 			expect(checkbox?.type).toBe("checkbox");
@@ -320,7 +320,7 @@ describe("ConfirmRewriteModal", () => {
 			modal.onOpen();
 
 			const checkbox = modal.contentEl.querySelector<HTMLInputElement>(
-				"input[id='orbit-confirm-delete-only-note']",
+				"input[id='orbital-confirm-delete-only-note']",
 			);
 			expect(checkbox).toBeNull();
 			expect(modal.onlyInThisNote).toBe(false);
@@ -339,7 +339,7 @@ describe("ConfirmRewriteModal", () => {
 			expect(modal.onlyInThisNote).toBe(true);
 
 			const checkbox = modal.contentEl.querySelector<HTMLInputElement>(
-				"input[id='orbit-confirm-delete-only-note']",
+				"input[id='orbital-confirm-delete-only-note']",
 			);
 			expect(checkbox?.checked).toBe(true);
 		});
@@ -355,7 +355,7 @@ describe("ConfirmRewriteModal", () => {
 			modal.onOpen();
 
 			const checkbox = modal.contentEl.querySelector<HTMLInputElement>(
-				"input[id='orbit-confirm-delete-only-note']",
+				"input[id='orbital-confirm-delete-only-note']",
 			);
 			checkbox!.checked = false;
 			checkbox!.dispatchEvent(new Event("change"));
@@ -374,7 +374,7 @@ describe("ConfirmRewriteModal", () => {
 			modal.onOpen();
 
 			const label = modal.contentEl.querySelector<HTMLLabelElement>(
-				"label[for='orbit-confirm-delete-only-note']",
+				"label[for='orbital-confirm-delete-only-note']",
 			);
 			expect(label).not.toBeNull();
 			expect(label?.textContent).toBe("Only in note: Slip Box");
@@ -391,12 +391,12 @@ describe("ConfirmRewriteModal", () => {
 			});
 			modal.onOpen();
 
-			const previewEl = modal.contentEl.querySelector(".orbit-confirm-preview");
+			const previewEl = modal.contentEl.querySelector(".orbital-confirm-preview");
 			// Pre-checked → source-scoped count (2 occurrences across 1 file)
 			expect(previewEl?.textContent).toBe("2 occurrences across 1 file will be modified.");
 
 			const checkbox = modal.contentEl.querySelector<HTMLInputElement>(
-				"input[id='orbit-confirm-delete-only-note']",
+				"input[id='orbital-confirm-delete-only-note']",
 			);
 			// Uncheck → scope-wide count (5 occurrences across 2 files)
 			checkbox!.checked = false;

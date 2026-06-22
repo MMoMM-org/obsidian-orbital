@@ -21,11 +21,11 @@
 - Reset between tests: `Notice._reset()` to clear notice instances.
 - Lifecycle cleanup: assert plugin cleanup with `plugin._runCleanup()`.
 
-## Test vault (`test/Orbit/`)
+## Test vault (`test/Orbital/`)
 - Open this folder as a vault in Obsidian for live manual testing.
 - Hot-reload (pjeby/hot-reload v0.3.0) is preinstalled — `npm run dev` keeps
   the plugin live-reloading on rebuild.
-- The plugin folder under `.obsidian/plugins/orbit/` is **deployed by
+- The plugin folder under `.obsidian/plugins/orbital/` is **deployed by
   esbuild** on every build (copied, not symlinked) with a dev-stamped manifest
   and a `.hotreload` marker. Do NOT edit those files or symlink them by hand —
   the build owns them and they are gitignored.

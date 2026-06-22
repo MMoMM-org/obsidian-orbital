@@ -1,4 +1,4 @@
-# Orbit — Agent Guide
+# Orbital — Agent Guide
 
 ## Repo Layout
 

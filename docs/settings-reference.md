@@ -1,7 +1,7 @@
 # Settings Reference
 
-A deep reference for every Orbit setting, grouped exactly as they appear in
-**Settings → Orbit**. For a quick name/type/default table, see
+A deep reference for every Orbital setting, grouped exactly as they appear in
+**Settings → Orbital**. For a quick name/type/default table, see
 [Configuration](configuration.md); this page adds the effect of each setting and
 when you'd want to change it.
 
@@ -9,13 +9,13 @@ when you'd want to change it.
 
 These settings appear at the top of the settings tab, above the first heading.
 
-![The settings tab — top settings and the Relations group](../assets/orbit-settings-general-relations.png)
+![The settings tab — top settings and the Relations group](../assets/orbital-settings-general-relations.png)
 
 ### Default tab
 
 - **Type:** dropdown — Relations / Dangling links / Recent notes
 - **Default:** Relations
-- **Effect:** which tab is shown when the Orbit pane opens.
+- **Effect:** which tab is shown when the Orbital pane opens.
 - **When to change:** pick the tab you open most often so it's there immediately.
 
 ### Show counts
@@ -29,7 +29,7 @@ These settings appear at the top of the settings tab, above the first heading.
 
 - **Type:** toggle
 - **Default:** on
-- **Effect:** shows the Orbit status-bar item with backlink / 2nd-hop counts for the
+- **Effect:** shows the Orbital status-bar item with backlink / 2nd-hop counts for the
   active note; clicking it opens the Relations tab.
 - **When to change:** turn off to reclaim status-bar space.
 
@@ -70,7 +70,7 @@ These settings appear at the top of the settings tab, above the first heading.
 
 ## Dangling links
 
-![Dangling links and Recent files settings](../assets/orbit-settings-dangling-recent.png)
+![Dangling links and Recent files settings](../assets/orbital-settings-dangling-recent.png)
 
 ### Default scope
 
@@ -108,7 +108,7 @@ These settings appear at the top of the settings tab, above the first heading.
 
 ## Advanced
 
-![Advanced settings](../assets/orbit-settings-advanced.png)
+![Advanced settings](../assets/orbital-settings-advanced.png)
 
 ### Refresh debounce (ms)
 
@@ -141,7 +141,7 @@ These settings appear at the top of the settings tab, above the first heading.
 
 - **Type:** toggle
 - **Default:** off
-- **Effect:** emits verbose `[Orbit]` traces to the developer console for diagnostics.
+- **Effect:** emits verbose `[Orbital]` traces to the developer console for diagnostics.
 - **When to change:** turn on when reproducing a bug to capture detail for a report
   (see [Troubleshooting](troubleshooting.md)); leave off otherwise.
 

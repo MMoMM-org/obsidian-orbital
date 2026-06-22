@@ -14,7 +14,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { App, WorkspaceLeaf } from "./__mocks__/obsidian";
-import { VIEW_TYPE } from "view/OrbitView";
+import { VIEW_TYPE } from "view/OrbitalView";
 
 // ---------------------------------------------------------------------------
 // Factory
@@ -26,12 +26,12 @@ function makeApp(): App {
 
 async function makePlugin(app: App) {
 	// Dynamically import so each test gets a fresh module evaluation.
-	// We construct OrbitPlugin directly against the mock App.
-	const { default: OrbitPlugin } = await import("main");
-	// OrbitPlugin constructor takes (app, manifest) from Obsidian Plugin base;
+	// We construct OrbitalPlugin directly against the mock App.
+	const { default: OrbitalPlugin } = await import("main");
+	// OrbitalPlugin constructor takes (app, manifest) from Obsidian Plugin base;
 	// the mock Plugin constructor accepts an optional App.
 	// We cast to access internals needed by tests.
-	const plugin = new OrbitPlugin(app as unknown as Parameters<typeof OrbitPlugin>[0]);
+	const plugin = new OrbitalPlugin(app as unknown as Parameters<typeof OrbitalPlugin>[0]);
 	return plugin;
 }
 
@@ -47,7 +47,7 @@ async function flush(): Promise<void> {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("OrbitPlugin onload — view registration", () => {
+describe("OrbitalPlugin onload — view registration", () => {
 	it("registers VIEW_TYPE without throwing", async () => {
 		const app = makeApp();
 		const plugin = await makePlugin(app);
@@ -61,7 +61,7 @@ describe("OrbitPlugin onload — view registration", () => {
 		);
 	});
 
-	it("registerView factory creates an OrbitView instance", async () => {
+	it("registerView factory creates an OrbitalView instance", async () => {
 		const app = makeApp();
 		const plugin = await makePlugin(app);
 		await plugin.onload();
@@ -70,9 +70,9 @@ describe("OrbitPlugin onload — view registration", () => {
 		expect(factory).toBeDefined();
 
 		const leaf = new WorkspaceLeaf();
-		const { OrbitView } = await import("view/OrbitView");
+		const { OrbitalView } = await import("view/OrbitalView");
 		const view = (factory as (leaf: WorkspaceLeaf) => unknown)(leaf);
-		expect(view).toBeInstanceOf(OrbitView);
+		expect(view).toBeInstanceOf(OrbitalView);
 	});
 
 	it("dangling tab renders real DanglingPanel (not placeholder) when view created via plugin factory", async () => {
@@ -82,8 +82,8 @@ describe("OrbitPlugin onload — view registration", () => {
 
 		const factory = vi.mocked(plugin.registerView).mock.calls[0]?.[1];
 		const leaf = new WorkspaceLeaf();
-		const { OrbitView } = await import("view/OrbitView");
-		const view = (factory as unknown as (leaf: WorkspaceLeaf) => unknown)(leaf) as InstanceType<typeof OrbitView>;
+		const { OrbitalView } = await import("view/OrbitalView");
+		const view = (factory as unknown as (leaf: WorkspaceLeaf) => unknown)(leaf) as InstanceType<typeof OrbitalView>;
 
 		await view.onOpen();
 
@@ -93,10 +93,10 @@ describe("OrbitPlugin onload — view registration", () => {
 		await new Promise<void>((r) => setTimeout(r, 0));
 
 		// Should render real DanglingPanel (empty state) — not the placeholder
-		const placeholder = view.contentEl.querySelector(".orbit-panel-placeholder");
+		const placeholder = view.contentEl.querySelector(".orbital-panel-placeholder");
 		expect(placeholder).toBeNull();
 
-		const emptyState = view.contentEl.querySelector(".orbit-dangling-empty");
+		const emptyState = view.contentEl.querySelector(".orbital-dangling-empty");
 		expect(emptyState).not.toBeNull();
 	});
 
@@ -107,8 +107,8 @@ describe("OrbitPlugin onload — view registration", () => {
 
 		const factory = vi.mocked(plugin.registerView).mock.calls[0]?.[1];
 		const leaf = new WorkspaceLeaf();
-		const { OrbitView } = await import("view/OrbitView");
-		const view = (factory as unknown as (leaf: WorkspaceLeaf) => unknown)(leaf) as InstanceType<typeof OrbitView>;
+		const { OrbitalView } = await import("view/OrbitalView");
+		const view = (factory as unknown as (leaf: WorkspaceLeaf) => unknown)(leaf) as InstanceType<typeof OrbitalView>;
 
 		await view.onOpen();
 
@@ -118,16 +118,16 @@ describe("OrbitPlugin onload — view registration", () => {
 		await new Promise<void>((r) => setTimeout(r, 0));
 
 		// Should render real RecentPanel (empty state) — not the placeholder
-		const placeholder = view.contentEl.querySelector(".orbit-panel-placeholder");
+		const placeholder = view.contentEl.querySelector(".orbital-panel-placeholder");
 		expect(placeholder).toBeNull();
 
-		const emptyState = view.contentEl.querySelector(".orbit-recent-empty");
+		const emptyState = view.contentEl.querySelector(".orbital-recent-empty");
 		expect(emptyState).not.toBeNull();
 		expect(emptyState?.textContent).toBe("No recent notes yet.");
 	});
 });
 
-describe("OrbitPlugin onload — command registration", () => {
+describe("OrbitalPlugin onload — command registration", () => {
 	it("registers an 'open' command", async () => {
 		const app = makeApp();
 		const plugin = await makePlugin(app);
@@ -149,7 +149,7 @@ describe("OrbitPlugin onload — command registration", () => {
 	});
 });
 
-describe("OrbitPlugin onload — settings tab", () => {
+describe("OrbitalPlugin onload — settings tab", () => {
 	it("adds a settings tab", async () => {
 		const app = makeApp();
 		const plugin = await makePlugin(app);
@@ -159,7 +159,7 @@ describe("OrbitPlugin onload — settings tab", () => {
 	});
 });
 
-describe("OrbitPlugin activateView — leaf reuse", () => {
+describe("OrbitalPlugin activateView — leaf reuse", () => {
 	it("activates the existing leaf when one is already open", async () => {
 		const app = makeApp();
 		const existingLeaf = new WorkspaceLeaf();
@@ -246,7 +246,7 @@ describe("OrbitPlugin activateView — leaf reuse", () => {
 	});
 });
 
-describe("OrbitPlugin onunload — leaf preservation", () => {
+describe("OrbitalPlugin onunload — leaf preservation", () => {
 	it("does not detach leaves on unload", async () => {
 		const app = makeApp();
 		const detachSpy = vi.fn();
@@ -260,7 +260,7 @@ describe("OrbitPlugin onunload — leaf preservation", () => {
 	});
 });
 
-describe("OrbitPlugin onExternalSettingsChange", () => {
+describe("OrbitalPlugin onExternalSettingsChange", () => {
 	it("re-reads settings from disk when external settings change", async () => {
 		const app = makeApp();
 		const plugin = await makePlugin(app);
@@ -298,7 +298,7 @@ describe("OrbitPlugin onExternalSettingsChange", () => {
 
 describe("T5.1 integration: Relations Manage → switches to Dangling tab filtered to target", () => {
 	/**
-	 * Build a plugin + OrbitView wired together so onManage can find the view
+	 * Build a plugin + OrbitalView wired together so onManage can find the view
 	 * via getLeavesOfType. Unresolved links are pre-loaded in the mock metadata
 	 * cache so both RelationsPanel and DanglingPanel see real data.
 	 *
@@ -320,12 +320,12 @@ describe("T5.1 integration: Relations Manage → switches to Dangling tab filter
 			| undefined;
 		if (!factory) throw new Error("registerView factory not captured");
 
-		const { OrbitView } = await import("view/OrbitView");
+		const { OrbitalView } = await import("view/OrbitalView");
 		const leaf = new WorkspaceLeaf();
-		const view = factory(leaf) as InstanceType<typeof OrbitView>;
+		const view = factory(leaf) as InstanceType<typeof OrbitalView>;
 
 		// Wire the leaf so onManage (via getLeavesOfType) can find the view.
-		// The mock WorkspaceLeaf.view is a plain object; we replace it with the real OrbitView.
+		// The mock WorkspaceLeaf.view is a plain object; we replace it with the real OrbitalView.
 		(leaf as unknown as { view: unknown }).view = view;
 		vi.mocked(app.workspace.getLeavesOfType).mockReturnValue([leaf] as WorkspaceLeaf[]);
 
@@ -389,8 +389,8 @@ describe("T5.1 integration: Relations Manage → switches to Dangling tab filter
 		await new Promise<void>((r) => setTimeout(r, 10));
 
 		// Only the managed target group should be visible; the other should not
-		const targetARow = view.contentEl.querySelector(".orbit-dangling-group[data-target='TargetA']");
-		const targetBRow = view.contentEl.querySelector(".orbit-dangling-group[data-target='TargetB']");
+		const targetARow = view.contentEl.querySelector(".orbital-dangling-group[data-target='TargetA']");
+		const targetBRow = view.contentEl.querySelector(".orbital-dangling-group[data-target='TargetB']");
 		expect(targetARow).not.toBeNull();
 		expect(targetBRow).toBeNull();
 	});
@@ -417,8 +417,8 @@ describe("T5.1 integration: Relations Manage → switches to Dangling tab filter
 		await new Promise<void>((r) => setTimeout(r, 10));
 
 		// Both targets should now be visible
-		const targetARow = view.contentEl.querySelector(".orbit-dangling-group[data-target='TargetA']");
-		const targetBRow = view.contentEl.querySelector(".orbit-dangling-group[data-target='TargetB']");
+		const targetARow = view.contentEl.querySelector(".orbital-dangling-group[data-target='TargetA']");
+		const targetBRow = view.contentEl.querySelector(".orbital-dangling-group[data-target='TargetB']");
 		expect(targetARow).not.toBeNull();
 		expect(targetBRow).not.toBeNull();
 	});
@@ -443,7 +443,7 @@ describe("T5.1 integration: Relations Manage → switches to Dangling tab filter
 		await new Promise<void>((r) => setTimeout(r, 10));
 
 		// Filter should still be active (TargetB not visible)
-		const targetBRow = view.contentEl.querySelector(".orbit-dangling-group[data-target='TargetB']");
+		const targetBRow = view.contentEl.querySelector(".orbital-dangling-group[data-target='TargetB']");
 		expect(targetBRow).toBeNull();
 
 		// And "Show all" is still visible
@@ -456,7 +456,7 @@ describe("T5.1 integration: Relations Manage → switches to Dangling tab filter
 // Status bar
 // ---------------------------------------------------------------------------
 
-describe("OrbitPlugin status bar", () => {
+describe("OrbitalPlugin status bar", () => {
 	it("adds a status-bar item on load when the setting is enabled", async () => {
 		const app = makeApp();
 		const plugin = await makePlugin(app);
@@ -485,9 +485,9 @@ describe("OrbitPlugin status bar", () => {
 		const plugin = await makePlugin(app);
 		await plugin.onload();
 
-		const text = plugin._statusBarItem?.querySelector(".orbit-statusbar-text");
+		const text = plugin._statusBarItem?.querySelector(".orbital-statusbar-text");
 		expect(text?.textContent).toBe("1/0");
-		expect(plugin._statusBarItem?.querySelector(".orbit-statusbar-icon")).not.toBeNull();
+		expect(plugin._statusBarItem?.querySelector(".orbital-statusbar-icon")).not.toBeNull();
 	});
 
 	it("shows a dash when no note is open", async () => {
@@ -495,11 +495,11 @@ describe("OrbitPlugin status bar", () => {
 		const plugin = await makePlugin(app);
 		await plugin.onload();
 
-		const text = plugin._statusBarItem?.querySelector(".orbit-statusbar-text");
+		const text = plugin._statusBarItem?.querySelector(".orbital-statusbar-text");
 		expect(text?.textContent).toBe("–");
 	});
 
-	it("clicking the status-bar item opens the Orbit view", async () => {
+	it("clicking the status-bar item opens the Orbital view", async () => {
 		const app = makeApp();
 		const plugin = await makePlugin(app);
 		await plugin.onload();

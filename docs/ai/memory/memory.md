@@ -1,4 +1,4 @@
-# Memory Index — Orbit
+# Memory Index — Orbital
 
 > Budget: ≤ 200 lines. Archive entries when stale.
 

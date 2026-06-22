@@ -1,12 +1,12 @@
 # Development
 
-Setup, build, and the test-vault workflow for hacking on Orbit.
+Setup, build, and the test-vault workflow for hacking on Orbital.
 
 ## Setup
 
 ```bash
-git clone https://github.com/MMoMM-org/obsidian-orbit.git
-cd obsidian-orbit
+git clone https://github.com/MMoMM-org/obsidian-orbital.git
+cd obsidian-orbital
 git config core.hooksPath .githooks
 npm install
 npm run dev       # esbuild watch — rebuilds on every save
@@ -25,18 +25,18 @@ Electron 30 → `chrome 124`).
 
 ## Test vault and hot-reload
 
-The repo ships a ready-to-use test vault at `test/Orbit/`. Open that folder as a vault
-in Obsidian once, and enable Orbit under Community plugins.
+The repo ships a ready-to-use test vault at `test/Orbital/`. Open that folder as a vault
+in Obsidian once, and enable Orbital under Community plugins.
 
 You do **not** symlink the build output. The esbuild config deploys it for you: on every
 `npm run dev` (and `npm run build`) it copies `main.js`, `manifest.json`, and
-`styles.css` into `test/Orbit/.obsidian/plugins/orbit/`, stamps a dev version into the
+`styles.css` into `test/Orbital/.obsidian/plugins/orbital/`, stamps a dev version into the
 deployed manifest, and writes a `.hotreload` marker. The
 [pjeby/hot-reload](https://github.com/pjeby/hot-reload) plugin (preinstalled in the test
-vault) watches that marker and live-reloads Orbit on each rebuild — no Obsidian restart,
+vault) watches that marker and live-reloads Orbital on each rebuild — no Obsidian restart,
 no manual toggle.
 
-> The deployed `test/Orbit/.obsidian/plugins/orbit/` folder is **build-owned and
+> The deployed `test/Orbital/.obsidian/plugins/orbital/` folder is **build-owned and
 > gitignored** — don't edit or symlink those files by hand; the build overwrites them.
 
 Iteration loop: run `npm run dev`, edit source, save — hot-reload picks up the new build.

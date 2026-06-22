@@ -1,13 +1,13 @@
 /**
  * T5.4 — End-to-end acceptance validation
  *
- * 33 PRD acceptance criteria exercised through the ASSEMBLED plugin/OrbitView
+ * 33 PRD acceptance criteria exercised through the ASSEMBLED plugin/OrbitalView
  * (factory-built, real panels wired). Each group carries a traceability comment
  * mapping to the specific AC.
  *
  * Harness pattern: identical to test/main.test.ts T5.1 integration section.
- * - makePlugin() builds a fresh OrbitPlugin against a mock App.
- * - buildWiredView() invokes the registered factory to get a real OrbitView,
+ * - makePlugin() builds a fresh OrbitalPlugin against a mock App.
+ * - buildWiredView() invokes the registered factory to get a real OrbitalView,
  *   wires the leaf so getLeavesOfType can find it, then calls view.onOpen().
  * - Tests interact through DOM (click, keydown, etc.) and assert DOM + mock spy state.
  *
@@ -24,7 +24,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { App, WorkspaceLeaf, Notice, Platform, Keymap } from "../__mocks__/obsidian";
-import { VIEW_TYPE } from "view/OrbitView";
+import { VIEW_TYPE } from "view/OrbitalView";
 import { DEFAULT_SETTINGS } from "types/index";
 
 // ---------------------------------------------------------------------------
@@ -36,12 +36,12 @@ function makeApp(): App {
 }
 
 async function makePlugin(app: App) {
-	const { default: OrbitPlugin } = await import("main");
-	return new OrbitPlugin(app as unknown as Parameters<typeof OrbitPlugin>[0]);
+	const { default: OrbitalPlugin } = await import("main");
+	return new OrbitalPlugin(app as unknown as Parameters<typeof OrbitalPlugin>[0]);
 }
 
 /**
- * Build a fully assembled OrbitView wired into the plugin, with the leaf
+ * Build a fully assembled OrbitalView wired into the plugin, with the leaf
  * registered so getLeavesOfType can find it. Returns the plugin, app, view,
  * and leaf.
  */
@@ -61,9 +61,9 @@ async function buildWiredView(
 		| undefined;
 	if (!factory) throw new Error("registerView factory not captured");
 
-	const { OrbitView } = await import("view/OrbitView");
+	const { OrbitalView } = await import("view/OrbitalView");
 	const leaf = new WorkspaceLeaf();
-	const view = factory(leaf) as InstanceType<typeof OrbitView>;
+	const view = factory(leaf) as InstanceType<typeof OrbitalView>;
 
 	(leaf as unknown as { view: unknown }).view = view;
 	vi.mocked(app.workspace.getLeavesOfType).mockReturnValue([leaf] as WorkspaceLeaf[]);
@@ -154,11 +154,11 @@ describe("AC1 — Single tabbed sidebar pane", () => {
 		expect(savedState["activeTab"]).toBe("recent");
 
 		// Simulate a reload: close + reopen — create a fresh view and restore state
-		const { OrbitView } = await import("view/OrbitView");
+		const { OrbitalView } = await import("view/OrbitalView");
 		const { plugin } = await buildWiredView();
 		const factory = vi.mocked(plugin.registerView).mock.calls[0]?.[1] as (leaf: WorkspaceLeaf) => unknown;
 		const newLeaf = new WorkspaceLeaf();
-		const freshView = factory(newLeaf) as InstanceType<typeof OrbitView>;
+		const freshView = factory(newLeaf) as InstanceType<typeof OrbitalView>;
 		await freshView.onOpen();
 
 		// Restore saved state (simulates Obsidian calling setState on reopen)
@@ -254,7 +254,7 @@ describe("AC2 — Relations tab", () => {
 		await tick();
 
 		// Four section headers
-		const sections = view.contentEl.querySelectorAll(".orbit-relations-section");
+		const sections = view.contentEl.querySelectorAll(".orbital-relations-section");
 		expect(sections.length).toBeGreaterThanOrEqual(4);
 
 		const sectionKeys = Array.from(sections).map((s) => s.getAttribute("data-section"));
@@ -264,7 +264,7 @@ describe("AC2 — Relations tab", () => {
 		expect(sectionKeys).toContain("missing");
 
 		// Count badges are rendered (showCounts=true by default)
-		const counts = view.contentEl.querySelectorAll(".orbit-relations-count");
+		const counts = view.contentEl.querySelectorAll(".orbital-relations-count");
 		expect(counts.length).toBeGreaterThan(0);
 	});
 
@@ -288,11 +288,11 @@ describe("AC2 — Relations tab", () => {
 		expect(secondHopSection).not.toBeNull();
 
 		// via group label is the connecting note
-		const viaLabel = secondHopSection?.querySelector(".orbit-relations-via-label");
+		const viaLabel = secondHopSection?.querySelector(".orbital-relations-via-label");
 		expect(viaLabel?.textContent).toBe("intermediate");
 
 		// The 2nd-hop item is the third note, not the active note or intermediate
-		const viaItem = secondHopSection?.querySelector(".orbit-relations-item-label");
+		const viaItem = secondHopSection?.querySelector(".orbital-relations-item-label");
 		expect(viaItem?.textContent).toBe("thirdNote");
 	});
 
@@ -310,7 +310,7 @@ describe("AC2 — Relations tab", () => {
 
 		vi.mocked(Keymap.isModEvent).mockReturnValue(false);
 
-		const item = view.contentEl.querySelector(".orbit-relations-item") as HTMLElement;
+		const item = view.contentEl.querySelector(".orbital-relations-item") as HTMLElement;
 		expect(item).not.toBeNull();
 		item.click();
 		await tick();
@@ -332,7 +332,7 @@ describe("AC2 — Relations tab", () => {
 
 		vi.mocked(Keymap.isModEvent).mockReturnValue("tab");
 
-		const item = view.contentEl.querySelector(".orbit-relations-item") as HTMLElement;
+		const item = view.contentEl.querySelector(".orbital-relations-item") as HTMLElement;
 		expect(item).not.toBeNull();
 		item.click();
 		await tick();
@@ -346,7 +346,7 @@ describe("AC2 — Relations tab", () => {
 		// NOTE: jsdom cannot render the actual hover preview popup — Obsidian's
 		// page-preview plugin handles that in the real runtime. We assert that
 		// the plugin fires the 'hover-link' workspace trigger, which is the
-		// observable boundary Orbit owns.
+		// observable boundary Orbital owns.
 		const { app, view } = await buildWiredView(
 			{},
 			{ "notes/active.md": { "notes/target.md": 1 } },
@@ -356,7 +356,7 @@ describe("AC2 — Relations tab", () => {
 		view.refreshActivePanel();
 		await tick();
 
-		const item = view.contentEl.querySelector(".orbit-relations-item") as HTMLElement;
+		const item = view.contentEl.querySelector(".orbital-relations-item") as HTMLElement;
 		expect(item).not.toBeNull();
 
 		item.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
@@ -390,7 +390,7 @@ describe("AC2 — Relations tab", () => {
 		expect(activeTab?.getAttribute("data-tab-id")).toBe("dangling");
 
 		// Dangling panel shows only the managed target
-		const group = view.contentEl.querySelector(".orbit-dangling-group[data-target='OrphanedNote']");
+		const group = view.contentEl.querySelector(".orbital-dangling-group[data-target='OrphanedNote']");
 		expect(group).not.toBeNull();
 	});
 
@@ -440,7 +440,7 @@ describe("AC2 — Relations tab", () => {
 		view.refreshActivePanel();
 		await tick();
 
-		const emptyState = view.contentEl.querySelector(".orbit-relations-empty");
+		const emptyState = view.contentEl.querySelector(".orbital-relations-empty");
 		expect(emptyState).not.toBeNull();
 		expect(emptyState?.textContent).toMatch(/No file open/i);
 	});
@@ -464,16 +464,16 @@ describe("AC3 — Dangling Links tab", () => {
 		danglingTab.click();
 		await tick();
 
-		const groups = view.contentEl.querySelectorAll(".orbit-dangling-group");
+		const groups = view.contentEl.querySelectorAll(".orbital-dangling-group");
 		expect(groups.length).toBeGreaterThanOrEqual(2);
 
-		const targetA = view.contentEl.querySelector(".orbit-dangling-group[data-target='MissingA']");
-		const targetB = view.contentEl.querySelector(".orbit-dangling-group[data-target='MissingB']");
+		const targetA = view.contentEl.querySelector(".orbital-dangling-group[data-target='MissingA']");
+		const targetB = view.contentEl.querySelector(".orbital-dangling-group[data-target='MissingB']");
 		expect(targetA).not.toBeNull();
 		expect(targetB).not.toBeNull();
 
 		// Total count for MissingA is 3 (2+1)
-		const countEl = targetA?.querySelector(".orbit-dangling-count");
+		const countEl = targetA?.querySelector(".orbital-dangling-count");
 		expect(countEl?.textContent).toBe("3");
 	});
 
@@ -494,7 +494,7 @@ describe("AC3 — Dangling Links tab", () => {
 		await tick();
 
 		// Default is vault scope — both groups visible
-		const allGroups = view.contentEl.querySelectorAll(".orbit-dangling-group");
+		const allGroups = view.contentEl.querySelectorAll(".orbital-dangling-group");
 		expect(allGroups.length).toBe(2);
 
 		// Toggle to folder scope
@@ -504,7 +504,7 @@ describe("AC3 — Dangling Links tab", () => {
 		await tick();
 
 		// Now only folder1/ items should appear
-		const folderGroups = view.contentEl.querySelectorAll(".orbit-dangling-group");
+		const folderGroups = view.contentEl.querySelectorAll(".orbital-dangling-group");
 		expect(folderGroups.length).toBe(1);
 		expect(folderGroups[0]?.getAttribute("data-target")).toBe("MissingInFolder");
 	});
@@ -527,9 +527,9 @@ describe("AC3 — Dangling Links tab", () => {
 		// The real plugin builds its own service — we test through the assembled view
 		// by using the real ConfirmRewriteModal (mock Modal fires onOpen synchronously).
 		const factory = vi.mocked(plugin.registerView).mock.calls[0]?.[1] as (leaf: WorkspaceLeaf) => unknown;
-		const { OrbitView } = await import("view/OrbitView");
+		const { OrbitalView } = await import("view/OrbitalView");
 		const leaf = new WorkspaceLeaf();
-		const wiredView = factory(leaf) as InstanceType<typeof OrbitView>;
+		const wiredView = factory(leaf) as InstanceType<typeof OrbitalView>;
 		(leaf as unknown as { view: unknown }).view = wiredView;
 		vi.mocked(app.workspace.getLeavesOfType).mockReturnValue([leaf] as WorkspaceLeaf[]);
 		plugin._index.buildFull();
@@ -957,7 +957,7 @@ describe("AC3 — Dangling Links tab", () => {
 		danglingTab.click();
 		await tick();
 
-		const emptyState = view.contentEl.querySelector(".orbit-dangling-empty");
+		const emptyState = view.contentEl.querySelector(".orbital-dangling-empty");
 		expect(emptyState).not.toBeNull();
 		expect(emptyState?.textContent).toMatch(/No dangling links/i);
 	});
@@ -991,13 +991,13 @@ describe("AC4 — Recent Files tab", () => {
 		view.refreshActivePanel();
 		await tick();
 
-		const rows = view.contentEl.querySelectorAll(".orbit-recent-row");
+		const rows = view.contentEl.querySelectorAll(".orbital-recent-row");
 		// Capped at exactly 20 (22 files opened, default recentListLength=20)
 		expect(rows.length).toBe(20);
 
 		// Most recent first: file22 should appear before file1
 		const allBasenames = Array.from(rows).map((r) =>
-			r.querySelector(".orbit-recent-basename")?.textContent,
+			r.querySelector(".orbital-recent-basename")?.textContent,
 		);
 		expect(allBasenames[0]).toBe("file22");
 
@@ -1006,9 +1006,9 @@ describe("AC4 — Recent Files tab", () => {
 		view.refreshActivePanel();
 		await tick();
 
-		const dedupedRows = view.contentEl.querySelectorAll(".orbit-recent-row");
+		const dedupedRows = view.contentEl.querySelectorAll(".orbital-recent-row");
 		const file22Count = Array.from(dedupedRows).filter(
-			(r) => r.querySelector(".orbit-recent-basename")?.textContent === "file22",
+			(r) => r.querySelector(".orbital-recent-basename")?.textContent === "file22",
 		).length;
 		expect(file22Count).toBe(1);
 	});
@@ -1033,7 +1033,7 @@ describe("AC4 — Recent Files tab", () => {
 
 		vi.mocked(Keymap.isModEvent).mockReturnValue(false);
 
-		const row = view.contentEl.querySelector(".orbit-recent-row") as HTMLElement;
+		const row = view.contentEl.querySelector(".orbital-recent-row") as HTMLElement;
 		expect(row).not.toBeNull();
 		row.click();
 		await tick();
@@ -1060,7 +1060,7 @@ describe("AC4 — Recent Files tab", () => {
 
 		vi.mocked(Keymap.isModEvent).mockReturnValue("tab");
 
-		const row = view.contentEl.querySelector(".orbit-recent-row") as HTMLElement;
+		const row = view.contentEl.querySelector(".orbital-recent-row") as HTMLElement;
 		row.click();
 		await tick();
 
@@ -1104,7 +1104,7 @@ describe("AC4 — Recent Files tab", () => {
 
 		panel.render(container);
 
-		const row = container.querySelector(".orbit-recent-row") as HTMLElement;
+		const row = container.querySelector(".orbital-recent-row") as HTMLElement;
 		expect(row).not.toBeNull();
 		expect(row.getAttribute("draggable")).toBe("true");
 
@@ -1182,9 +1182,9 @@ describe("AC4 — Recent Files tab", () => {
 		view.refreshActivePanel();
 		await tick();
 
-		const rows = view.contentEl.querySelectorAll(".orbit-recent-row");
+		const rows = view.contentEl.querySelectorAll(".orbital-recent-row");
 		const basenames = Array.from(rows).map((r) =>
-			r.querySelector(".orbit-recent-basename")?.textContent,
+			r.querySelector(".orbital-recent-basename")?.textContent,
 		);
 
 		// Excluded file not in list
@@ -1229,9 +1229,9 @@ describe("AC4 — Recent Files tab", () => {
 
 		// Build and wire the view manually (same pattern as AC3.3 first subtest).
 		const factory = vi.mocked(plugin.registerView).mock.calls[0]?.[1] as (leaf: WorkspaceLeaf) => unknown;
-		const { OrbitView } = await import("view/OrbitView");
+		const { OrbitalView } = await import("view/OrbitalView");
 		const leaf = new WorkspaceLeaf();
-		const wiredView = factory(leaf) as InstanceType<typeof OrbitView>;
+		const wiredView = factory(leaf) as InstanceType<typeof OrbitalView>;
 		(leaf as unknown as { view: unknown }).view = wiredView;
 		vi.mocked(app.workspace.getLeavesOfType).mockReturnValue([leaf] as WorkspaceLeaf[]);
 		plugin._index.buildFull();
@@ -1246,7 +1246,7 @@ describe("AC4 — Recent Files tab", () => {
 		wiredView.refreshActivePanel();
 		await tick();
 
-		const rows = wiredView.contentEl.querySelectorAll(".orbit-recent-row");
+		const rows = wiredView.contentEl.querySelectorAll(".orbital-recent-row");
 		const paths = Array.from(rows).map((r) => r.getAttribute("data-path"));
 
 		// The archived file was excluded at open-time (tag exclusion exercised the real path).
@@ -1269,7 +1269,7 @@ describe("AC4 — Recent Files tab", () => {
 		view.refreshActivePanel();
 		await tick();
 
-		const rows = view.contentEl.querySelectorAll(".orbit-recent-row");
+		const rows = view.contentEl.querySelectorAll(".orbital-recent-row");
 		const paths = Array.from(rows).map((r) => r.getAttribute("data-path"));
 
 		expect(paths).toContain("notes/new.md");
@@ -1293,7 +1293,7 @@ describe("AC4 — Recent Files tab", () => {
 
 		Notice._reset();
 
-		const row = view.contentEl.querySelector(".orbit-recent-row") as HTMLElement;
+		const row = view.contentEl.querySelector(".orbital-recent-row") as HTMLElement;
 		expect(row).not.toBeNull();
 		row.click();
 		await tick(20);
@@ -1359,7 +1359,7 @@ describe("AC4 — Recent Files tab", () => {
 		// List empty
 		view.refreshActivePanel();
 		await tick();
-		const emptyState = view.contentEl.querySelector(".orbit-recent-empty");
+		const emptyState = view.contentEl.querySelector(".orbital-recent-empty");
 		expect(emptyState).not.toBeNull();
 	});
 
@@ -1418,7 +1418,7 @@ describe("AC5 — Replace three plugins", () => {
 
 		// AC5.1: hover trigger is wired — mirrors AC2.4 pattern
 		// Dispatch mouseover on a relations item and assert the 'hover-link' workspace event fires.
-		const item = view.contentEl.querySelector(".orbit-relations-item") as HTMLElement;
+		const item = view.contentEl.querySelector(".orbital-relations-item") as HTMLElement;
 		expect(item).not.toBeNull();
 		item.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
 		await tick();
@@ -1443,7 +1443,7 @@ describe("AC5 — Replace three plugins", () => {
 		view.refreshActivePanel();
 		await tick();
 
-		const rows = view.contentEl.querySelectorAll(".orbit-recent-row");
+		const rows = view.contentEl.querySelectorAll(".orbital-recent-row");
 		// Capped at exactly 5 (7 files opened, recentListLength set to 5)
 		expect(rows.length).toBe(5);
 
@@ -1466,11 +1466,11 @@ describe("AC5 — Replace three plugins", () => {
 		await tick();
 
 		// Listing present
-		const group = view.contentEl.querySelector(".orbit-dangling-group");
+		const group = view.contentEl.querySelector(".orbital-dangling-group");
 		expect(group).not.toBeNull();
 
 		// Inline actions present (exceeds bare "listing only" baseline)
-		const actionBtns = view.contentEl.querySelectorAll(".orbit-dangling-action-btn");
+		const actionBtns = view.contentEl.querySelectorAll(".orbital-dangling-action-btn");
 		expect(actionBtns.length).toBeGreaterThanOrEqual(4); // rename, alias, create, delete
 	});
 });
@@ -1547,11 +1547,11 @@ describe("AC6 — Settings", () => {
 		expect(plugin.saveData).toHaveBeenCalled();
 
 		// --- Part 2: panel reflects the change without restart ---
-		// Build the wired OrbitView (same factory-capture pattern as other tests).
+		// Build the wired OrbitalView (same factory-capture pattern as other tests).
 		const factory = vi.mocked(plugin.registerView).mock.calls[0]?.[1] as (leaf: WorkspaceLeaf) => unknown;
-		const { OrbitView } = await import("view/OrbitView");
+		const { OrbitalView } = await import("view/OrbitalView");
 		const leaf = new WorkspaceLeaf();
-		const wiredView = factory(leaf) as InstanceType<typeof OrbitView>;
+		const wiredView = factory(leaf) as InstanceType<typeof OrbitalView>;
 		(leaf as unknown as { view: unknown }).view = wiredView;
 		vi.mocked(app.workspace.getLeavesOfType).mockReturnValue([leaf] as WorkspaceLeaf[]);
 		plugin._index.buildFull();
@@ -1571,7 +1571,7 @@ describe("AC6 — Settings", () => {
 		wiredView.refreshActivePanel();
 		await tick();
 
-		const rowsBefore = wiredView.contentEl.querySelectorAll(".orbit-recent-row");
+		const rowsBefore = wiredView.contentEl.querySelectorAll(".orbital-recent-row");
 		expect(rowsBefore).toHaveLength(20);
 
 		// Reduce the cap to 5 and re-render — no reload required.
@@ -1579,7 +1579,7 @@ describe("AC6 — Settings", () => {
 		wiredView.refreshActivePanel();
 		await tick();
 
-		const rowsAfter = wiredView.contentEl.querySelectorAll(".orbit-recent-row");
+		const rowsAfter = wiredView.contentEl.querySelectorAll(".orbital-recent-row");
 		expect(rowsAfter).toHaveLength(5);
 	});
 
@@ -1587,7 +1587,7 @@ describe("AC6 — Settings", () => {
 		// AC: AC6.3
 		// NOTE: Obsidian Sync itself runs outside jsdom. We simulate the Sync trigger
 		// by calling onExternalSettingsChange() directly — this is the plugin-observable
-		// boundary that Orbit owns.
+		// boundary that Orbital owns.
 		const app = makeApp();
 		const plugin = await makePlugin(app);
 		await plugin.onload();
@@ -1621,7 +1621,7 @@ describe("AC6 — Settings", () => {
 		danglingTab.click();
 		await tick();
 
-		let counts = view.contentEl.querySelectorAll(".orbit-dangling-count");
+		let counts = view.contentEl.querySelectorAll(".orbital-dangling-count");
 		expect(counts.length).toBeGreaterThan(0);
 
 		// Simulate Sync changing showCounts to false
@@ -1632,7 +1632,7 @@ describe("AC6 — Settings", () => {
 		view.refreshActivePanel();
 		await tick();
 
-		counts = view.contentEl.querySelectorAll(".orbit-dangling-count");
+		counts = view.contentEl.querySelectorAll(".orbital-dangling-count");
 		expect(counts.length).toBe(0);
 	});
 });

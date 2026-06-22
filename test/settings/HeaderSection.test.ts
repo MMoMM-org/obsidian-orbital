@@ -13,7 +13,7 @@ import {HeaderSection} from "../../src/settings/HeaderSection";
 function makeManifest(overrides: Partial<PluginManifest> = {}): PluginManifest {
 	return {
 		id: "orbit",
-		name: "Orbit",
+		name: "Orbital",
 		version: "0.0.0-test",
 		minAppVersion: "1.5.7",
 		description: "test",
@@ -41,7 +41,7 @@ describe("HeaderSection", () => {
 
 		section.render(container);
 
-		const tagline = container.querySelector("p.orbit-tagline");
+		const tagline = container.querySelector("p.orbital-tagline");
 		expect(tagline?.textContent).toBe("See what orbits your notes.");
 	});
 

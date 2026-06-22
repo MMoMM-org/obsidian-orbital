@@ -1,5 +1,5 @@
 /**
- * T1.3 / T2.4 / T3.4b — OrbitView shell + accessible TabBar + Relations wiring + Dangling wiring
+ * T1.3 / T2.4 / T3.4b — OrbitalView shell + accessible TabBar + Relations wiring + Dangling wiring
  *
  * Tests cover:
  * - VIEW_TYPE constant, display text, icon
@@ -24,12 +24,12 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { App, WorkspaceLeaf, ViewStateResult, augmentEl, TFile, TFolder } from "../__mocks__/obsidian";
-import { OrbitView, VIEW_TYPE } from "view/OrbitView";
-import type { RelationsDeps, DanglingDeps, RecentDeps } from "view/OrbitView";
+import { OrbitalView, VIEW_TYPE } from "view/OrbitalView";
+import type { RelationsDeps, DanglingDeps, RecentDeps } from "view/OrbitalView";
 import type { RelationsPanelApp } from "view/panels/RelationsPanel";
 import { LinkGraphIndex } from "graph/LinkGraphIndex";
 import type { MetadataCache as IndexMetadataCache } from "graph/LinkGraphIndex";
-import type { OrbitViewState, TabId } from "types/index";
+import type { OrbitalViewState, TabId } from "types/index";
 import { DEFAULT_SETTINGS } from "types/index";
 
 // ---------------------------------------------------------------------------
@@ -53,7 +53,7 @@ async function flush(): Promise<void> {
 // Factories
 // ---------------------------------------------------------------------------
 
-function makeInitialState(overrides?: Partial<OrbitViewState>): OrbitViewState {
+function makeInitialState(overrides?: Partial<OrbitalViewState>): OrbitalViewState {
 	return {
 		activeTab: "relations",
 		danglingScope: "vault",
@@ -67,30 +67,30 @@ function makeInitialState(overrides?: Partial<OrbitViewState>): OrbitViewState {
 // Describe blocks
 // ---------------------------------------------------------------------------
 
-describe("OrbitView identity", () => {
-	it("VIEW_TYPE is 'orbit'", () => {
-		expect(VIEW_TYPE).toBe("orbit");
+describe("OrbitalView identity", () => {
+	it("VIEW_TYPE is 'orbital'", () => {
+		expect(VIEW_TYPE).toBe("orbital");
 	});
 
-	it("getViewType() returns 'orbit'", () => {
-		const view = new OrbitView(makeLeaf());
-		expect(view.getViewType()).toBe("orbit");
+	it("getViewType() returns 'orbital'", () => {
+		const view = new OrbitalView(makeLeaf());
+		expect(view.getViewType()).toBe("orbital");
 	});
 
 	it("getDisplayText() returns 'Orbit'", () => {
-		const view = new OrbitView(makeLeaf());
-		expect(view.getDisplayText()).toBe("Orbit");
+		const view = new OrbitalView(makeLeaf());
+		expect(view.getDisplayText()).toBe("Orbital");
 	});
 
 	it("getIcon() returns a non-empty string", () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		expect(view.getIcon().length).toBeGreaterThan(0);
 	});
 });
 
-describe("OrbitView TabBar rendering", () => {
+describe("OrbitalView TabBar rendering", () => {
 	it("renders a role='tablist' container", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const tablist = view.contentEl.querySelector("[role='tablist']");
@@ -98,7 +98,7 @@ describe("OrbitView TabBar rendering", () => {
 	});
 
 	it("renders exactly three role='tab' buttons", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const tabs = view.contentEl.querySelectorAll("[role='tab']");
@@ -106,7 +106,7 @@ describe("OrbitView TabBar rendering", () => {
 	});
 
 	it("exactly one tab has aria-selected='true' initially", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const selected = view.contentEl.querySelectorAll("[role='tab'][aria-selected='true']");
@@ -114,7 +114,7 @@ describe("OrbitView TabBar rendering", () => {
 	});
 
 	it("the 'relations' tab is selected by default", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const selected = view.contentEl.querySelector("[role='tab'][aria-selected='true']");
@@ -122,7 +122,7 @@ describe("OrbitView TabBar rendering", () => {
 	});
 
 	it("non-active tabs have tabindex='-1'", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const tabs = view.contentEl.querySelectorAll("[role='tab']");
@@ -135,7 +135,7 @@ describe("OrbitView TabBar rendering", () => {
 	});
 
 	it("active tab has tabindex='0'", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const selected = view.contentEl.querySelector("[role='tab'][aria-selected='true']");
@@ -143,9 +143,9 @@ describe("OrbitView TabBar rendering", () => {
 	});
 });
 
-describe("OrbitView tab activation via click", () => {
+describe("OrbitalView tab activation via click", () => {
 	it("clicking 'dangling' tab makes it aria-selected='true'", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const danglingTab = view.contentEl.querySelector("[data-tab-id='dangling']") as HTMLElement;
@@ -156,7 +156,7 @@ describe("OrbitView tab activation via click", () => {
 	});
 
 	it("clicking 'dangling' tab deselects 'relations'", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const danglingTab = view.contentEl.querySelector("[data-tab-id='dangling']") as HTMLElement;
@@ -168,7 +168,7 @@ describe("OrbitView tab activation via click", () => {
 	});
 
 	it("only one tab is selected after clicking 'recent'", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const recentTab = view.contentEl.querySelector("[data-tab-id='recent']") as HTMLElement;
@@ -180,9 +180,9 @@ describe("OrbitView tab activation via click", () => {
 	});
 });
 
-describe("OrbitView panel switching", () => {
+describe("OrbitalView panel switching", () => {
 	it("only the active panel is rendered after onOpen", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const panels = view.contentEl.querySelectorAll("[role='tabpanel']");
@@ -190,7 +190,7 @@ describe("OrbitView panel switching", () => {
 	});
 
 	it("switching tab removes the old panel and shows the new one", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const danglingTab = view.contentEl.querySelector("[data-tab-id='dangling']") as HTMLElement;
@@ -205,7 +205,7 @@ describe("OrbitView panel switching", () => {
 	});
 
 	it("active panel has aria-labelledby referencing the active tab id", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const panel = view.contentEl.querySelector("[role='tabpanel']") as HTMLElement;
@@ -213,13 +213,13 @@ describe("OrbitView panel switching", () => {
 	});
 });
 
-describe("OrbitView keyboard navigation", () => {
+describe("OrbitalView keyboard navigation", () => {
 	function dispatchKey(target: Element, key: string): void {
 		target.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
 	}
 
 	it("ArrowRight moves selection from 'relations' to 'dangling'", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const relationsTab = view.contentEl.querySelector("[data-tab-id='relations']") as HTMLElement;
@@ -231,7 +231,7 @@ describe("OrbitView keyboard navigation", () => {
 	});
 
 	it("ArrowLeft wraps from 'relations' to 'recent'", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const relationsTab = view.contentEl.querySelector("[data-tab-id='relations']") as HTMLElement;
@@ -243,7 +243,7 @@ describe("OrbitView keyboard navigation", () => {
 	});
 
 	it("ArrowRight wraps from 'recent' to 'relations'", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		// Navigate to recent first
@@ -258,7 +258,7 @@ describe("OrbitView keyboard navigation", () => {
 	});
 
 	it("Home moves focus to first tab", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const danglingTab = view.contentEl.querySelector("[data-tab-id='dangling']") as HTMLElement;
@@ -270,7 +270,7 @@ describe("OrbitView keyboard navigation", () => {
 	});
 
 	it("End moves focus to last tab", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const relationsTab = view.contentEl.querySelector("[data-tab-id='relations']") as HTMLElement;
@@ -282,7 +282,7 @@ describe("OrbitView keyboard navigation", () => {
 	});
 
 	it("Enter activates the focused (roving) tab", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const relationsTab = view.contentEl.querySelector("[data-tab-id='relations']") as HTMLElement;
@@ -296,7 +296,7 @@ describe("OrbitView keyboard navigation", () => {
 	});
 
 	it("Space activates the focused (roving) tab", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const relationsTab = view.contentEl.querySelector("[data-tab-id='relations']") as HTMLElement;
@@ -310,12 +310,12 @@ describe("OrbitView keyboard navigation", () => {
 	});
 });
 
-describe("OrbitView getState/setState", () => {
-	it("getState returns the initial default OrbitViewState", async () => {
-		const view = new OrbitView(makeLeaf());
+describe("OrbitalView getState/setState", () => {
+	it("getState returns the initial default OrbitalViewState", async () => {
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
-		const state = view.getState() as OrbitViewState;
+		const state = view.getState() as OrbitalViewState;
 		expect(state.activeTab).toBe("relations");
 		expect(state.danglingScope).toBe("vault");
 		expect(state.danglingGrouping).toBe("target");
@@ -326,10 +326,10 @@ describe("OrbitView getState/setState", () => {
 	});
 
 	it("setState round-trips activeTab, danglingScope, danglingGrouping, collapsedSections, activeDanglingFilter", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
-		const newState: OrbitViewState = {
+		const newState: OrbitalViewState = {
 			activeTab: "dangling",
 			danglingScope: "folder",
 			danglingGrouping: "source",
@@ -338,32 +338,32 @@ describe("OrbitView getState/setState", () => {
 		};
 		await view.setState(newState, makeResult());
 
-		const state = view.getState() as OrbitViewState;
+		const state = view.getState() as OrbitalViewState;
 		expect(state).toEqual(newState);
 	});
 
 	// W1: exercise the non-null branch of activeDanglingFilter merge logic
 	it("setState({ activeDanglingFilter: 'TargetA' }) persists a non-null filter", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		await view.setState({ activeDanglingFilter: "TargetA" }, makeResult());
 
-		expect((view.getState() as OrbitViewState).activeDanglingFilter).toBe("TargetA");
+		expect((view.getState() as OrbitalViewState).activeDanglingFilter).toBe("TargetA");
 	});
 
 	it("setState({ activeDanglingFilter: 'TargetA' }) then setState({ activeDanglingFilter: null }) sets it to null (null is not swallowed)", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		await view.setState({ activeDanglingFilter: "TargetA" }, makeResult());
 		await view.setState({ activeDanglingFilter: null }, makeResult());
 
-		expect((view.getState() as OrbitViewState).activeDanglingFilter).toBeNull();
+		expect((view.getState() as OrbitalViewState).activeDanglingFilter).toBeNull();
 	});
 
 	it("setState switches the active tab in the DOM", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		await view.setState(
@@ -376,7 +376,7 @@ describe("OrbitView getState/setState", () => {
 	});
 
 	it("setState with unknown activeTab falls back gracefully (stays on current tab)", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		// Pass a state with an unknown tab — should not throw, keeps current selection
@@ -391,7 +391,7 @@ describe("OrbitView getState/setState", () => {
 	});
 
 	it("setState called before onOpen defers correctly: tab is active after onOpen", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 
 		// Call setState before onOpen — tabBar is still null at this point
 		await view.setState(makeInitialState({ activeTab: "dangling" }), makeResult());
@@ -404,9 +404,9 @@ describe("OrbitView getState/setState", () => {
 	});
 });
 
-describe("OrbitView aria-controls linkage", () => {
+describe("OrbitalView aria-controls linkage", () => {
 	it("active tab button's aria-controls references an existing panel element", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		for (const tabId of ["relations", "dangling", "recent"] as TabId[]) {
@@ -424,9 +424,9 @@ describe("OrbitView aria-controls linkage", () => {
 	});
 });
 
-describe("OrbitView cleanup", () => {
+describe("OrbitalView cleanup", () => {
 	it("onClose empties the contentEl", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 		await view.onClose();
 
@@ -434,18 +434,18 @@ describe("OrbitView cleanup", () => {
 	});
 
 	it("registered cleanup runs via _runCleanup()", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		// _runCleanup is available from Component base
 		(view as unknown as { _runCleanup(): void })._runCleanup();
 
 		// After cleanup no unhandled errors; view is still structurally valid
-		expect(view.getViewType()).toBe("orbit");
+		expect(view.getViewType()).toBe("orbital");
 	});
 
 	it("DOM event listeners are registered via register/registerDomEvent so cleanup is automatic", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 
 		// register is provided by Component mock (vi.fn)
 		const registerSpy = vi.spyOn(view, "register");
@@ -456,7 +456,7 @@ describe("OrbitView cleanup", () => {
 	});
 
 	it("tab-button click and keydown listeners use registerDomEvent (not raw addEventListener)", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		const registerDomEventSpy = vi.spyOn(view, "registerDomEvent");
 		await view.onOpen();
 
@@ -469,7 +469,7 @@ describe("OrbitView cleanup", () => {
 	});
 
 	it("tab-button handlers are not invoked after _runCleanup()", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 
 		// Capture the actual handlers passed to registerDomEvent so we can
 		// call them directly and assert they no longer trigger state changes.
@@ -554,10 +554,10 @@ function makeRelationsDeps(opts: RelationsDepsOptions = {}): RelationsDeps & { d
 	};
 }
 
-describe("OrbitView T2.4 — Relations panel wiring", () => {
+describe("OrbitalView T2.4 — Relations panel wiring", () => {
 	it("renders RelationsPanel section labels (not placeholder) when relationsDeps provided", async () => {
 		const deps = makeRelationsDeps();
-		const view = new OrbitView(makeLeaf(), undefined, deps);
+		const view = new OrbitalView(makeLeaf(), undefined, deps);
 
 		// Set an active file via the view's own app (used for getActiveFile())
 		const viewApp = (view as unknown as { app: App }).app;
@@ -568,12 +568,12 @@ describe("OrbitView T2.4 — Relations panel wiring", () => {
 		await view.onOpen();
 
 		// Placeholder div must not be present
-		const placeholder = view.contentEl.querySelector(".orbit-panel-placeholder");
+		const placeholder = view.contentEl.querySelector(".orbital-panel-placeholder");
 		expect(placeholder).toBeNull();
 
 		// Real RelationsPanel renders 4 section label spans
 		const sectionLabels = Array.from(
-			view.contentEl.querySelectorAll(".orbit-relations-section-label"),
+			view.contentEl.querySelectorAll(".orbital-relations-section-label"),
 		).map((el) => el.textContent?.trim() ?? "");
 
 		expect(sectionLabels).toContain("Outgoing");
@@ -584,16 +584,16 @@ describe("OrbitView T2.4 — Relations panel wiring", () => {
 
 	it("shows relations empty-state (not placeholder) when no active file", async () => {
 		const deps = makeRelationsDeps();
-		const view = new OrbitView(makeLeaf(), undefined, deps);
+		const view = new OrbitalView(makeLeaf(), undefined, deps);
 		const viewApp = (view as unknown as { app: App }).app;
 		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(null);
 
 		await view.onOpen();
 
-		const placeholder = view.contentEl.querySelector(".orbit-panel-placeholder");
+		const placeholder = view.contentEl.querySelector(".orbital-panel-placeholder");
 		expect(placeholder).toBeNull();
 
-		const emptyState = view.contentEl.querySelector(".orbit-relations-empty");
+		const emptyState = view.contentEl.querySelector(".orbital-relations-empty");
 		expect(emptyState).not.toBeNull();
 	});
 
@@ -603,7 +603,7 @@ describe("OrbitView T2.4 — Relations panel wiring", () => {
 			resolved: { "notes/active.md": { "notes/target.md": 1 } },
 		});
 
-		const view = new OrbitView(makeLeaf(), undefined, deps);
+		const view = new OrbitalView(makeLeaf(), undefined, deps);
 		const viewApp = (view as unknown as { app: App }).app;
 
 		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(
@@ -612,7 +612,7 @@ describe("OrbitView T2.4 — Relations panel wiring", () => {
 		await view.onOpen();
 
 		// active.md has 1 outgoing item
-		const itemsBefore = view.contentEl.querySelectorAll(".orbit-relations-item").length;
+		const itemsBefore = view.contentEl.querySelectorAll(".orbital-relations-item").length;
 		expect(itemsBefore).toBeGreaterThan(0);
 
 		// Switch active file to one with no links
@@ -622,13 +622,13 @@ describe("OrbitView T2.4 — Relations panel wiring", () => {
 		view.refreshActivePanel();
 
 		// Panel re-renders for empty.md — no outgoing items
-		const itemsAfter = view.contentEl.querySelectorAll(".orbit-relations-item").length;
+		const itemsAfter = view.contentEl.querySelectorAll(".orbital-relations-item").length;
 		expect(itemsAfter).toBe(0);
 	});
 
 	it("onManage callback switches activeTab to 'dangling' and sets activeDanglingFilter", async () => {
 		// deps.app has the unresolved link so the Manage button renders
-		let view!: OrbitView;
+		let view!: OrbitalView;
 		const deps = makeRelationsDeps({
 			unresolved: { "notes/active.md": { "MissingNote": 1 } },
 			onManage: (target: string) => {
@@ -639,7 +639,7 @@ describe("OrbitView T2.4 — Relations panel wiring", () => {
 			},
 		});
 
-		view = new OrbitView(makeLeaf(), undefined, deps);
+		view = new OrbitalView(makeLeaf(), undefined, deps);
 		const viewApp = (view as unknown as { app: App }).app;
 		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(
 			{ path: "notes/active.md" },
@@ -657,12 +657,12 @@ describe("OrbitView T2.4 — Relations panel wiring", () => {
 
 		const selectedTab = view.contentEl.querySelector("[role='tab'][aria-selected='true']");
 		expect(selectedTab?.getAttribute("data-tab-id")).toBe("dangling");
-		expect((view.getState() as OrbitViewState).activeDanglingFilter).toBe("MissingNote");
+		expect((view.getState() as OrbitalViewState).activeDanglingFilter).toBe("MissingNote");
 	});
 
-	it("collapse state persists through refreshActivePanel (backed by OrbitViewState)", async () => {
+	it("collapse state persists through refreshActivePanel (backed by OrbitalViewState)", async () => {
 		const deps = makeRelationsDeps();
-		const view = new OrbitView(makeLeaf(), undefined, deps);
+		const view = new OrbitalView(makeLeaf(), undefined, deps);
 		const viewApp = (view as unknown as { app: App }).app;
 		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(
 			{ path: "notes/active.md" },
@@ -672,20 +672,20 @@ describe("OrbitView T2.4 — Relations panel wiring", () => {
 
 		// Click the outgoing section header to collapse it
 		const outgoingHeader = view.contentEl.querySelector(
-			".orbit-relations-section[data-section='outgoing'] .orbit-relations-section-header",
+			".orbital-relations-section[data-section='outgoing'] .orbital-relations-section-header",
 		) as HTMLElement;
 		expect(outgoingHeader).not.toBeNull();
 		outgoingHeader.click();
 
 		// Confirm collapse is reflected in getState()
-		const stateAfter = view.getState() as OrbitViewState;
+		const stateAfter = view.getState() as OrbitalViewState;
 		expect(stateAfter.collapsedSections).toContain("outgoing");
 
 		// Re-render — collapse must survive
 		view.refreshActivePanel();
 
 		const outgoingSection = view.contentEl.querySelector(
-			".orbit-relations-section[data-section='outgoing']",
+			".orbital-relations-section[data-section='outgoing']",
 		);
 		expect(outgoingSection?.classList.contains("is-collapsed")).toBe(true);
 	});
@@ -734,10 +734,10 @@ function makeDanglingDeps(unresolved: Record<string, Record<string, number>> = {
 	};
 }
 
-describe("OrbitView T3.4b — Dangling panel wiring", () => {
+describe("OrbitalView T3.4b — Dangling panel wiring", () => {
 	it("renders DanglingPanel empty state (not placeholder) when danglingDeps provided and dangling tab selected", async () => {
 		const deps = makeDanglingDeps();
-		const view = new OrbitView(makeLeaf(), undefined, undefined, deps);
+		const view = new OrbitalView(makeLeaf(), undefined, undefined, deps);
 
 		// Set active file with a parent folder
 		const viewApp = (view as unknown as { app: App }).app;
@@ -756,18 +756,18 @@ describe("OrbitView T3.4b — Dangling panel wiring", () => {
 		await flush();
 
 		// Placeholder must not be present
-		const placeholder = view.contentEl.querySelector(".orbit-panel-placeholder");
+		const placeholder = view.contentEl.querySelector(".orbital-panel-placeholder");
 		expect(placeholder).toBeNull();
 
 		// Real DanglingPanel renders the empty state for an empty index
-		const emptyState = view.contentEl.querySelector(".orbit-dangling-empty");
+		const emptyState = view.contentEl.querySelector(".orbital-dangling-empty");
 		expect(emptyState).not.toBeNull();
 		expect(emptyState?.textContent).toBe("No dangling links in this scope.");
 	});
 
 	it("getScope returns 'vault' initially and setScope persists via state", async () => {
 		const deps = makeDanglingDeps();
-		const view = new OrbitView(makeLeaf(), undefined, undefined, deps);
+		const view = new OrbitalView(makeLeaf(), undefined, undefined, deps);
 
 		const viewApp = (view as unknown as { app: App }).app;
 		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(null);
@@ -799,7 +799,7 @@ describe("OrbitView T3.4b — Dangling panel wiring", () => {
 			...deps,
 			getSettings: () => ({ ...DEFAULT_SETTINGS, danglingDefaultScope: "folder" }),
 		};
-		const view = new OrbitView(makeLeaf(), undefined, undefined, depsWithFolderScope);
+		const view = new OrbitalView(makeLeaf(), undefined, undefined, depsWithFolderScope);
 
 		const viewApp = (view as unknown as { app: App }).app;
 		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(null);
@@ -822,7 +822,7 @@ describe("OrbitView T3.4b — Dangling panel wiring", () => {
 
 	it("getGrouping returns the settings default initially and setGrouping round-trips", async () => {
 		const deps = makeDanglingDeps();
-		const view = new OrbitView(makeLeaf(), undefined, undefined, deps);
+		const view = new OrbitalView(makeLeaf(), undefined, undefined, deps);
 
 		const viewApp = (view as unknown as { app: App }).app;
 		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(null);
@@ -850,7 +850,7 @@ describe("OrbitView T3.4b — Dangling panel wiring", () => {
 		const deps = makeDanglingDeps({
 			"notes/active.md": { "MissingNote": 1 },
 		});
-		const view = new OrbitView(makeLeaf(), undefined, undefined, deps);
+		const view = new OrbitalView(makeLeaf(), undefined, undefined, deps);
 
 		const viewApp = (view as unknown as { app: App }).app;
 		const mockFile = new TFile();
@@ -873,7 +873,7 @@ describe("OrbitView T3.4b — Dangling panel wiring", () => {
 
 		// With folder scope and a file in "notes/", the MissingNote should appear
 		// because its source (notes/active.md) starts with "notes/"
-		const emptyState = view.contentEl.querySelector(".orbit-dangling-empty");
+		const emptyState = view.contentEl.querySelector(".orbital-dangling-empty");
 		expect(emptyState).toBeNull(); // should have targets
 		const targetGroup = view.contentEl.querySelector("[data-target='MissingNote']");
 		expect(targetGroup).not.toBeNull();
@@ -883,7 +883,7 @@ describe("OrbitView T3.4b — Dangling panel wiring", () => {
 		const deps = makeDanglingDeps({
 			"notes/active.md": { "TargetA": 1, "TargetB": 1 },
 		});
-		const view = new OrbitView(makeLeaf(), undefined, undefined, deps);
+		const view = new OrbitalView(makeLeaf(), undefined, undefined, deps);
 
 		const viewApp = (view as unknown as { app: App }).app;
 		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(null);
@@ -905,7 +905,7 @@ describe("OrbitView T3.4b — Dangling panel wiring", () => {
 	});
 
 	it("does not replace the dangling placeholder when danglingDeps is absent", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 
 		await view.onOpen();
 
@@ -913,7 +913,7 @@ describe("OrbitView T3.4b — Dangling panel wiring", () => {
 		danglingTab.click();
 		await flush();
 
-		const placeholder = view.contentEl.querySelector(".orbit-panel-placeholder");
+		const placeholder = view.contentEl.querySelector(".orbital-panel-placeholder");
 		expect(placeholder).not.toBeNull();
 		expect(placeholder?.textContent).toBe("Dangling links");
 	});
@@ -945,10 +945,10 @@ function makeRecentDeps(): RecentDeps {
 	};
 }
 
-describe("OrbitView T4.3b — Recent panel wiring", () => {
+describe("OrbitalView T4.3b — Recent panel wiring", () => {
 	it("renders RecentPanel empty state (not placeholder) when recentDeps provided and recent tab selected", async () => {
 		const deps = makeRecentDeps();
-		const view = new OrbitView(makeLeaf(), undefined, undefined, undefined, deps);
+		const view = new OrbitalView(makeLeaf(), undefined, undefined, undefined, deps);
 
 		await view.onOpen();
 
@@ -958,17 +958,17 @@ describe("OrbitView T4.3b — Recent panel wiring", () => {
 		await flush();
 
 		// Placeholder must not be present
-		const placeholder = view.contentEl.querySelector(".orbit-panel-placeholder");
+		const placeholder = view.contentEl.querySelector(".orbital-panel-placeholder");
 		expect(placeholder).toBeNull();
 
 		// Real RecentPanel renders the empty state for an empty store
-		const emptyState = view.contentEl.querySelector(".orbit-recent-empty");
+		const emptyState = view.contentEl.querySelector(".orbital-recent-empty");
 		expect(emptyState).not.toBeNull();
 		expect(emptyState?.textContent).toBe("No recent notes yet.");
 	});
 
 	it("does not replace the recent placeholder when recentDeps is absent", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 
 		await view.onOpen();
 
@@ -976,7 +976,7 @@ describe("OrbitView T4.3b — Recent panel wiring", () => {
 		recentTab.click();
 		await flush();
 
-		const placeholder = view.contentEl.querySelector(".orbit-panel-placeholder");
+		const placeholder = view.contentEl.querySelector(".orbital-panel-placeholder");
 		expect(placeholder).not.toBeNull();
 		expect(placeholder?.textContent).toBe("Recent notes");
 	});
@@ -984,7 +984,7 @@ describe("OrbitView T4.3b — Recent panel wiring", () => {
 	it("calls store.list() when recent tab is rendered", async () => {
 		const deps = makeRecentDeps();
 		const listSpy = vi.spyOn(deps.store, "list");
-		const view = new OrbitView(makeLeaf(), undefined, undefined, undefined, deps);
+		const view = new OrbitalView(makeLeaf(), undefined, undefined, undefined, deps);
 
 		await view.onOpen();
 
@@ -1001,9 +1001,9 @@ describe("OrbitView T4.3b — Recent panel wiring", () => {
 // T5.2 — Gap A: focus moves into the active panel on tab switch
 // ---------------------------------------------------------------------------
 
-describe("OrbitView T5.2 — Panel focus on tab switch (Gap A)", () => {
+describe("OrbitalView T5.2 — Panel focus on tab switch (Gap A)", () => {
 	it("tabpanel element has tabindex='-1' (programmatically focusable)", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const panel = view.contentEl.querySelector("[role='tabpanel']") as HTMLElement;
@@ -1011,7 +1011,7 @@ describe("OrbitView T5.2 — Panel focus on tab switch (Gap A)", () => {
 	});
 
 	it("switching tab renders the new panel with tabindex='-1'", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const danglingTab = view.contentEl.querySelector("[data-tab-id='dangling']") as HTMLElement;
@@ -1023,7 +1023,7 @@ describe("OrbitView T5.2 — Panel focus on tab switch (Gap A)", () => {
 	});
 
 	it("focus() is called on the tabpanel after a tab switch (not on passive refresh)", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		// Grab a reference to the initial panel and spy on its focus
@@ -1046,7 +1046,7 @@ describe("OrbitView T5.2 — Panel focus on tab switch (Gap A)", () => {
 	});
 
 	it("refreshActivePanel does NOT steal focus from the current panel (passive refresh)", async () => {
-		const view = new OrbitView(makeLeaf());
+		const view = new OrbitalView(makeLeaf());
 		await view.onOpen();
 
 		const panel = view.contentEl.querySelector("[role='tabpanel']") as HTMLElement;

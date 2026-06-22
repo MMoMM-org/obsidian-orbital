@@ -2,7 +2,7 @@
  * Lightweight debug logger gated by a live settings getter.
  *
  * When debug logging is disabled the calls are cheap no-ops, so call sites can
- * stay in hot paths. All messages are prefixed with `[Orbit]` so users can
+ * stay in hot paths. All messages are prefixed with `[Orbital]` so users can
  * filter the developer console. Uses console.debug (not console.log) per the
  * Obsidian community-plugin guidelines.
  */
@@ -21,7 +21,7 @@ export interface Logger {
 export function createLogger(isEnabled: () => boolean): Logger {
 	return {
 		debug: (...args: unknown[]): void => {
-			if (isEnabled()) console.debug("[Orbit]", ...args);
+			if (isEnabled()) console.debug("[Orbital]", ...args);
 		},
 	};
 }

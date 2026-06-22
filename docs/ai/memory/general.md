@@ -2,7 +2,7 @@
 
 ## Settings documentation: JSDoc is the single source of truth
 
-Every field in `OrbitSettings` (`src/types/index.ts`) carries a `/** … */` JSDoc
+Every field in `OrbitalSettings` (`src/types/index.ts`) carries a `/** … */` JSDoc
 comment. That comment is the canonical user-facing description: the doc-product
 `extract` mode (`/doc-product extract`) reads it straight into the table in
 `docs/configuration.md`. Fields without JSDoc come out as `[NEEDS DESCRIPTION]`.

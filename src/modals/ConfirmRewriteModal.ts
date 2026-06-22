@@ -142,7 +142,7 @@ export class ConfirmRewriteModal extends Modal {
 
 	private renderPreview(el: AugmentedEl): void {
 		this.previewEl = el.createEl("p", {
-			cls: "orbit-confirm-preview",
+			cls: "orbital-confirm-preview",
 			text: this.previewText(this.opts.preview),
 		});
 	}
@@ -162,16 +162,16 @@ export class ConfirmRewriteModal extends Modal {
 
 	private renderWarning(el: AugmentedEl): void {
 		el.createEl("p", {
-			cls: "orbit-confirm-warning mod-warning",
+			cls: "orbital-confirm-warning mod-warning",
 			text: "This operation cannot be undone. Back up your vault before proceeding.",
 		});
 	}
 
 	private renderRenameConfirm(el: AugmentedEl): void {
-		el.createEl("label", { text: "New name:", cls: "orbit-confirm-label" });
+		el.createEl("label", { text: "New name:", cls: "orbital-confirm-label" });
 
 		const input = el.createEl("input", {
-			cls: "orbit-confirm-input",
+			cls: "orbital-confirm-input",
 			attr: {
 				type: "text",
 				"aria-label": "New note name",
@@ -184,7 +184,7 @@ export class ConfirmRewriteModal extends Modal {
 		if (this.opts.pickExisting !== undefined) {
 			const pickBtn = el.createEl("button", {
 				text: "Choose existing…",
-				cls: "orbit-confirm-pick-btn",
+				cls: "orbital-confirm-pick-btn",
 				attr: { "data-action": "pick-existing", "aria-label": "Choose an existing note or dangling link" },
 			});
 			pickBtn.addEventListener("click", () => {
@@ -198,13 +198,13 @@ export class ConfirmRewriteModal extends Modal {
 
 		// Merge notice: hidden via is-hidden class until a matching name is typed
 		const mergeNotice = el.createEl("p", {
-			cls: "orbit-confirm-merge-notice is-hidden",
+			cls: "orbital-confirm-merge-notice is-hidden",
 			attr: { "data-notice": "merge" },
 		});
 
 		const confirmBtn = el.createEl("button", {
 			text: "Confirm",
-			cls: "orbit-confirm-btn mod-cta",
+			cls: "orbital-confirm-btn mod-cta",
 			attr: { "data-action": "confirm", "aria-label": "Confirm operation" },
 		}) as HTMLButtonElement;
 		confirmBtn.disabled = true;
@@ -223,22 +223,22 @@ export class ConfirmRewriteModal extends Modal {
 
 	private renderDeleteConfirm(el: AugmentedEl): void {
 		el.createEl("p", {
-			cls: "orbit-confirm-delete-label",
+			cls: "orbital-confirm-delete-label",
 			text: "Check the box below to confirm deletion:",
 		});
 
-		const checkboxRow = el.createDiv({ cls: "orbit-confirm-checkbox-row" });
+		const checkboxRow = el.createDiv({ cls: "orbital-confirm-checkbox-row" });
 		const checkboxEl = (checkboxRow as unknown as AugmentedEl).createEl("input", {
 			attr: {
 				type: "checkbox",
-				id: "orbit-confirm-delete-checkbox",
+				id: "orbital-confirm-delete-checkbox",
 				"aria-label": "Confirm deletion of dangling links",
 			},
 		}) as HTMLInputElement;
 
 		(checkboxRow as unknown as AugmentedEl).createEl("label", {
 			text: "I understand this cannot be undone",
-			attr: { for: "orbit-confirm-delete-checkbox" },
+			attr: { for: "orbital-confirm-delete-checkbox" },
 		});
 
 		// "Only in note: <name>" option — scopes the delete to the source note the
@@ -247,11 +247,11 @@ export class ConfirmRewriteModal extends Modal {
 		// no single source, so the option is omitted entirely.
 		const sourceNote = this.opts.deleteSourceNote;
 		if (sourceNote !== undefined) {
-			const onlyInNoteRow = el.createDiv({ cls: "orbit-confirm-checkbox-row" });
+			const onlyInNoteRow = el.createDiv({ cls: "orbital-confirm-checkbox-row" });
 			const onlyInNoteCheckbox = (onlyInNoteRow as unknown as AugmentedEl).createEl("input", {
 				attr: {
 					type: "checkbox",
-					id: "orbit-confirm-delete-only-note",
+					id: "orbital-confirm-delete-only-note",
 					"aria-label": `Only delete links in ${sourceNote}`,
 				},
 			}) as HTMLInputElement;
@@ -262,7 +262,7 @@ export class ConfirmRewriteModal extends Modal {
 
 			(onlyInNoteRow as unknown as AugmentedEl).createEl("label", {
 				text: `Only in note: ${sourceNote}`,
-				attr: { for: "orbit-confirm-delete-only-note" },
+				attr: { for: "orbital-confirm-delete-only-note" },
 			});
 
 			onlyInNoteCheckbox.addEventListener("change", () => {
@@ -273,7 +273,7 @@ export class ConfirmRewriteModal extends Modal {
 
 		const confirmBtn = el.createEl("button", {
 			text: "Confirm",
-			cls: "orbit-confirm-btn mod-warning",
+			cls: "orbital-confirm-btn mod-warning",
 			attr: { "data-action": "confirm", "aria-label": "Confirm deletion" },
 		}) as HTMLButtonElement;
 		confirmBtn.disabled = true;
@@ -291,7 +291,7 @@ export class ConfirmRewriteModal extends Modal {
 	private renderSimpleConfirm(el: AugmentedEl): void {
 		const confirmBtn = el.createEl("button", {
 			text: "Confirm",
-			cls: "orbit-confirm-btn mod-cta",
+			cls: "orbital-confirm-btn mod-cta",
 			attr: { "data-action": "confirm", "aria-label": "Confirm operation" },
 		}) as HTMLButtonElement;
 

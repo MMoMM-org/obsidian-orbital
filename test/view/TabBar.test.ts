@@ -2,7 +2,7 @@
  * TabBar unit tests — T5.2
  *
  * Coverage:
- * - role=tablist / role=tab ARIA attributes (already exercised in OrbitView.test.ts,
+ * - role=tablist / role=tab ARIA attributes (already exercised in OrbitalView.test.ts,
  *   repeated here to make TabBar independently testable)
  * - roving tabindex: active tab has 0, others -1
  * - Arrow Left/Right cycle; Home / End jump to extremes
@@ -262,19 +262,19 @@ describe("TabBar is-narrow class toggle (Gap C)", () => {
 		}).not.toThrow();
 	});
 
-	it("each tab button contains a .orbit-tab-label child span with the label text", () => {
+	it("each tab button contains a .orbital-tab-label child span with the label text", () => {
 		const el = makeContainer();
 		makeTabBar(el);
 
 		const tabs = el.querySelectorAll("[role='tab']");
 		for (const tab of Array.from(tabs)) {
-			const labelSpan = tab.querySelector(".orbit-tab-label");
+			const labelSpan = tab.querySelector(".orbital-tab-label");
 			expect(labelSpan).not.toBeNull();
 			expect(labelSpan?.textContent?.length).toBeGreaterThan(0);
 		}
 	});
 
-	it("with is-narrow applied the .orbit-tab-label child span is present in the DOM (CSS hides it)", () => {
+	it("with is-narrow applied the .orbital-tab-label child span is present in the DOM (CSS hides it)", () => {
 		const el = makeContainer();
 		const bar = makeTabBar(el);
 		bar.setNarrow(true);
@@ -283,7 +283,7 @@ describe("TabBar is-narrow class toggle (Gap C)", () => {
 		expect(tablist?.classList.contains("is-narrow")).toBe(true);
 
 		// The span must exist in the DOM — CSS display:none is what hides it
-		const labelSpans = el.querySelectorAll(".orbit-tab-label");
+		const labelSpans = el.querySelectorAll(".orbital-tab-label");
 		expect(labelSpans.length).toBe(3);
 	});
 });

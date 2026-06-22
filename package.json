@@ -1,7 +1,7 @@
 {
-	"name": "orbit",
+	"name": "orbital",
 	"version": "0.9.0",
-	"description": "Orbit plugin.",
+	"description": "Orbital plugin.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {

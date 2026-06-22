@@ -14,7 +14,7 @@ import { LinkGraphIndex } from "graph/LinkGraphIndex";
 import type { MetadataCache as IndexMetadataCache } from "graph/LinkGraphIndex";
 import { computeRelations } from "graph/relations";
 import type { RelationsMetadataCache } from "graph/relations";
-import type { OrbitSettings } from "types/index";
+import type { OrbitalSettings } from "types/index";
 import { DEFAULT_SETTINGS } from "types/index";
 
 // ---------------------------------------------------------------------------
@@ -37,7 +37,7 @@ function makeRelationsCache(
 	return { unresolvedLinks: unresolved };
 }
 
-function makeSettings(overrides?: Partial<OrbitSettings>): OrbitSettings {
+function makeSettings(overrides?: Partial<OrbitalSettings>): OrbitalSettings {
 	return { ...DEFAULT_SETTINGS, ...overrides };
 }
 

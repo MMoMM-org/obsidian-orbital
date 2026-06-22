@@ -17,14 +17,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { App, TFile, TFolder, normalizePath } from "../__mocks__/obsidian";
 import { createNote } from "links/createNote";
-import type { OrbitSettings } from "types/index";
+import type { OrbitalSettings } from "types/index";
 import { DEFAULT_SETTINGS } from "types/index";
 
 function makeApp(): App {
 	return new App();
 }
 
-function makeSettings(overrides?: Partial<OrbitSettings>): OrbitSettings {
+function makeSettings(overrides?: Partial<OrbitalSettings>): OrbitalSettings {
 	return { ...DEFAULT_SETTINGS, ...overrides };
 }
 

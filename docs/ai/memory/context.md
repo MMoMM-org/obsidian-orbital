@@ -35,7 +35,7 @@ tab, honouring 2nd-hop enabled/cap). Updated from `_repaintActivePanel`; setting
 `showStatusBar` (default true) with `_refreshStatusBar` to add/remove at runtime.
 
 ## State
-612 tests pass; lint/typecheck/build clean. Test vault `test/Orbit/` holds a
+612 tests pass; lint/typecheck/build clean. Test vault `test/Orbital/` holds a
 smoke-test corpus (18 PKM notes + `_Orbit Test Guide.md`) covering every tab/action,
 including Zettelkasten unlinked-mention fixtures.
 Next: real-vault smoke session for unlinked mentions (lazy scan on a large vault,

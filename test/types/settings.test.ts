@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_SETTINGS } from "types/index";
-import type { OrbitSettings } from "types/index";
+import type { OrbitalSettings } from "types/index";
 
-describe("OrbitSettings", () => {
+describe("OrbitalSettings", () => {
 	describe("DEFAULT_SETTINGS", () => {
 		it("has recentListLength of 20", () => {
 			expect(DEFAULT_SETTINGS.recentListLength).toBe(20);
@@ -58,7 +58,7 @@ describe("OrbitSettings", () => {
 	});
 
 	describe("loadSettings merges partial stored data over defaults", () => {
-		function mergeSettings(stored: Partial<OrbitSettings> | null): OrbitSettings {
+		function mergeSettings(stored: Partial<OrbitalSettings> | null): OrbitalSettings {
 			return Object.assign({}, DEFAULT_SETTINGS, stored ?? {});
 		}
 
@@ -81,7 +81,7 @@ describe("OrbitSettings", () => {
 		});
 
 		it("typed fields survive a merge that includes extra keys in stored data", () => {
-			const stored = { recentListLength: 7, unknownKey: "ignored" } as unknown as Partial<OrbitSettings>;
+			const stored = { recentListLength: 7, unknownKey: "ignored" } as unknown as Partial<OrbitalSettings>;
 			const result = mergeSettings(stored);
 			expect(result.recentListLength).toBe(7);
 			expect(result.defaultTab).toBe("relations");
@@ -95,8 +95,8 @@ describe("OrbitSettings", () => {
 	});
 
 	describe("type shape", () => {
-		it("DEFAULT_SETTINGS is assignable to OrbitSettings", () => {
-			const settings: OrbitSettings = DEFAULT_SETTINGS;
+		it("DEFAULT_SETTINGS is assignable to OrbitalSettings", () => {
+			const settings: OrbitalSettings = DEFAULT_SETTINGS;
 			expect(settings).toBeDefined();
 		});
 	});

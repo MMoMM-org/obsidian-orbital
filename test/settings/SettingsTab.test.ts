@@ -1,9 +1,9 @@
 /**
- * T1.4 — SettingsTab: renders controls for all OrbitSettings fields,
+ * T1.4 — SettingsTab: renders controls for all OrbitalSettings fields,
  * persists on change.
  *
  * Tests cover:
- * - All OrbitSettings fields have a visible Setting control rendered
+ * - All OrbitalSettings fields have a visible Setting control rendered
  * - Each numeric field (recentListLength, secondHopCap, refreshDebounceMs)
  *   persists its value on change and calls saveSettings
  * - Boolean toggles (secondHopEnabled, showCounts) persist on change
@@ -19,21 +19,21 @@ import { describe, it, expect, vi } from "vitest";
 import { App, Plugin } from "../__mocks__/obsidian";
 import { DEFAULT_SETTINGS } from "types/index";
 import { SettingsTab } from "settings/SettingsTab";
-import type OrbitPlugin from "main";
+import type OrbitalPlugin from "main";
 
 // ---------------------------------------------------------------------------
 // Factories
 // ---------------------------------------------------------------------------
 
-function makePlugin(): OrbitPlugin {
+function makePlugin(): OrbitalPlugin {
 	const app = new App();
-	const plugin = new Plugin(app) as unknown as OrbitPlugin;
+	const plugin = new Plugin(app) as unknown as OrbitalPlugin;
 	plugin.settings = { ...DEFAULT_SETTINGS };
 	plugin.saveSettings = vi.fn(async () => {});
 	return plugin;
 }
 
-function makeTab(plugin: OrbitPlugin): SettingsTab {
+function makeTab(plugin: OrbitalPlugin): SettingsTab {
 	const app = new App();
 	return new SettingsTab(app, plugin);
 }

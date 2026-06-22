@@ -59,8 +59,8 @@ const copyAssets = {
 				copyFileSync("styles.css", "build/styles.css");
 			}
 
-			const VAULT_DIR = "test/Orbit/.obsidian";
-			const VAULT_PLUGIN_DIR = `${VAULT_DIR}/plugins/orbit`;
+			const VAULT_DIR = "test/Orbital/.obsidian";
+			const VAULT_PLUGIN_DIR = `${VAULT_DIR}/plugins/orbital`;
 			if (!existsSync(VAULT_DIR)) return;
 
 			mkdirSync(VAULT_PLUGIN_DIR, { recursive: true });

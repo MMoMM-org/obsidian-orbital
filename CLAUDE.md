@@ -1,6 +1,6 @@
-# Orbit
+# Orbital
 
-Orbit plugin.
+Orbital plugin.
 
 @~/Kouzou/standards/general.md
 
