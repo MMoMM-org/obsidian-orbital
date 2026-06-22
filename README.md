@@ -20,7 +20,9 @@ It works on desktop and mobile, and reads Obsidian's own link graph — there's 
 See the [**Usage guide**](docs/usage.md) for screenshots and the full walkthrough.
 
 <p align="center">
-  <img src="assets/orbit-relations-statusbar.png" alt="The Orbit pane showing the Relations tab" width="400">
+  <img src="assets/orbit-relations-statusbar.png" alt="Relations tab" width="250">
+  <img src="assets/orbit-dangling-delete-target.png" alt="Dangling-link delete confirmation" width="250">
+  <img src="assets/orbit-recent.png" alt="Recent notes tab" width="250">
 </p>
 
 ## Installation
