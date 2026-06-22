@@ -15,4 +15,4 @@ functionality lives inside the pane itself (see [Usage](usage.md)) and its
 - **No default hotkey.** Assign one under **Settings → Hotkeys** (search for "Orbit")
   if you open the pane often.
 - You can also open the pane by clicking the Orbit **status-bar item** (when enabled
-  under Settings → Orbit → General), which opens it on the Relations tab.
+  in Settings → Orbit), which opens it on the Relations tab.

@@ -38,7 +38,7 @@ disable **Second-hop links** if you don't need them.
 
 ### The status-bar item is missing
 
-Enable **Show status bar item** under **Settings → Orbit → General**.
+Enable **Show status bar item** in **Settings → Orbit** (it's near the top of the tab).
 
 ### A dangling-link action did something unexpected
 

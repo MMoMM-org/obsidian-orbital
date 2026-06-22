@@ -7,7 +7,9 @@ when you'd want to change it.
 
 ## General
 
-![General and Relations settings](../assets/orbit-settings-general-relations.png)
+These settings appear at the top of the settings tab, above the first heading.
+
+![The settings tab — top settings and the Relations group](../assets/orbit-settings-general-relations.png)
 
 ### Default tab
 

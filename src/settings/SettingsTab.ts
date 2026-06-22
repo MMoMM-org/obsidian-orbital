@@ -34,8 +34,9 @@ export class SettingsTab extends PluginSettingTab {
 	// -------------------------------------------------------------------------
 
 	private renderGeneralSection(containerEl: HTMLElement): void {
-		new Setting(containerEl).setName("General").setHeading();
-
+		// Obsidian guideline: the first settings group has no heading — a
+		// leading "General" heading is flagged by obsidianmd lint. These
+		// settings render at the top of the tab, above the first heading.
 		new Setting(containerEl)
 			.setName("Default tab")
 			.setDesc("Which tab to show when the orbit pane opens.")
