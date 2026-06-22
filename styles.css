@@ -60,3 +60,657 @@
 	color: var(--text-muted);
 	font-size: var(--font-small);
 }
+
+/* ── Tab bar ────────────────────────────────────────────────────────────────
+   .orbit-tab-bar wraps the three role="tab" buttons inside OrbitView.
+   Uses the Obsidian nav-buttons-container class for baseline spacing and
+   adds prefixed overrides for layout, active state, and focus rings.
+   All colors come from Obsidian CSS variables — no hardcoded values.
+   ─────────────────────────────────────────────────────────────────────────*/
+
+.orbit-tab-bar {
+	display: flex;
+	align-items: stretch;
+	border-bottom: 1px solid var(--background-modifier-border);
+	padding: 0 4px;
+	gap: 2px;
+}
+
+.orbit-tab-bar [role="tab"] {
+	flex: 1 1 0;
+	padding: 4px 6px;
+	font-size: var(--font-small);
+	color: var(--text-muted);
+	background: transparent;
+	border: none;
+	border-bottom: 2px solid transparent;
+	border-radius: var(--radius-s) var(--radius-s) 0 0;
+	cursor: pointer;
+	outline: none;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	transition: color 80ms ease, background 80ms ease;
+}
+
+.orbit-tab-bar [role="tab"]:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.orbit-tab-bar [role="tab"].is-active,
+.orbit-tab-bar [role="tab"][aria-selected="true"] {
+	color: var(--text-accent);
+	border-bottom-color: var(--text-accent);
+	background: transparent;
+}
+
+.orbit-tab-bar [role="tab"]:focus-visible {
+	box-shadow: 0 0 0 2px var(--color-accent);
+	border-radius: var(--radius-s);
+}
+
+/*
+ * Narrow mode (Gap C — T5.2)
+ * When .orbit-tab-bar gains the is-narrow class (set via TabBar.setNarrow()),
+ * hide the tab label text and rely on aria-label for screen-reader users.
+ * The button retains ≥44px touch targets via min-height.
+ * Icons are supplied by Obsidian's setIcon() on each button when narrow mode
+ * is active (the host is responsible for swapping text↔icon).
+ */
+.orbit-tab-bar.is-narrow [role="tab"] {
+	/* Collapse horizontal padding; the button shrinks to icon width */
+	padding: 4px;
+	min-height: 44px;
+	min-width: 44px;
+}
+
+.orbit-tab-bar.is-narrow [role="tab"] .orbit-tab-label {
+	display: none;
+}
+
+/* ── Panel container ────────────────────────────────────────────────────────*/
+
+.orbit-panel-container {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	padding: 8px 0;
+}
+
+.orbit-panel-container [role="tabpanel"] {
+	padding: 4px 8px;
+}
+
+/* ── Utility ────────────────────────────────────────────────────────────────*/
+
+.is-hidden {
+	display: none;
+}
+
+/* ── Placeholder / empty state ──────────────────────────────────────────────*/
+
+.orbit-panel-placeholder {
+	padding: 16px 8px;
+	color: var(--text-faint);
+	font-size: var(--font-small);
+	text-align: center;
+}
+
+/* ── RelationsPanel ──────────────────────────────────────────────────────────
+   Four collapsible sections (Outgoing, Backlinks, 2nd hop, Missing). The header
+   reads as a header (semibold, default size, "Label: N"); note rows sit indented
+   beneath a flush-left header and read as clickable.
+   ─────────────────────────────────────────────────────────────────────────*/
+
+.orbit-relations-section {
+	margin-bottom: 6px;
+}
+
+.orbit-relations-section-header {
+	display: flex;
+	align-items: baseline;
+	gap: 0.35em;
+	padding: 2px 4px;
+	cursor: pointer;
+	border-radius: var(--radius-s);
+}
+
+.orbit-relations-section-header:hover {
+	background: var(--background-modifier-hover);
+}
+
+.orbit-relations-section-label {
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
+}
+
+/* Renders "Outgoing:" — the count follows after the flex gap. */
+.orbit-relations-section-label::after {
+	content: ":";
+}
+
+.orbit-relations-count {
+	font-size: var(--font-small);
+	font-weight: var(--font-semibold);
+	color: var(--text-muted);
+}
+
+.orbit-relations-section-children {
+	padding-left: 1.5em;
+}
+
+.orbit-relations-section.is-collapsed .orbit-relations-section-children {
+	display: none;
+}
+
+.orbit-relations-item {
+	padding: 1px 4px;
+	border-radius: var(--radius-s);
+	cursor: pointer;
+	font-size: var(--font-small);
+	color: var(--text-normal);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.orbit-relations-item:hover {
+	background: var(--background-modifier-hover);
+}
+
+.orbit-relations-via-group {
+	margin: 2px 0;
+}
+
+.orbit-relations-via-label {
+	padding: 1px 4px;
+	font-size: var(--font-small);
+	color: var(--text-muted);
+}
+
+.orbit-relations-via-items {
+	padding-left: 1em;
+}
+
+.orbit-relations-missing-row {
+	display: flex;
+	align-items: center;
+	gap: 0.35em;
+	padding: 1px 4px;
+}
+
+.orbit-relations-missing-target {
+	flex: 1 1 auto;
+	font-size: var(--font-small);
+	color: var(--text-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.orbit-relations-manage-btn {
+	flex: 0 0 auto;
+	padding: 0 4px;
+	font-size: var(--font-small);
+	color: var(--text-accent);
+	background: transparent;
+	border: none;
+	cursor: pointer;
+}
+
+.orbit-relations-manage-btn:hover {
+	text-decoration: underline;
+}
+
+.orbit-relations-truncated,
+.orbit-relations-empty {
+	padding: 8px;
+	font-size: var(--font-small);
+	color: var(--text-faint);
+}
+
+/* ── Unlinked mentions (Relations) ──────────────────────────────────────────
+   Reuses Obsidian's native search-result / tree-item classes so the section
+   matches the core Backlinks pane (collapse chevron, snippet cards, matched-
+   text highlight). Only layout-level overrides live here; visuals are inherited.
+   ─────────────────────────────────────────────────────────────────────────*/
+
+.orbit-relations-mention-loading {
+	padding: 8px;
+	font-size: var(--font-small);
+	color: var(--text-faint);
+	font-style: italic;
+}
+
+/* The note name opens its note (rest of the title row toggles the matches). */
+.orbit-relations-mention-name {
+	cursor: pointer;
+}
+
+.orbit-relations-mention-name:hover {
+	color: var(--text-accent);
+}
+
+/* Right-aligned action cluster (badge + Link-all + count). */
+.orbit-relations-mention-actions {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-left: auto;
+}
+
+.orbit-relations-mention-linked-badge {
+	font-size: var(--font-smaller);
+}
+
+/* Snippet rows: keep native card look, lay text + Link button side by side. */
+.orbit-relations-mention-snippet {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+}
+
+.orbit-relations-mention-snippet-text {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+/* Always-visible Link / Link all buttons (the native replace button hides
+   until hover, which we don't want — linking must be discoverable). */
+.orbit-relations-mention-link-btn {
+	flex: 0 0 auto;
+	padding: 0 6px;
+	font-size: var(--font-smaller);
+	color: var(--text-accent);
+	background: transparent;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	cursor: pointer;
+}
+
+.orbit-relations-mention-link-btn:hover {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
+}
+
+/* Collapse fallback so behaviour is deterministic across themes. */
+.orbit-relations-mention-group.is-collapsed .orbit-relations-mention-snippets {
+	display: none;
+}
+
+.orbit-relations-mention-group.is-collapsed .orbit-relations-mention-caret {
+	transform: rotate(-90deg);
+}
+
+/* ── Status bar ──────────────────────────────────────────────────────────── */
+
+.orbit-statusbar {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.orbit-statusbar-icon {
+	display: inline-flex;
+	align-items: center;
+}
+
+.orbit-statusbar-icon .svg-icon {
+	width: var(--icon-s);
+	height: var(--icon-s);
+}
+
+/* ── DanglingPanel ──────────────────────────────────────────────────────────
+   Grouped tree of unresolved wikilink targets with inline actions.
+   Uses Obsidian tree-item structure; all colors from CSS variables.
+   ─────────────────────────────────────────────────────────────────────────*/
+
+.orbit-dangling-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.orbit-dangling-toggle-btn {
+	font-size: var(--font-small);
+	color: var(--text-muted);
+	background: transparent;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 2px 6px;
+	cursor: pointer;
+}
+
+.orbit-dangling-toggle-btn:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.orbit-dangling-group {
+	padding: 0;
+	/* Separate each target+sources cluster from the next. */
+	margin-bottom: 10px;
+}
+
+.orbit-dangling-group-header {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 8px;
+	cursor: default;
+}
+
+.orbit-dangling-group-label {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: var(--font-small);
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
+}
+
+.orbit-dangling-count {
+	font-size: var(--font-small);
+	color: var(--text-faint);
+	flex: 0 0 auto;
+}
+
+.orbit-dangling-actions {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	flex: 0 0 auto;
+}
+
+.orbit-dangling-action-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: transparent;
+	border: none;
+	padding: 2px;
+	cursor: pointer;
+	color: var(--text-muted);
+	border-radius: var(--radius-s);
+	line-height: 1;
+}
+
+.orbit-dangling-action-btn:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
+.orbit-dangling-group-children {
+	padding-left: 16px;
+}
+
+.orbit-dangling-occurrence {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 1px 8px;
+}
+
+.orbit-dangling-occurrence-label {
+	flex: 1 1 auto;
+	font-size: var(--font-small);
+	color: var(--text-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.orbit-dangling-target-item {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 8px;
+}
+
+.orbit-dangling-target-label {
+	flex: 1 1 auto;
+	font-size: var(--font-small);
+	color: var(--text-normal);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.orbit-dangling-empty {
+	padding: 16px 8px;
+	color: var(--text-faint);
+	font-size: var(--font-small);
+	text-align: center;
+}
+
+.orbit-dangling-live {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+}
+
+.orbit-dangling-group.is-highlighted {
+	background: var(--background-modifier-hover);
+	border-left: 2px solid var(--text-accent);
+}
+
+/* Clicking the target label collapses the source list beneath it. */
+.orbit-dangling-group.is-collapsed .orbit-dangling-group-children {
+	display: none;
+}
+
+.orbit-dangling-group-label.is-clickable {
+	cursor: pointer;
+}
+
+/* Source rows open the note; show them as clickable. */
+.orbit-dangling-occurrence.is-clickable {
+	cursor: pointer;
+}
+
+.orbit-dangling-occurrence.is-clickable:hover {
+	background: var(--background-modifier-hover);
+}
+
+/* ── RecentPanel ────────────────────────────────────────────────────────────
+   Flat MRU list with toolbar, per-row remove, drag, and mobile insert.
+   All colors from CSS variables — no hardcoded values.
+   ─────────────────────────────────────────────────────────────────────────*/
+
+.orbit-recent-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.orbit-recent-clear-btn {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	font-size: var(--font-small);
+	color: var(--text-muted);
+	background: transparent;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 2px 6px;
+	cursor: pointer;
+}
+
+.orbit-recent-clear-btn:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.orbit-recent-clear-label {
+	font-size: var(--font-small);
+}
+
+.orbit-recent-list {
+	padding: 0;
+}
+
+.orbit-recent-row {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 1px 8px;
+	cursor: pointer;
+}
+
+.orbit-recent-row:hover {
+	background: var(--background-modifier-hover);
+}
+
+.orbit-recent-label {
+	display: flex;
+	flex: 1 1 auto;
+	align-items: baseline;
+	gap: 4px;
+	min-width: 0;
+	overflow: hidden;
+}
+
+.orbit-recent-basename {
+	flex: 0 1 auto;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: var(--font-small);
+	color: var(--text-normal);
+}
+
+.orbit-recent-path {
+	flex: 0 1 auto;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: var(--font-small);
+	color: var(--text-muted);
+}
+
+.orbit-recent-actions {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	flex: 0 0 auto;
+}
+
+.orbit-recent-action-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: transparent;
+	border: none;
+	padding: 2px;
+	cursor: pointer;
+	color: var(--text-muted);
+	border-radius: var(--radius-s);
+	line-height: 1;
+}
+
+/* Mobile: per-row action buttons get ≥44px touch targets (SDD §485). Desktop
+   keeps them compact (padding only) so list rows stay tight. */
+.is-mobile .orbit-dangling-action-btn,
+.is-mobile .orbit-recent-action-btn {
+	min-width: 44px;
+	min-height: 44px;
+}
+
+.orbit-recent-action-btn:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
+.orbit-recent-empty {
+	padding: 16px 8px;
+	color: var(--text-faint);
+	font-size: var(--font-small);
+	text-align: center;
+}
+
+/* ── ConfirmRewriteModal ────────────────────────────────────────────────────
+   Confirmation gate for destructive vault operations (rename, delete, alias,
+   merge). All layout uses flex. No style.display — visibility via is-hidden.
+   ─────────────────────────────────────────────────────────────────────────*/
+
+.orbit-confirm-preview {
+	color: var(--text-muted);
+	font-size: var(--font-small);
+	margin-bottom: 8px;
+}
+
+.orbit-confirm-warning {
+	color: var(--text-error);
+	font-size: var(--font-small);
+	margin-bottom: 12px;
+}
+
+.orbit-confirm-label {
+	display: block;
+	font-size: var(--font-small);
+	margin-bottom: 4px;
+}
+
+.orbit-confirm-input {
+	width: 100%;
+	margin-bottom: 8px;
+}
+
+.orbit-confirm-pick-btn {
+	display: block;
+	margin-bottom: 12px;
+	cursor: pointer;
+}
+
+.orbit-confirm-merge-notice {
+	color: var(--text-accent);
+	font-size: var(--font-small);
+	margin-bottom: 8px;
+}
+
+.orbit-confirm-delete-label {
+	font-size: var(--font-small);
+	margin-bottom: 8px;
+}
+
+/* ── Show more (Gap D — T5.2) ───────────────────────────────────────────────
+   Inline "Show N more…" control rendered below truncated lists.
+   ─────────────────────────────────────────────────────────────────────────*/
+
+.orbit-show-more {
+	display: block;
+	width: 100%;
+	padding: 4px 8px;
+	font-size: var(--font-small);
+	color: var(--text-accent);
+	background: transparent;
+	border: none;
+	text-align: left;
+	cursor: pointer;
+}
+
+.orbit-show-more:hover {
+	color: var(--text-normal);
+	text-decoration: underline;
+}
+
+.orbit-confirm-checkbox-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.orbit-confirm-btn {
+	margin-top: 8px;
+}

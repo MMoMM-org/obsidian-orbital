@@ -35,6 +35,16 @@ describe("HeaderSection", () => {
 		expect(text).toContain("Documentation");
 	});
 
+	it("renders the curated tagline", () => {
+		const section = new HeaderSection({plugin: {manifest: makeManifest()}});
+		const container = augmentEl(document.createElement("div"));
+
+		section.render(container);
+
+		const tagline = container.querySelector("p.orbit-tagline");
+		expect(tagline?.textContent).toBe("See what orbits your notes.");
+	});
+
 	it("does not render a hanko image until one is wired up", () => {
 		// Default scaffold ships hankoImageUrl = null; once a plugin drops in
 		// assets/<plugin-id>_hanko_144.png and uncomments the import, this

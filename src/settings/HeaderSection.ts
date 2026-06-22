@@ -39,7 +39,7 @@ interface HeaderSectionDeps {
 }
 
 const REPO_URL = "https://github.com/MMoMM-org/obsidian-orbit";
-const TAGLINE = "Curated one-line tagline — replace per plugin";
+const TAGLINE = "See what orbits your notes.";
 
 function parseAuthorDisplayName(author: string): string {
 	const angleIdx = author.indexOf("<");

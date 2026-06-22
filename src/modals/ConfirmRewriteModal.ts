@@ -1,0 +1,321 @@
+/**
+ * ConfirmRewriteModal — T3.3
+ *
+ * CON-7: Gates every destructive vault-wide operation with:
+ *   - Preview of occurrence count and affected file count
+ *   - Non-reversible warning with backup recommendation
+ *   - Explicit confirmation (name input for rename; checkbox for delete)
+ *   - Merge notice when the entered name matches an existing note
+ *
+ * DOM: XSS-safe — createEl/createDiv/empty only. No innerHTML/outerHTML.
+ * Sentence-case UI text. aria-labels on interactive elements.
+ * No style.display — show/hide via CSS classes (is-hidden).
+ */
+
+import { Modal } from "obsidian";
+import type { App } from "obsidian";
+import type { RewritePreview } from "links/LinkRewriteService";
+
+// ---------------------------------------------------------------------------
+// Public types
+// ---------------------------------------------------------------------------
+
+export type RewriteKind = "rename" | "merge" | "alias" | "delete";
+
+export interface ConfirmRewriteModalOptions {
+	/** Preview counts from LinkRewriteService.previewRename (or equivalent). */
+	preview: RewritePreview;
+	/** The operation kind — drives which confirmation gate is shown. */
+	kind: RewriteKind;
+	/**
+	 * Called when the user confirms. For rename, receives the entered name.
+	 * For delete/merge/alias, receives an empty string.
+	 */
+	onConfirm: (name: string) => void;
+	/**
+	 * Optional list of existing note base-names used to surface a merge notice
+	 * when the entered rename target already exists. Case-insensitive.
+	 */
+	existingNoteNames?: string[];
+	/**
+	 * Optional picker for the rename flow. When provided, a "Choose existing…"
+	 * button is shown next to the name input; resolving with a value prefills the
+	 * input (and triggers the merge notice). Resolving null is a no-op.
+	 */
+	pickExisting?: () => Promise<string | null>;
+	/**
+	 * Delete kind only. The display name of the source note the delete was
+	 * triggered from (by-source grouping). When provided, an "Only in note: <name>"
+	 * checkbox is rendered and pre-checked, scoping the delete to that note.
+	 * When omitted (by-target grouping) no such checkbox is shown and the delete
+	 * spans every source in scope.
+	 */
+	deleteSourceNote?: string;
+	/**
+	 * Delete kind only. Preview counts restricted to the source note (by-source
+	 * grouping). Shown in place of the scope-wide `preview` whenever the
+	 * "Only in note" checkbox is checked, so the count reflects what will really
+	 * be modified.
+	 */
+	deleteSourcePreview?: RewritePreview;
+}
+
+// ---------------------------------------------------------------------------
+// Augmented element helper (same pattern as RelationsPanel / TabBar)
+// ---------------------------------------------------------------------------
+
+interface AugmentedEl {
+	createEl(
+		tag: string,
+		opts?: {
+			text?: string;
+			cls?: string;
+			attr?: Record<string, string>;
+		},
+	): HTMLElement;
+	createDiv(opts?: { cls?: string; text?: string }): HTMLElement;
+	empty(): void;
+}
+
+// ---------------------------------------------------------------------------
+// ConfirmRewriteModal
+// ---------------------------------------------------------------------------
+
+export class ConfirmRewriteModal extends Modal {
+	private readonly opts: ConfirmRewriteModalOptions;
+
+	/**
+	 * For the delete kind only: tracks whether the "Only in note: <name>" checkbox
+	 * is checked at the time the user confirms. Callers read this value inside
+	 * their onConfirm callback to decide whether to scope the delete to the source
+	 * note. Pre-checked (true) when a deleteSourceNote is supplied (by-source
+	 * grouping); otherwise the checkbox is not rendered and this stays false.
+	 */
+	public onlyInThisNote = false;
+
+	/** The preview count paragraph — updated reactively as the delete scope toggles. */
+	private previewEl: HTMLElement | null = null;
+
+	constructor(app: App, opts: ConfirmRewriteModalOptions) {
+		super(app);
+		this.opts = opts;
+	}
+
+	onOpen(): void {
+		this.renderContent();
+	}
+
+	onClose(): void {
+		(this.contentEl as unknown as AugmentedEl).empty();
+	}
+
+	// -------------------------------------------------------------------------
+	// Private — render
+	// -------------------------------------------------------------------------
+
+	private renderContent(): void {
+		const el = this.contentEl as unknown as AugmentedEl;
+		el.empty();
+
+		this.renderTitle(el);
+		this.renderPreview(el);
+		this.renderWarning(el);
+
+		if (this.opts.kind === "rename") {
+			this.renderRenameConfirm(el);
+		} else if (this.opts.kind === "delete") {
+			this.renderDeleteConfirm(el);
+		} else {
+			this.renderSimpleConfirm(el);
+		}
+	}
+
+	private renderTitle(el: AugmentedEl): void {
+		const kindLabel: Record<RewriteKind, string> = {
+			rename: "Rename dangling link",
+			merge: "Merge into existing note",
+			alias: "Add alias to links",
+			delete: "Delete dangling links",
+		};
+		el.createEl("h2", { text: kindLabel[this.opts.kind] });
+	}
+
+	private renderPreview(el: AugmentedEl): void {
+		this.previewEl = el.createEl("p", {
+			cls: "orbit-confirm-preview",
+			text: this.previewText(this.opts.preview),
+		});
+	}
+
+	private previewText(preview: RewritePreview): string {
+		const { occurrences, files } = preview;
+		return `${occurrences} occurrence${occurrences === 1 ? "" : "s"} across ${files.length} file${files.length === 1 ? "" : "s"} will be modified.`;
+	}
+
+	/** Repaint the preview line to match the current delete scope (source vs scope-wide). */
+	private updatePreview(scopeToSource: boolean): void {
+		if (this.previewEl === null) return;
+		const sourcePreview = this.opts.deleteSourcePreview;
+		const preview = scopeToSource && sourcePreview !== undefined ? sourcePreview : this.opts.preview;
+		this.previewEl.textContent = this.previewText(preview);
+	}
+
+	private renderWarning(el: AugmentedEl): void {
+		el.createEl("p", {
+			cls: "orbit-confirm-warning mod-warning",
+			text: "This operation cannot be undone. Back up your vault before proceeding.",
+		});
+	}
+
+	private renderRenameConfirm(el: AugmentedEl): void {
+		el.createEl("label", { text: "New name:", cls: "orbit-confirm-label" });
+
+		const input = el.createEl("input", {
+			cls: "orbit-confirm-input",
+			attr: {
+				type: "text",
+				"aria-label": "New note name",
+				placeholder: "Enter new name…",
+			},
+		}) as HTMLInputElement;
+
+		// Optional "Choose existing…" affordance — opens a picker (notes + dangling
+		// targets) and prefills the input, which drives the merge notice + confirm.
+		if (this.opts.pickExisting !== undefined) {
+			const pickBtn = el.createEl("button", {
+				text: "Choose existing…",
+				cls: "orbit-confirm-pick-btn",
+				attr: { "data-action": "pick-existing", "aria-label": "Choose an existing note or dangling link" },
+			});
+			pickBtn.addEventListener("click", () => {
+				void this.opts.pickExisting?.().then((picked) => {
+					if (picked === null || picked === undefined) return;
+					input.value = picked;
+					input.dispatchEvent(new Event("input"));
+				});
+			});
+		}
+
+		// Merge notice: hidden via is-hidden class until a matching name is typed
+		const mergeNotice = el.createEl("p", {
+			cls: "orbit-confirm-merge-notice is-hidden",
+			attr: { "data-notice": "merge" },
+		});
+
+		const confirmBtn = el.createEl("button", {
+			text: "Confirm",
+			cls: "orbit-confirm-btn mod-cta",
+			attr: { "data-action": "confirm", "aria-label": "Confirm operation" },
+		}) as HTMLButtonElement;
+		confirmBtn.disabled = true;
+
+		input.addEventListener("input", () => {
+			const value = input.value.trim();
+			this.updateMergeNotice(mergeNotice, value);
+			confirmBtn.disabled = value.length === 0;
+		});
+
+		confirmBtn.addEventListener("click", () => {
+			this.opts.onConfirm(input.value.trim());
+			this.close();
+		});
+	}
+
+	private renderDeleteConfirm(el: AugmentedEl): void {
+		el.createEl("p", {
+			cls: "orbit-confirm-delete-label",
+			text: "Check the box below to confirm deletion:",
+		});
+
+		const checkboxRow = el.createDiv({ cls: "orbit-confirm-checkbox-row" });
+		const checkboxEl = (checkboxRow as unknown as AugmentedEl).createEl("input", {
+			attr: {
+				type: "checkbox",
+				id: "orbit-confirm-delete-checkbox",
+				"aria-label": "Confirm deletion of dangling links",
+			},
+		}) as HTMLInputElement;
+
+		(checkboxRow as unknown as AugmentedEl).createEl("label", {
+			text: "I understand this cannot be undone",
+			attr: { for: "orbit-confirm-delete-checkbox" },
+		});
+
+		// "Only in note: <name>" option — scopes the delete to the source note the
+		// action was triggered from (by-source grouping). Rendered and pre-checked
+		// only when a source note name is supplied; in by-target grouping there is
+		// no single source, so the option is omitted entirely.
+		const sourceNote = this.opts.deleteSourceNote;
+		if (sourceNote !== undefined) {
+			const onlyInNoteRow = el.createDiv({ cls: "orbit-confirm-checkbox-row" });
+			const onlyInNoteCheckbox = (onlyInNoteRow as unknown as AugmentedEl).createEl("input", {
+				attr: {
+					type: "checkbox",
+					id: "orbit-confirm-delete-only-note",
+					"aria-label": `Only delete links in ${sourceNote}`,
+				},
+			}) as HTMLInputElement;
+			onlyInNoteCheckbox.checked = true;
+			this.onlyInThisNote = true;
+			// Pre-checked: show the source-scoped count instead of the scope-wide one.
+			this.updatePreview(true);
+
+			(onlyInNoteRow as unknown as AugmentedEl).createEl("label", {
+				text: `Only in note: ${sourceNote}`,
+				attr: { for: "orbit-confirm-delete-only-note" },
+			});
+
+			onlyInNoteCheckbox.addEventListener("change", () => {
+				this.onlyInThisNote = onlyInNoteCheckbox.checked;
+				this.updatePreview(onlyInNoteCheckbox.checked);
+			});
+		}
+
+		const confirmBtn = el.createEl("button", {
+			text: "Confirm",
+			cls: "orbit-confirm-btn mod-warning",
+			attr: { "data-action": "confirm", "aria-label": "Confirm deletion" },
+		}) as HTMLButtonElement;
+		confirmBtn.disabled = true;
+
+		checkboxEl.addEventListener("change", () => {
+			confirmBtn.disabled = !checkboxEl.checked;
+		});
+
+		confirmBtn.addEventListener("click", () => {
+			this.opts.onConfirm("");
+			this.close();
+		});
+	}
+
+	private renderSimpleConfirm(el: AugmentedEl): void {
+		const confirmBtn = el.createEl("button", {
+			text: "Confirm",
+			cls: "orbit-confirm-btn mod-cta",
+			attr: { "data-action": "confirm", "aria-label": "Confirm operation" },
+		}) as HTMLButtonElement;
+
+		confirmBtn.addEventListener("click", () => {
+			this.opts.onConfirm("");
+			this.close();
+		});
+	}
+
+	// -------------------------------------------------------------------------
+	// Private — helpers
+	// -------------------------------------------------------------------------
+
+	private updateMergeNotice(noticeEl: HTMLElement, value: string): void {
+		const existingNames = this.opts.existingNoteNames ?? [];
+		const isMatch = existingNames.some(
+			(name) => name.toLowerCase() === value.toLowerCase(),
+		);
+
+		if (isMatch) {
+			noticeEl.textContent = `Merge into existing note "${value}" — links will point to this note.`;
+			noticeEl.classList.remove("is-hidden");
+		} else {
+			noticeEl.classList.add("is-hidden");
+		}
+	}
+}
