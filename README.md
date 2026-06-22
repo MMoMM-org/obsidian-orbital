@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo-orbit.png" alt="Orbit" width="200">
+  <img src="assets/logo-orbit.png" alt="Orbit" width="400">
 </p>
 
 <h1 align="center">Orbit</h1>
@@ -18,6 +18,10 @@ It works on desktop and mobile, and reads Obsidian's own link graph — there's 
 - **Status bar** — an item showing backlink / 2nd-hop counts for the active note; click it to jump to the Relations tab.
 
 See the [**Usage guide**](docs/usage.md) for screenshots and the full walkthrough.
+
+<p align="center">
+  <img src="assets/orbit-relations-statusbar.png" alt="The Orbit pane showing the Relations tab" width="400">
+</p>
 
 ## Installation
 

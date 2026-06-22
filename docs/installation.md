@@ -5,7 +5,7 @@ the in-app Community Plugins browser; manual and beta (BRAT) installs are also
 covered below.
 
 <p align="center">
-  <img src="../assets/orbit-relations-statusbar.png" alt="The Orbit pane showing the Relations tab" width="320">
+  <img src="../assets/orbit-relations-statusbar.png" alt="The Orbit pane showing the Relations tab" width="400">
 </p>
 
 ## Prerequisites
