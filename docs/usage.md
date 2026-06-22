@@ -43,6 +43,11 @@ The Dangling links tab lists unresolved link targets. Switch the scope between
 
 ![The same links grouped by source](../assets/orbit-dangling-source.png)
 
+> These actions edit the **dangling link's text inside your notes** — they don't touch
+> a target file. There is no target note to begin with (the link is unresolved), so
+> **Create note** is the only action that ever creates a file, and nothing here deletes
+> a note.
+
 Each row offers four actions — **rename**, **change to alias**, **create note**, and
 **delete**:
 
@@ -59,8 +64,9 @@ Each row offers four actions — **rename**, **change to alias**, **create note*
 
 - **Create note** creates a note for the target (in the folder set in your settings)
   and resolves the references.
-- **Delete** removes the references. From the **source** grouping you can scope the
-  deletion to a single note.
+- **Delete** unwraps the link, leaving its text as plain text in your notes
+  (`[[Inbox]]` → `Inbox`, `[[Inbox|capture]]` → `capture`). It does **not** delete any
+  note. From the **source** grouping you can scope this to a single note.
 
   ![Delete across every file…](../assets/orbit-dangling-delete-target.png)
 

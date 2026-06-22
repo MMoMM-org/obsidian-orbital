@@ -4,6 +4,10 @@ Orbit installs like any other Obsidian community plugin. The recommended path is
 the in-app Community Plugins browser; manual and beta (BRAT) installs are also
 covered below.
 
+<p align="center">
+  <img src="../assets/orbit-relations-statusbar.png" alt="The Orbit pane showing the Relations tab" width="320">
+</p>
+
 ## Prerequisites
 
 - **Obsidian 1.5.7 or newer.** This is the minimum app version Orbit supports.
