@@ -21,7 +21,7 @@ See the [**Usage guide**](docs/usage.md) for screenshots and the full walkthroug
 
 <p align="center">
   <img src="assets/orbit-relations-statusbar.png" alt="Relations tab" width="250">
-  <img src="assets/orbit-dangling-delete-target.png" alt="Dangling-link delete confirmation" width="250">
+  <img src="assets/orbit-dangling-source.png" alt="Dangling links tab" width="250">
   <img src="assets/orbit-recent.png" alt="Recent notes tab" width="250">
 </p>
 
