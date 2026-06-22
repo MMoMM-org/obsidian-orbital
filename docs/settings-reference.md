@@ -90,10 +90,11 @@ These settings appear at the top of the settings tab, above the first heading.
 
 ### New note folder
 
-- **Type:** text (folder path)
+- **Type:** text (folder path) with folder autocomplete
 - **Default:** empty
 - **Effect:** the folder where the **Create note** action places new notes. Empty uses
-  Obsidian's default location for new notes.
+  Obsidian's default location for new notes. Start typing to pick an existing vault
+  folder from the suggestion dropdown, or type a path freely.
 - **When to change:** set it to route created notes into a specific folder (e.g.
   `Notes/`).
 

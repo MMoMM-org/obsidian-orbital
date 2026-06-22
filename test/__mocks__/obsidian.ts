@@ -405,6 +405,10 @@ export function augmentEl(el: HTMLElement): HTMLElement {
 		el.classList.toggle(cls, force);
 	};
 
+	any["setText"] = (text: string): void => {
+		el.textContent = text;
+	};
+
 	return el;
 }
 
@@ -568,6 +572,36 @@ class DropdownComponent {
 		this._onChange = cb;
 		return this;
 	});
+}
+
+/**
+ * AbstractInputSuggest — minimal stub mirroring Obsidian's input-suggest base.
+ * Concrete subclasses implement getSuggestions / renderSuggestion /
+ * selectSuggestion; tests drive them directly. `open`/`close` are no-op spies.
+ */
+export abstract class AbstractInputSuggest<T> {
+	app: App;
+	limit = 100;
+	protected textInputEl: HTMLInputElement | HTMLDivElement;
+
+	constructor(app: App, textInputEl: HTMLInputElement | HTMLDivElement) {
+		this.app = app;
+		this.textInputEl = textInputEl;
+	}
+
+	protected abstract getSuggestions(query: string): T[] | Promise<T[]>;
+	abstract renderSuggestion(value: T, el: HTMLElement): void;
+	abstract selectSuggestion(value: T, evt?: MouseEvent | KeyboardEvent): void;
+
+	setValue = vi.fn((value: string) => {
+		if (this.textInputEl instanceof HTMLInputElement) this.textInputEl.value = value;
+	});
+	getValue = vi.fn((): string =>
+		this.textInputEl instanceof HTMLInputElement ? this.textInputEl.value : "",
+	);
+	onSelect = vi.fn(() => this);
+	open = vi.fn();
+	close = vi.fn();
 }
 
 // --- Views ---
