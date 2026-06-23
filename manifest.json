@@ -1,7 +1,7 @@
 {
 	"id": "orbital",
 	"name": "Orbital",
-	"version": "0.10.0",
+	"version": "1.0.0",
 	"minAppVersion": "1.5.7",
 	"description": "Explore note relations, fix dangling links in bulk, and track recent files — all in one sidebar pane.",
 	"author": "Marcus Breiden",
