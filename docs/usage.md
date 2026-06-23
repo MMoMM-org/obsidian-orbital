@@ -37,7 +37,8 @@ new tab.
 
 The Dangling links tab lists unresolved link targets. Switch the scope between
 **Vault** and the active note's folder, and toggle grouping between **target** and
-**source**.
+**source**. The search box to the right of the scope toggle fuzzy-filters the list
+by target name or source path as you type.
 
 ![Dangling links grouped by target](../assets/orbital-dangling-target.png)
 

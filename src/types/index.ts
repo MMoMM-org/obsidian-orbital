@@ -64,6 +64,8 @@ export interface OrbitalViewState {
 	collapsedSections: string[];
 	/** Active dangling filter target set by "Manage →" deep-link. Null means show all. */
 	activeDanglingFilter: string | null;
+	/** Free-text fuzzy filter over dangling source/target. Empty means show all. */
+	danglingSearchQuery: string;
 }
 
 // Relations query result types

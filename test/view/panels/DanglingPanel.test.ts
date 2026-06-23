@@ -100,6 +100,7 @@ type DepsOverrides = {
 	scope?: DanglingScope;
 	folderPath?: string;
 	activeFilter?: string | null;
+	searchQuery?: string;
 };
 
 function makeDeps(overrides: DepsOverrides = {}): DanglingPanelDeps & {
@@ -128,6 +129,7 @@ function makeDeps(overrides: DepsOverrides = {}): DanglingPanelDeps & {
 	let grouping: DanglingGrouping = overrides.grouping ?? settings.danglingGrouping;
 	let scope: DanglingScope = overrides.scope ?? settings.danglingDefaultScope;
 	let activeFilter: string | null = overrides.activeFilter ?? null;
+	let searchQuery: string = overrides.searchQuery ?? "";
 
 	const registerDomEvent = vi.fn(
 		<K extends keyof HTMLElementEventMap>(
@@ -151,6 +153,8 @@ function makeDeps(overrides: DepsOverrides = {}): DanglingPanelDeps & {
 		getActiveFilter: () => activeFilter,
 		setActiveFilter: (t) => { activeFilter = t; },
 		clearActiveFilter: () => { activeFilter = null; },
+		getSearchQuery: () => searchQuery,
+		setSearchQuery: (q) => { searchQuery = q; },
 		service,
 		ConfirmRewriteModal,
 		folderPicker,
@@ -1314,5 +1318,119 @@ describe("DanglingPanel bulk result Notice behaviour", () => {
 
 		const liveRegion = container.querySelector("[aria-live='polite']") as HTMLElement;
 		expect(liveRegion.textContent?.length).toBeGreaterThan(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Fuzzy search box
+// ---------------------------------------------------------------------------
+
+describe("DanglingPanel search box", () => {
+	it("renders a search input in the toolbar", () => {
+		const deps = makeDeps({
+			unresolved: { "notes/a.md": { "MissingNote": 1 } },
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const input = container.querySelector(".orbital-dangling-search-input");
+		expect(input).not.toBeNull();
+	});
+
+	it("filters target groups by a fuzzy match on the target name", () => {
+		const deps = makeDeps({
+			unresolved: {
+				"notes/a.md": { "ProjectAlpha": 1, "Groceries": 1 },
+			},
+			grouping: "target",
+			searchQuery: "alpha",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const labels = Array.from(
+			container.querySelectorAll(".orbital-dangling-group-label"),
+		).map((el) => el.textContent ?? "");
+		expect(labels.some((t) => t.includes("ProjectAlpha"))).toBe(true);
+		expect(labels.some((t) => t.includes("Groceries"))).toBe(false);
+	});
+
+	it("keeps a target when the query matches one of its source paths", () => {
+		const deps = makeDeps({
+			unresolved: {
+				"journal/2026.md": { "MissingNote": 1 },
+				"archive/old.md": { "OtherTarget": 1 },
+			},
+			grouping: "target",
+			searchQuery: "journal",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const labels = Array.from(
+			container.querySelectorAll(".orbital-dangling-group-label"),
+		).map((el) => el.textContent ?? "");
+		expect(labels.some((t) => t.includes("MissingNote"))).toBe(true);
+		expect(labels.some((t) => t.includes("OtherTarget"))).toBe(false);
+	});
+
+	it("shows a no-matches message when nothing matches but links exist", () => {
+		const deps = makeDeps({
+			unresolved: { "notes/a.md": { "MissingNote": 1 } },
+			searchQuery: "zzzznomatch",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const empty = container.querySelector(".orbital-dangling-empty");
+		expect(empty?.textContent).toContain("match");
+		// The toolbar (and its search box) must remain so the query is clearable.
+		expect(container.querySelector(".orbital-dangling-search-input")).not.toBeNull();
+	});
+
+	it("typing in the search input persists the query via setSearchQuery", () => {
+		const deps = makeDeps({
+			unresolved: { "notes/a.md": { "MissingNote": 1 } },
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const input = container.querySelector(
+			".orbital-dangling-search-input",
+		) as HTMLInputElement;
+		input.value = "miss";
+		input.dispatchEvent(new Event("input", { bubbles: true }));
+
+		expect(deps.getSearchQuery()).toBe("miss");
+	});
+
+	it("renders the input value from the current query and works in by-source grouping", () => {
+		const deps = makeDeps({
+			unresolved: {
+				"notes/keep.md": { "MissingNote": 1 },
+				"notes/drop.md": { "OtherTarget": 1 },
+			},
+			grouping: "source",
+			searchQuery: "keep",
+		});
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const input = container.querySelector(
+			".orbital-dangling-search-input",
+		) as HTMLInputElement;
+		expect(input.value).toBe("keep");
+
+		const sourceLabels = Array.from(
+			container.querySelectorAll(".orbital-dangling-group-label"),
+		).map((el) => el.textContent ?? "");
+		expect(sourceLabels.some((t) => t.includes("notes/keep.md"))).toBe(true);
+		expect(sourceLabels.some((t) => t.includes("notes/drop.md"))).toBe(false);
 	});
 });

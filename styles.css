@@ -389,6 +389,18 @@
 	color: var(--text-normal);
 }
 
+/* Fuzzy search box — sits to the right of the scope toggle and takes the
+   remaining toolbar width. */
+.orbital-dangling-search {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.orbital-dangling-search-input {
+	width: 100%;
+	font-size: var(--font-small);
+}
+
 .orbital-dangling-group {
 	padding: 0;
 	/* Separate each target+sources cluster from the next. */

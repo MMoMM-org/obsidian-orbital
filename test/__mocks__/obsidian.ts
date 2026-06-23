@@ -715,6 +715,31 @@ export function normalizePath(path: string): string {
 }
 
 /**
+ * prepareFuzzySearch — minimal stand-in for Obsidian's fuzzy matcher.
+ * Returns a callback that subsequence-matches the (case-insensitive) query
+ * against a target string, yielding a `{ score, matches }` result or null.
+ * Score is a simple negative-distance heuristic; tests only assert match/no-match.
+ */
+export function prepareFuzzySearch(
+	query: string,
+): (text: string) => { score: number; matches: number[][] } | null {
+	const needle = query.toLowerCase();
+	return (text: string) => {
+		const haystack = text.toLowerCase();
+		if (needle === "") return { score: 0, matches: [] };
+		let hi = 0;
+		const matches: number[][] = [];
+		for (let ni = 0; ni < needle.length; ni++) {
+			const found = haystack.indexOf(needle[ni], hi);
+			if (found === -1) return null;
+			matches.push([found, found + 1]);
+			hi = found + 1;
+		}
+		return { score: -(hi - needle.length), matches };
+	};
+}
+
+/**
  * Platform — mirrors Obsidian's Platform namespace.
  *
  * Tests can mutate `Platform.isMobile` to simulate mobile context.
