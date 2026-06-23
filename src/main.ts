@@ -211,6 +211,12 @@ export default class OrbitalPlugin extends Plugin {
 			renameTargetPicker: RenameTargetPicker as unknown as DanglingDeps["renameTargetPicker"],
 			createNote,
 			log: (...args: unknown[]): void => this._log.debug(...args),
+			// A bulk rewrite (alias/rename/delete) edits file content, which changes
+			// link resolution across the affected sources. The cache's resolved/
+			// unresolved maps are stale until the next 'resolved' event, so flag a
+			// rebuild the same way file create/delete/rename do — the 'resolved'
+			// handler then rebuilds the index and repaints the dangling list.
+			requestRebuild: (): void => { this._structuralChange = true; },
 		};
 	}
 
