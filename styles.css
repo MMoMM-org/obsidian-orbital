@@ -523,6 +523,13 @@
 	cursor: pointer;
 }
 
+/* Source group labels navigate to the note (by-target labels only collapse),
+   so give the source label a navigation hover affordance. */
+.orbital-dangling-group[data-source] .orbital-dangling-group-label.is-clickable:hover {
+	color: var(--text-accent);
+	text-decoration: underline;
+}
+
 /* Source rows open the note; show them as clickable. */
 .orbital-dangling-occurrence.is-clickable {
 	cursor: pointer;

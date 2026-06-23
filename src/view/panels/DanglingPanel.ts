@@ -46,7 +46,9 @@ export interface DanglingPanelApp {
 	};
 	workspace: {
 		getLeaf(newLeaf: boolean | string): {
-			openLinkText(path: string, sourcePath: string, newLeaf: boolean | string): void | Promise<void>;
+			// The leaf is already chosen by getLeaf; openLinkText's 3rd arg is
+			// openViewState (optional), NOT newLeaf — passing a truthy value throws.
+			openLinkText(path: string, sourcePath: string, openViewState?: unknown): void | Promise<void>;
 		};
 	};
 }
@@ -146,6 +148,15 @@ export interface DanglingPanelDeps {
 	createNote: CreateNoteFn;
 	/** Optional debug logger (gated by the debugLogging setting). */
 	log?: LogFn;
+	/**
+	 * Signals the owning plugin that a bulk rewrite changed file content in a way
+	 * that affects link resolution (alias/rename/delete). The vault's link
+	 * resolution maps are stale at edit time, so the panel can't refresh from the
+	 * index immediately; the plugin schedules a rebuild on the next metadata-cache
+	 * 'resolved' event, after which the dangling list re-renders with fresh data.
+	 * Optional so tests and the placeholder wiring can omit it.
+	 */
+	requestRebuild?: () => void;
 	/**
 	 * DOM event registration delegate — routed through the owning Component
 	 * so listeners are tracked and torn down on unload.
@@ -350,13 +361,10 @@ export class DanglingPanel {
 			this.deps.setSearchQuery(input.value);
 		});
 
-		// A non-empty query means this render was driven by typing (or a tab
-		// re-entry with a live query): return focus to the freshly built input.
-		if (query !== "") {
-			input.focus();
-			const end = input.value.length;
-			input.setSelectionRange?.(end, end);
-		}
+		// Focus restoration after the re-render is owned by OrbitalView.renderPanel,
+		// which only re-focuses this input when it actually held focus before the
+		// rebuild. Doing it here unconditionally (whenever the query was non-empty)
+		// stole focus from the editor on every passive repaint.
 	}
 
 	// -------------------------------------------------------------------------
@@ -473,11 +481,12 @@ export class DanglingPanel {
 				text: occ.sourcePath,
 			});
 			// Clicking a source row opens that note (Cmd/Ctrl-click → new pane),
-			// mirroring RelationsPanel.renderResolvedItem.
+			// mirroring RelationsPanel.renderResolvedItem. getLeaf picks the leaf;
+			// openLinkText takes NO 3rd arg (it is openViewState, not newLeaf — a
+			// truthy value there throws "Cannot create property 'state'").
 			this.deps.registerDomEvent(occRow, "click", (evt) => {
-				const newLeaf = Keymap.isModEvent(evt);
-				const leaf = this.deps.app.workspace.getLeaf(newLeaf);
-				void leaf.openLinkText(occ.sourcePath, occ.sourcePath, newLeaf);
+				const leaf = this.deps.app.workspace.getLeaf(Keymap.isModEvent(evt));
+				void leaf.openLinkText(occ.sourcePath, occ.sourcePath);
 			});
 			if (settings.showCounts && occ.count > 1) {
 				(occRow as unknown as AugmentedEl).createSpan({
@@ -557,9 +566,19 @@ export class DanglingPanel {
 			cls: "orbital-dangling-group-header tree-item-self",
 		});
 
-		(header as unknown as AugmentedEl).createSpan({
-			cls: "orbital-dangling-group-label",
+		// Clicking the source label opens that note (Cmd/Ctrl-click → new pane),
+		// mirroring the source occurrence rows in by-target grouping. The children
+		// here are dangling targets (not openable), so the header is the only
+		// navigation affordance in this grouping.
+		const labelEl = (header as unknown as AugmentedEl).createSpan({
+			cls: "orbital-dangling-group-label is-clickable",
 			text: sourcePath,
+		});
+		this.deps.registerDomEvent(labelEl, "click", (evt) => {
+			// getLeaf picks the leaf; openLinkText takes NO 3rd arg (it is
+			// openViewState, not newLeaf — a truthy value there throws).
+			const leaf = this.deps.app.workspace.getLeaf(Keymap.isModEvent(evt));
+			void leaf.openLinkText(sourcePath, sourcePath);
 		});
 
 		const children = (groupEl as unknown as AugmentedEl).createEl("div", {
@@ -839,6 +858,10 @@ export class DanglingPanel {
 
 		// Notice is emitted by LinkRewriteService.surfaceBulkProgress — do not duplicate here.
 		this.updateLiveRegion(liveRegion, `${base}${suffix}.`);
+
+		// The rewrite changed link resolution; ask the plugin to rebuild the index
+		// once the metadata cache re-resolves so the dangling list reflects reality.
+		this.deps.requestRebuild?.();
 	}
 
 	private updateLiveRegion(liveRegion: HTMLElement, msg: string): void {

@@ -387,6 +387,18 @@ export class OrbitalView extends ItemView {
 	private renderPanel(tabId: TabId): void {
 		if (!this.panelContainer) return;
 
+		// Preserve the dangling search box's focus + caret ONLY when it actually
+		// had focus before this re-render (i.e. the user is typing in it). Passive
+		// repaints driven by vault/metadata events must never pull focus out of the
+		// editor and into the search box, which is what an unconditional focus()
+		// in the panel's render would do once a query had been entered.
+		const active = this.panelContainer.ownerDocument?.activeElement;
+		const restoreSearchFocus =
+			active instanceof HTMLElement &&
+			this.panelContainer.contains(active) &&
+			active.classList.contains("orbital-dangling-search-input");
+		const caret = restoreSearchFocus ? (active as HTMLInputElement).selectionStart : null;
+
 		// Remove existing panel(s)
 		this.panelContainer.empty();
 
@@ -403,6 +415,17 @@ export class OrbitalView extends ItemView {
 		const activePath = this.app.workspace.getActiveFile()?.path ?? null;
 		const renderer = this.panelRenderers[tabId];
 		renderer(panelEl, activePath);
+
+		// Restore search-box focus when it owned focus before the rebuild.
+		if (restoreSearchFocus) {
+			const input = panelEl.querySelector<HTMLInputElement>(".orbital-dangling-search-input");
+			if (input) {
+				input.focus();
+				const end = input.value.length;
+				input.setSelectionRange?.(caret ?? end, caret ?? end);
+			}
+			return;
+		}
 
 		// Move focus into the panel only on an explicit tab switch, not on passive refresh.
 		if (this._switchingTab) {

@@ -35,4 +35,48 @@ argument. Passing a truthy value there (boolean `true` OR a PaneType string like
 property 'state' on boolean 'true'" / "on string 'tab'"). A falsy 3rd arg
 (`false`) is silently ignored — that's why normal (non-mod) clicks never tripped
 it and only the "Open in new tab" path did. Fixed in
-`RelationsPanel.openMentionPath` and `renderResolvedItem`.
+`RelationsPanel.openMentionPath` and `renderResolvedItem`, and (2026-06-23) in
+`DanglingPanel` source-occurrence rows + by-source group labels, which had been
+passing `newLeaf` as the 3rd arg (latent crash on Cmd/Ctrl-click — masked in
+tests because the mock `openLinkText` is a plain spy that never throws).
+
+## Dangling list doesn't refresh after alias/rename/delete
+
+**Symptom (2026-06-23):** After "alias to existing note" reported all files
+succeeded, the dangling target (and a subset of its sources) stayed in the
+Dangling list — looked like "some notes weren't aliased."
+
+**Root cause:** bulk rewrites only edit file *content*; they are not a vault
+create/delete/rename, so they never set `_structuralChange`. The metadata cache's
+`resolvedLinks`/`unresolvedLinks` are **stale at `changed`/vault-event time**
+(documented design — see `main._wireMetadataCacheEvents`), so the per-file
+`changed → updateFile` re-reads stale resolution and re-adds the now-resolved
+target. The later `resolved` event would rebuild correctly, but its handler
+returns early when `_structuralChange` is false. Net: no rebuild, stale list.
+
+**Fix:** `DanglingPanel.surfaceResult` calls a new optional dep
+`requestRebuild()`; `main._buildDanglingDeps` wires it to set
+`_structuralChange = true`, so the next `resolved` rebuilds the index and
+repaints — the same path file create/delete/rename already use. (`createNote`
+already triggers a real vault `create`, so it was unaffected.)
+
+## Dangling search box steals focus from the editor while typing
+
+**Symptom (2026-06-23):** Once any text was entered in the Dangling search box,
+focus kept jumping from the editor into that search box while typing a note (and
+on Cmd+F). 
+
+**Root cause:** `DanglingPanel.renderSearchBox` called `input.focus()` on **every**
+render whenever the query was non-empty, to keep focus during search typing. But
+the panel re-renders on *passive* events too (metadata `changed`, `file-open`,
+active-leaf-change) — each of those rebuilt the search box and re-grabbed focus,
+even though the user was typing in the editor.
+
+**Fix:** focus restoration moved up to `OrbitalView.renderPanel`, which owns the
+teardown (`panelContainer.empty()`). It captures whether `document.activeElement`
+was the search input **before** the rebuild and only re-focuses (and restores the
+caret) when it genuinely had focus. Passive repaints therefore never pull focus.
+The unconditional `query !== ""` focus block in `renderSearchBox` was removed.
+Note: `renderPanel` empties the container before the panel's own `render` runs, so
+the focus check MUST live in `renderPanel` (pre-empty) — a panel can't observe its
+own pre-teardown focus.

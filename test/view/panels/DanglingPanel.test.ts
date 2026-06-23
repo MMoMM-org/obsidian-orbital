@@ -276,7 +276,6 @@ describe("DanglingPanel source-row navigation + collapse", () => {
 		expect(mockLeaf.openLinkText).toHaveBeenCalledWith(
 			"notes/source-a.md",
 			"notes/source-a.md",
-			false,
 		);
 	});
 
@@ -303,7 +302,6 @@ describe("DanglingPanel source-row navigation + collapse", () => {
 		expect(mockLeaf.openLinkText).toHaveBeenCalledWith(
 			"notes/source-a.md",
 			"notes/source-a.md",
-			true,
 		);
 	});
 
@@ -385,6 +383,59 @@ describe("DanglingPanel by-source grouping", () => {
 		const targetItems = container.querySelectorAll(".orbital-dangling-target-item");
 		const texts = Array.from(targetItems).map((el) => el.textContent?.trim() ?? "");
 		expect(texts.some((t) => t.includes("MissingTarget"))).toBe(true);
+	});
+
+	it("clicking a source group label opens that note in the current pane", () => {
+		vi.mocked(Keymap.isModEvent).mockReturnValue(false);
+		const deps = makeDeps({
+			unresolved: { "notes/source-a.md": { "MissingTarget": 2 } },
+			grouping: "source",
+		});
+		const mockLeaf = { openLinkText: vi.fn(async () => {}) };
+		(deps.appInstance.workspace.getLeaf as ReturnType<typeof vi.fn>).mockReturnValue(mockLeaf);
+
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const label = container.querySelector(
+			"[data-source='notes/source-a.md'] .orbital-dangling-group-label",
+		) as HTMLElement;
+		expect(label).not.toBeNull();
+		expect(label.classList.contains("is-clickable")).toBe(true);
+		label.click();
+
+		expect(deps.appInstance.workspace.getLeaf).toHaveBeenCalledWith(false);
+		expect(mockLeaf.openLinkText).toHaveBeenCalledWith(
+			"notes/source-a.md",
+			"notes/source-a.md",
+		);
+	});
+
+	it("Cmd/Ctrl-clicking a source group label opens that note in a new pane", () => {
+		vi.mocked(Keymap.isModEvent).mockReturnValue(true);
+		const deps = makeDeps({
+			unresolved: { "notes/source-a.md": { "MissingTarget": 1 } },
+			grouping: "source",
+		});
+		const mockLeaf = { openLinkText: vi.fn(async () => {}) };
+		(deps.appInstance.workspace.getLeaf as ReturnType<typeof vi.fn>).mockReturnValue(mockLeaf);
+
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		(
+			container.querySelector(
+				"[data-source='notes/source-a.md'] .orbital-dangling-group-label",
+			) as HTMLElement
+		).click();
+
+		expect(deps.appInstance.workspace.getLeaf).toHaveBeenCalledWith(true);
+		expect(mockLeaf.openLinkText).toHaveBeenCalledWith(
+			"notes/source-a.md",
+			"notes/source-a.md",
+		);
 	});
 });
 
@@ -1301,6 +1352,25 @@ describe("DanglingPanel bulk result Notice behaviour", () => {
 
 		// DanglingPanel itself must not emit any Notice for bulk results
 		expect(Notice._instances.length).toBe(0);
+	});
+
+	it("requests an index rebuild after a successful bulk operation so the list refreshes", async () => {
+		const deps = makeDeps({
+			unresolved: { "notes/a.md": { "MissingTarget": 1 } },
+			grouping: "target",
+		});
+		const requestRebuild = vi.fn();
+		deps.requestRebuild = requestRebuild;
+
+		const panel = new DanglingPanel(deps);
+		const container = makeContainer();
+		panel.render(container);
+
+		const renameBtn = container.querySelector("[aria-label='Rename dangling link']") as HTMLElement;
+		renameBtn.click();
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(requestRebuild).toHaveBeenCalledTimes(1);
 	});
 
 	it("surfaceResult still updates the aria-live region after a bulk operation", async () => {
