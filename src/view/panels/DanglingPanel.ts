@@ -361,13 +361,10 @@ export class DanglingPanel {
 			this.deps.setSearchQuery(input.value);
 		});
 
-		// A non-empty query means this render was driven by typing (or a tab
-		// re-entry with a live query): return focus to the freshly built input.
-		if (query !== "") {
-			input.focus();
-			const end = input.value.length;
-			input.setSelectionRange?.(end, end);
-		}
+		// Focus restoration after the re-render is owned by OrbitalView.renderPanel,
+		// which only re-focuses this input when it actually held focus before the
+		// rebuild. Doing it here unconditionally (whenever the query was non-empty)
+		// stole focus from the editor on every passive repaint.
 	}
 
 	// -------------------------------------------------------------------------

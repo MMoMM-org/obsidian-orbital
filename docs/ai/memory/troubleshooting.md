@@ -59,3 +59,24 @@ returns early when `_structuralChange` is false. Net: no rebuild, stale list.
 `_structuralChange = true`, so the next `resolved` rebuilds the index and
 repaints — the same path file create/delete/rename already use. (`createNote`
 already triggers a real vault `create`, so it was unaffected.)
+
+## Dangling search box steals focus from the editor while typing
+
+**Symptom (2026-06-23):** Once any text was entered in the Dangling search box,
+focus kept jumping from the editor into that search box while typing a note (and
+on Cmd+F). 
+
+**Root cause:** `DanglingPanel.renderSearchBox` called `input.focus()` on **every**
+render whenever the query was non-empty, to keep focus during search typing. But
+the panel re-renders on *passive* events too (metadata `changed`, `file-open`,
+active-leaf-change) — each of those rebuilt the search box and re-grabbed focus,
+even though the user was typing in the editor.
+
+**Fix:** focus restoration moved up to `OrbitalView.renderPanel`, which owns the
+teardown (`panelContainer.empty()`). It captures whether `document.activeElement`
+was the search input **before** the rebuild and only re-focuses (and restores the
+caret) when it genuinely had focus. Passive repaints therefore never pull focus.
+The unconditional `query !== ""` focus block in `renderSearchBox` was removed.
+Note: `renderPanel` empties the container before the panel's own `render` runs, so
+the focus check MUST live in `renderPanel` (pre-empty) — a panel can't observe its
+own pre-teardown focus.

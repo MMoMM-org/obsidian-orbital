@@ -1061,3 +1061,72 @@ describe("OrbitalView T5.2 — Panel focus on tab switch (Gap A)", () => {
 		expect(focusSpy).not.toHaveBeenCalled();
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Dangling search box — focus must not be stolen on passive repaints
+// ---------------------------------------------------------------------------
+
+describe("OrbitalView — dangling search box focus", () => {
+	/** Mount the view's contentEl so input.focus()/document.activeElement work in jsdom. */
+	async function openDanglingTab(deps: DanglingDeps): Promise<OrbitalView> {
+		const view = new OrbitalView(makeLeaf(), undefined, undefined, deps);
+		const viewApp = (view as unknown as { app: App }).app;
+		(viewApp.workspace.getActiveFile as ReturnType<typeof vi.fn>).mockReturnValue(null);
+
+		await view.onOpen();
+		document.body.appendChild(view.contentEl);
+
+		const danglingTab = view.contentEl.querySelector("[data-tab-id='dangling']") as HTMLElement;
+		danglingTab.click();
+		await flush();
+		return view;
+	}
+
+	function searchInput(view: OrbitalView): HTMLInputElement {
+		return view.contentEl.querySelector(".orbital-dangling-search-input") as HTMLInputElement;
+	}
+
+	it("a passive repaint does NOT pull focus into the search box (even with a non-empty query)", async () => {
+		const deps = makeDanglingDeps({ "notes/a.md": { "MissingNote": 1 } });
+		// Seed a non-empty query so the old buggy heuristic would have re-grabbed focus.
+		const view = await openDanglingTab({
+			...deps,
+			getSettings: () => ({ ...DEFAULT_SETTINGS }),
+		});
+		(view as unknown as { state: { danglingSearchQuery: string } }).state.danglingSearchQuery = "Miss";
+		view.refreshActivePanel();
+
+		// Focus lives on an unrelated element (e.g. the editor) — simulate with a sentinel.
+		const sentinel = document.createElement("input");
+		document.body.appendChild(sentinel);
+		sentinel.focus();
+		expect(document.activeElement).toBe(sentinel);
+
+		// A vault/metadata event triggers a passive repaint of the dangling panel.
+		view.refreshActivePanel();
+
+		// Focus must stay where the user put it — the search box must NOT steal it.
+		expect(document.activeElement).toBe(sentinel);
+
+		sentinel.remove();
+		view.contentEl.remove();
+	});
+
+	it("typing in the search box keeps focus in it across the re-render it triggers", async () => {
+		const deps = makeDanglingDeps({ "notes/a.md": { "MissingNote": 1 } });
+		const view = await openDanglingTab(deps);
+
+		const input = searchInput(view);
+		input.focus();
+		input.value = "M";
+		input.dispatchEvent(new Event("input", { bubbles: true }));
+		await flush();
+
+		// The panel re-rendered; focus must land back on the freshly built search input.
+		const active = document.activeElement as HTMLElement | null;
+		expect(active?.classList.contains("orbital-dangling-search-input")).toBe(true);
+		expect((active as HTMLInputElement).value).toBe("M");
+
+		view.contentEl.remove();
+	});
+});
