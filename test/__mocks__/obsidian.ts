@@ -405,6 +405,10 @@ export function augmentEl(el: HTMLElement): HTMLElement {
 		el.classList.toggle(cls, force);
 	};
 
+	any["setText"] = (text: string): void => {
+		el.textContent = text;
+	};
+
 	return el;
 }
 
@@ -570,6 +574,36 @@ class DropdownComponent {
 	});
 }
 
+/**
+ * AbstractInputSuggest — minimal stub mirroring Obsidian's input-suggest base.
+ * Concrete subclasses implement getSuggestions / renderSuggestion /
+ * selectSuggestion; tests drive them directly. `open`/`close` are no-op spies.
+ */
+export abstract class AbstractInputSuggest<T> {
+	app: App;
+	limit = 100;
+	protected textInputEl: HTMLInputElement | HTMLDivElement;
+
+	constructor(app: App, textInputEl: HTMLInputElement | HTMLDivElement) {
+		this.app = app;
+		this.textInputEl = textInputEl;
+	}
+
+	protected abstract getSuggestions(query: string): T[] | Promise<T[]>;
+	abstract renderSuggestion(value: T, el: HTMLElement): void;
+	abstract selectSuggestion(value: T, evt?: MouseEvent | KeyboardEvent): void;
+
+	setValue = vi.fn((value: string) => {
+		if (this.textInputEl instanceof HTMLInputElement) this.textInputEl.value = value;
+	});
+	getValue = vi.fn((): string =>
+		this.textInputEl instanceof HTMLInputElement ? this.textInputEl.value : "",
+	);
+	onSelect = vi.fn(() => this);
+	open = vi.fn();
+	close = vi.fn();
+}
+
 // --- Views ---
 
 /** Minimal stub — tests construct plain objects shaped like WorkspaceLeaf. */
@@ -678,6 +712,31 @@ export class Events {
 
 export function normalizePath(path: string): string {
 	return path.replace(/\\/g, "/").replace(/\/+/g, "/");
+}
+
+/**
+ * prepareFuzzySearch — minimal stand-in for Obsidian's fuzzy matcher.
+ * Returns a callback that subsequence-matches the (case-insensitive) query
+ * against a target string, yielding a `{ score, matches }` result or null.
+ * Score is a simple negative-distance heuristic; tests only assert match/no-match.
+ */
+export function prepareFuzzySearch(
+	query: string,
+): (text: string) => { score: number; matches: number[][] } | null {
+	const needle = query.toLowerCase();
+	return (text: string) => {
+		const haystack = text.toLowerCase();
+		if (needle === "") return { score: 0, matches: [] };
+		let hi = 0;
+		const matches: number[][] = [];
+		for (let ni = 0; ni < needle.length; ni++) {
+			const found = haystack.indexOf(needle[ni], hi);
+			if (found === -1) return null;
+			matches.push([found, found + 1]);
+			hi = found + 1;
+		}
+		return { score: -(hi - needle.length), matches };
+	};
 }
 
 /**

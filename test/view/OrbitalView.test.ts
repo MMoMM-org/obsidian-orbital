@@ -335,6 +335,7 @@ describe("OrbitalView getState/setState", () => {
 			danglingGrouping: "source",
 			collapsedSections: ["section-a"],
 			activeDanglingFilter: null,
+			danglingSearchQuery: "",
 		};
 		await view.setState(newState, makeResult());
 

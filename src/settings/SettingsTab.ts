@@ -2,6 +2,7 @@ import type OrbitalPlugin from "main";
 import { type App, PluginSettingTab, Setting } from "obsidian";
 import type { DanglingGrouping, DanglingScope, TabId } from "types/index";
 
+import { FolderSuggest } from "./FolderSuggest";
 import { HeaderSection } from "./HeaderSection";
 
 export class SettingsTab extends PluginSettingTab {
@@ -168,15 +169,16 @@ export class SettingsTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("New note folder")
 			.setDesc("Folder for new notes created from dangling links. Leave empty to use the default location.")
-			.addText((text) =>
+			.addText((text) => {
 				text
 					.setPlaceholder("E.g. Notes/")
 					.setValue(this.plugin.settings.newNoteFolder)
 					.onChange(async (value) => {
 						this.plugin.settings.newNoteFolder = value;
 						await this.plugin.saveSettings();
-					}),
-			);
+					});
+				new FolderSuggest(this.app, text.inputEl);
+			});
 	}
 
 	private renderRecentSection(containerEl: HTMLElement): void {

@@ -17,7 +17,7 @@
  *   scrolls to and highlights the matching group row.
  */
 
-import { Keymap, Notice, setIcon } from "obsidian";
+import { Keymap, Notice, prepareFuzzySearch, setIcon } from "obsidian";
 import type { LinkGraphIndex } from "graph/LinkGraphIndex";
 import type {
 	OrbitalSettings,
@@ -128,6 +128,10 @@ export interface DanglingPanelDeps {
 	setActiveFilter: (target: string) => void;
 	/** Clears the active filter and restores the full list. */
 	clearActiveFilter: () => void;
+	/** Returns the current free-text fuzzy search query (empty = show all). */
+	getSearchQuery: () => string;
+	/** Persists the search query (triggers a re-render via the view). */
+	setSearchQuery: (query: string) => void;
 	/** LinkRewriteService instance (or compatible mock). */
 	service: ServiceLike;
 	/** ConfirmRewriteModal constructor. */
@@ -217,15 +221,44 @@ export class DanglingPanel {
 		}
 
 		// Apply active filter: show only the matching target group when set
-		const targets = activeFilter !== null
+		const filtered = activeFilter !== null
 			? allTargets.filter((dt) => dt.target === activeFilter)
 			: allTargets;
+
+		// Apply the free-text fuzzy search over target + source paths.
+		const targets = this.applySearch(filtered);
+
+		if (targets.length === 0) {
+			this.renderNoMatches(container);
+			return;
+		}
 
 		if (grouping === "target") {
 			this.renderByTarget(container, targets, scope, settings, liveRegion, activeFilter);
 		} else {
 			this.renderBySource(container, targets, scope, settings, liveRegion);
 		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Private — fuzzy search
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Filter targets by the current fuzzy query. A target is kept when the query
+	 * fuzzy-matches its target name OR any of its source paths. An empty query
+	 * returns the list unchanged.
+	 */
+	private applySearch(targets: DanglingTarget[]): DanglingTarget[] {
+		const query = this.deps.getSearchQuery().trim();
+		if (query === "") return targets;
+
+		const match = prepareFuzzySearch(query);
+		return targets.filter(
+			(dt) =>
+				match(dt.target) !== null ||
+				dt.occurrences.some((occ) => match(occ.sourcePath) !== null),
+		);
 	}
 
 	// -------------------------------------------------------------------------
@@ -270,6 +303,9 @@ export class DanglingPanel {
 			this.deps.setScope(scope === "vault" ? "folder" : "vault");
 		});
 
+		// Fuzzy search box — sits to the right of the scope toggle.
+		this.renderSearchBox(toolbar);
+
 		// "Show all" button — visible only when a filter is active
 		if (activeFilter !== null) {
 			const showAllLabel = "Show all";
@@ -285,6 +321,41 @@ export class DanglingPanel {
 			this.deps.registerDomEvent(showAllBtn, "click", () => {
 				this.deps.clearActiveFilter();
 			});
+		}
+	}
+
+	/**
+	 * Render the fuzzy search input into the toolbar. Wires its `input` event to
+	 * setSearchQuery (which re-renders the panel) and restores focus + caret
+	 * after that re-render so typing stays uninterrupted.
+	 */
+	private renderSearchBox(toolbar: HTMLElement): void {
+		const query = this.deps.getSearchQuery();
+
+		const wrapper = (toolbar as unknown as AugmentedEl).createDiv({
+			cls: "orbital-dangling-search",
+		});
+
+		const input = (wrapper as unknown as AugmentedEl).createEl("input", {
+			cls: "orbital-dangling-search-input",
+			attr: {
+				type: "search",
+				placeholder: "Search source or target…",
+				"aria-label": "Search dangling links by source or target",
+			},
+		}) as HTMLInputElement;
+		input.value = query;
+
+		this.deps.registerDomEvent(input, "input", () => {
+			this.deps.setSearchQuery(input.value);
+		});
+
+		// A non-empty query means this render was driven by typing (or a tab
+		// re-entry with a live query): return focus to the freshly built input.
+		if (query !== "") {
+			input.focus();
+			const end = input.value.length;
+			input.setSelectionRange?.(end, end);
 		}
 	}
 
@@ -782,6 +853,17 @@ export class DanglingPanel {
 		(container as unknown as AugmentedEl).createEl("div", {
 			cls: "orbital-dangling-empty",
 			text: "No dangling links in this scope.",
+		});
+	}
+
+	/**
+	 * Shown when dangling links exist but none match the current search query.
+	 * The toolbar (with the search box) stays rendered so the user can clear it.
+	 */
+	private renderNoMatches(container: HTMLElement): void {
+		(container as unknown as AugmentedEl).createEl("div", {
+			cls: "orbital-dangling-empty",
+			text: "No dangling links match the search.",
 		});
 	}
 

@@ -71,6 +71,8 @@ export type DanglingDeps = Omit<
 	| "getActiveFilter"
 	| "setActiveFilter"
 	| "clearActiveFilter"
+	| "getSearchQuery"
+	| "setSearchQuery"
 	| "registerDomEvent"
 >;
 
@@ -101,6 +103,7 @@ export class OrbitalView extends ItemView {
 		// first expand (potentially an O(vault) read), so it must not auto-scan.
 		collapsedSections: ["unlinkedMentions"],
 		activeDanglingFilter: null,
+		danglingSearchQuery: "",
 	};
 
 	private tabBar: TabBar | null = null;
@@ -225,6 +228,7 @@ export class OrbitalView extends ItemView {
 			danglingGrouping: this.state.danglingGrouping,
 			collapsedSections: this.state.collapsedSections,
 			activeDanglingFilter: this.state.activeDanglingFilter,
+			danglingSearchQuery: this.state.danglingSearchQuery,
 		};
 	}
 
@@ -248,6 +252,7 @@ export class OrbitalView extends ItemView {
 			activeDanglingFilter: incoming.activeDanglingFilter !== undefined
 				? incoming.activeDanglingFilter
 				: this.state.activeDanglingFilter,
+			danglingSearchQuery: incoming.danglingSearchQuery ?? this.state.danglingSearchQuery,
 		};
 
 		// Update TabBar and panel to reflect new state.
@@ -335,6 +340,11 @@ export class OrbitalView extends ItemView {
 				},
 				clearActiveFilter: () => {
 					this.state = { ...this.state, activeDanglingFilter: null };
+					this.renderPanel("dangling");
+				},
+				getSearchQuery: () => this.state.danglingSearchQuery,
+				setSearchQuery: (q: string) => {
+					this.state = { ...this.state, danglingSearchQuery: q };
 					this.renderPanel("dangling");
 				},
 				registerDomEvent: (el, type, handler) => {
