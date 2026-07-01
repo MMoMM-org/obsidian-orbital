@@ -1,3 +1,9 @@
+## [1.0.1](https://github.com/MMoMM-org/obsidian-orbital/compare/1.0.0...1.0.1) (2026-07-01)
+
+### Bug Fixes
+
+* **release:** conventionalcommits preset so semantic-release keeps ! commits ([2530d73](https://github.com/MMoMM-org/obsidian-orbital/commit/2530d733ee3b6437d2b960859567e65d11c49e98))
+
 # [1.0.0](https://github.com/MMoMM-org/obsidian-orbital/compare/0.11.0...1.0.0) (2026-06-23)
 
 
