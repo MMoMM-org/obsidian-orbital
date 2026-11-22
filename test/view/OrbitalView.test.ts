@@ -23,7 +23,15 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import { App, WorkspaceLeaf, ViewStateResult, augmentEl, TFile, TFolder } from "../__mocks__/obsidian";
+import {
+	App,
+	WorkspaceLeaf,
+	ViewStateResult,
+	augmentEl,
+	TFile,
+	TFolder,
+	installObsidianInstanceOf,
+} from "../__mocks__/obsidian";
 import { OrbitalView, VIEW_TYPE } from "view/OrbitalView";
 import type { RelationsDeps, DanglingDeps, RecentDeps } from "view/OrbitalView";
 import type { RelationsPanelApp } from "view/panels/RelationsPanel";
@@ -1136,6 +1144,55 @@ describe("OrbitalView — dangling search box focus", () => {
 		expect(active?.classList.contains("orbital-dangling-search-input")).toBe(true);
 		expect((active as HTMLInputElement).value).toBe("M");
 
+		view.contentEl.remove();
+	});
+
+	// In a popout window the view lives in a separate realm, so the focused search
+	// input is built from THAT window's HTMLElement constructor. A plain
+	// `instanceof HTMLElement` compares against the main window's constructor and
+	// is false there, which silently disabled focus restoration (issue #37).
+	// An iframe gives jsdom a genuine second realm; adopting its input into the
+	// panel keeps `contains()`/`matches()` true while `instanceof` stays false,
+	// which is exactly the production shape.
+	it("restores focus when the focused search input comes from another realm (popout)", async () => {
+		const deps = makeDanglingDeps({ "notes/a.md": { "MissingNote": 1 } });
+		const view = await openDanglingTab({
+			...deps,
+			getSettings: () => ({ ...DEFAULT_SETTINGS }),
+		});
+		(view as unknown as { state: { danglingSearchQuery: string } }).state.danglingSearchQuery = "Mi";
+
+		const iframe = document.createElement("iframe");
+		document.body.appendChild(iframe);
+		const foreignWin = iframe.contentWindow as (Window & typeof globalThis) | null;
+		expect(foreignWin).not.toBeNull();
+		if (!foreignWin) return;
+		// Guard the premise: a same-realm element would make this test vacuous.
+		expect(foreignWin.HTMLElement).not.toBe(HTMLElement);
+		// Real Obsidian installs its DOM augmentations into every popout window.
+		installObsidianInstanceOf(foreignWin);
+
+		const realInput = searchInput(view);
+		const foreignInput = foreignWin.document.createElement("input");
+		foreignInput.className = "orbital-dangling-search-input";
+		foreignInput.value = "Mi";
+		realInput.replaceWith(foreignInput); // adopted into the panel, foreign prototype kept
+		expect(foreignInput instanceof HTMLElement).toBe(false);
+
+		foreignInput.focus();
+		foreignInput.setSelectionRange(1, 1);
+		expect(document.activeElement).toBe(foreignInput);
+
+		// A passive repaint rebuilds the panel and must hand focus back.
+		view.refreshActivePanel();
+
+		const active = document.activeElement as HTMLInputElement | null;
+		expect(active?.classList.contains("orbital-dangling-search-input")).toBe(true);
+		expect(active).not.toBe(foreignInput); // the rebuilt input, not the stale one
+		expect(active?.value).toBe("Mi");
+		expect(active?.selectionStart).toBe(1); // caret survived the realm boundary
+
+		iframe.remove();
 		view.contentEl.remove();
 	});
 });
