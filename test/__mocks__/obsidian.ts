@@ -604,7 +604,41 @@ function installObsidianDomHelpers(): void {
 	};
 }
 
+/**
+ * Install Obsidian's cross-window-safe `instanceOf` on a window's Node.prototype.
+ * jsdom has no equivalent, so production code calling `el.instanceOf(HTMLElement)`
+ * would throw in tests without this.
+ *
+ * Takes a target window because each realm has its own `Node.prototype`: real
+ * Obsidian installs its DOM augmentations into every popout window it opens, so
+ * tests simulating a popout (via an iframe) must do the same — see the popout
+ * focus test in `test/view/OrbitalView.test.ts`.
+ *
+ * Obsidian resolves the constructor from the node's own window (it tracks
+ * `constructorWin`). We cannot reuse `ownerDocument.defaultView` here: once a
+ * foreign-realm node is adopted into the main document, its ownerDocument reports
+ * the MAIN window again while its prototype chain still comes from the foreign
+ * realm. So walk the node's own chain and compare constructor *names*, since a
+ * foreign realm's constructors are different objects with identical names.
+ */
+export function installObsidianInstanceOf(win: Window & typeof globalThis = window): void {
+	const proto = win.Node.prototype as unknown as Record<string, unknown>;
+	if (proto["__orbitalInstanceOfInstalled"]) return;
+	proto["__orbitalInstanceOfInstalled"] = true;
+
+	proto["instanceOf"] = function (this: Node, type: { new (): unknown }): boolean {
+		if (this instanceof type) return true;
+		for (let p: object | null = Object.getPrototypeOf(this); p; p = Object.getPrototypeOf(p)) {
+			if ((p as { constructor?: { name?: string } }).constructor?.name === type.name) {
+				return true;
+			}
+		}
+		return false;
+	};
+}
+
 installObsidianDomHelpers();
+installObsidianInstanceOf();
 
 function makeObsidianEl(tag = "div"): HTMLElement {
 	return augmentEl(document.createElement(tag));

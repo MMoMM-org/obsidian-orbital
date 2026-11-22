@@ -491,9 +491,14 @@ export class OrbitalView extends ItemView {
 		// in the panel's render would do once a query had been entered.
 		const SEARCH_INPUT_SELECTOR =
 			".orbital-dangling-search-input, .orbital-context-search-input";
-		const active = this.panelContainer.ownerDocument?.activeElement;
+		// instanceOf() instead of instanceof: in a popout window the view lives in
+		// a separate realm with its own HTMLElement constructor, so a plain
+		// `instanceof HTMLElement` compares against the MAIN window's constructor
+		// and is always false there — silently disabling focus restoration.
+		const active = this.panelContainer.ownerDocument?.activeElement ?? null;
 		const restoreSearchFocus =
-			active instanceof HTMLElement &&
+			active !== null &&
+			active.instanceOf(HTMLElement) &&
 			this.panelContainer.contains(active) &&
 			active.matches(SEARCH_INPUT_SELECTOR);
 		const caret = restoreSearchFocus ? (active as HTMLInputElement).selectionStart : null;
