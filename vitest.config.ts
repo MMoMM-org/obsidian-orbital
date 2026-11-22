@@ -1,134 +1,64 @@
 import fs from "node:fs";
 import path from "node:path";
 import { defineConfig } from "vitest/config";
+import type { Plugin } from "vitest/config";
+
+const SRC_ROOT = path.resolve(import.meta.dirname, "src");
+const OBSIDIAN_MOCK = path.resolve(import.meta.dirname, "test/__mocks__/obsidian.ts");
+
+/**
+ * Resolve the bare module paths tests and src share, mirroring how production
+ * resolves them:
+ *
+ *   - `obsidian`           → the hand-written mock, since the real runtime only
+ *                            exists inside Obsidian.
+ *   - everything else bare → tsconfig's `baseUrl: "src"`, e.g.
+ *       `main`                     → src/main.ts
+ *       `types/index`              → src/types/index.ts
+ *       `view/panels/RecentPanel`  → src/view/panels/RecentPanel.ts
+ *       `types`                    → src/types/index.ts  (directory import)
+ *
+ * This replaces ten near-identical `resolve.alias` entries that each carried a
+ * `customResolver` — deprecated in vitest 5 and removed in Vite 9 (#39). Driving
+ * it off the filesystem instead of a hardcoded directory list also means a new
+ * `src/` subdirectory needs no change here.
+ *
+ * `enforce: "pre"` is required: the hook has to run before Vite's own resolver
+ * turns a bare specifier into an unresolved-import error.
+ */
+function orbitalModulePaths(): Plugin {
+	return {
+		name: "orbital-module-paths",
+		enforce: "pre",
+		resolveId(source) {
+			if (source === "obsidian") return OBSIDIAN_MOCK;
+
+			// Only bare specifiers can be baseUrl paths. Relative and absolute ids
+			// resolve normally, and `node:` builtins are never ours.
+			if (source.startsWith(".") || source.startsWith("node:") || path.isAbsolute(source)) {
+				return null;
+			}
+
+			const candidate = path.join(SRC_ROOT, source);
+			// path.join normalises away any `..`, so re-check containment before
+			// touching the filesystem.
+			if (!candidate.startsWith(SRC_ROOT + path.sep)) return null;
+
+			// Directory before file, matching the resolver this replaces. Returning
+			// null for anything that does not exist under src/ is what keeps real
+			// packages (vitest, …) on Vite's normal resolution path.
+			if (fs.statSync(candidate, { throwIfNoEntry: false })?.isDirectory()) {
+				const dirIndex = path.join(candidate, "index.ts");
+				if (fs.existsSync(dirIndex)) return dirIndex;
+			}
+			const asFile = `${candidate}.ts`;
+			return fs.existsSync(asFile) ? asFile : null;
+		},
+	};
+}
 
 export default defineConfig({
-	resolve: {
-		alias: [
-			// Obsidian runtime replaced with hand-written mock for tests.
-			{
-				find: "obsidian",
-				replacement: path.resolve(import.meta.dirname, "test/__mocks__/obsidian.ts"),
-			},
-			// main.ts sits at the src/ root — resolve it directly.
-			{
-				find: "main",
-				replacement: path.resolve(import.meta.dirname, "src/main.ts"),
-			},
-			// Mirror tsconfig baseUrl: "src" for the top-level src/ directories.
-			// Each entry maps the directory name to its absolute path so that
-			// bare module paths (e.g. `types`, `types/index`, `settings/SettingsTab`)
-			// resolve the same way TypeScript does in production.
-			//
-			// replacement interpolates $1 (the captured subpath) so the base absolute
-			// path is built correctly.  The customResolver then disambiguates between
-			// a bare directory import and a file-stem import by checking the filesystem:
-			//   `types`        → src/types  (directory) → src/types/index.ts
-			//   `types/index`  → src/types/index (stem)  → src/types/index.ts
-			//   `types/Foo`    → src/types/Foo    (stem)  → src/types/Foo.ts
-			// Add new src/ subdirectories here when they are created.
-			{
-				find: /^types(\/.*)?$/,
-				replacement: path.resolve(import.meta.dirname, "src/types$1"),
-				customResolver(updatedId: string) {
-					if (fs.statSync(updatedId, { throwIfNoEntry: false })?.isDirectory()) {
-						return `${updatedId}/index.ts`;
-					}
-					return fs.existsSync(`${updatedId}.ts`) ? `${updatedId}.ts` : updatedId;
-				},
-			},
-			{
-				find: /^settings(\/.*)?$/,
-				replacement: path.resolve(import.meta.dirname, "src/settings$1"),
-				customResolver(updatedId: string) {
-					if (fs.statSync(updatedId, { throwIfNoEntry: false })?.isDirectory()) {
-						return `${updatedId}/index.ts`;
-					}
-					return fs.existsSync(`${updatedId}.ts`) ? `${updatedId}.ts` : updatedId;
-				},
-			},
-			{
-				find: /^shared(\/.*)?$/,
-				replacement: path.resolve(import.meta.dirname, "src/shared$1"),
-				customResolver(updatedId: string) {
-					if (fs.statSync(updatedId, { throwIfNoEntry: false })?.isDirectory()) {
-						return `${updatedId}/index.ts`;
-					}
-					return fs.existsSync(`${updatedId}.ts`) ? `${updatedId}.ts` : updatedId;
-				},
-			},
-			{
-				find: /^view(\/.*)?$/,
-				replacement: path.resolve(import.meta.dirname, "src/view$1"),
-				customResolver(updatedId: string) {
-					if (fs.statSync(updatedId, { throwIfNoEntry: false })?.isDirectory()) {
-						return `${updatedId}/index.ts`;
-					}
-					return fs.existsSync(`${updatedId}.ts`) ? `${updatedId}.ts` : updatedId;
-				},
-			},
-			{
-				find: /^graph(\/.*)?$/,
-				replacement: path.resolve(import.meta.dirname, "src/graph$1"),
-				customResolver(updatedId: string) {
-					if (fs.statSync(updatedId, { throwIfNoEntry: false })?.isDirectory()) {
-						return `${updatedId}/index.ts`;
-					}
-					return fs.existsSync(`${updatedId}.ts`) ? `${updatedId}.ts` : updatedId;
-				},
-			},
-			{
-				find: /^links(\/.*)?$/,
-				replacement: path.resolve(import.meta.dirname, "src/links$1"),
-				customResolver(updatedId: string) {
-					if (fs.statSync(updatedId, { throwIfNoEntry: false })?.isDirectory()) {
-						return `${updatedId}/index.ts`;
-					}
-					return fs.existsSync(`${updatedId}.ts`) ? `${updatedId}.ts` : updatedId;
-				},
-			},
-			{
-				find: /^modals(\/.*)?$/,
-				replacement: path.resolve(import.meta.dirname, "src/modals$1"),
-				customResolver(updatedId: string) {
-					if (fs.statSync(updatedId, { throwIfNoEntry: false })?.isDirectory()) {
-						return `${updatedId}/index.ts`;
-					}
-					return fs.existsSync(`${updatedId}.ts`) ? `${updatedId}.ts` : updatedId;
-				},
-			},
-			{
-				find: /^recent(\/.*)?$/,
-				replacement: path.resolve(import.meta.dirname, "src/recent$1"),
-				customResolver(updatedId: string) {
-					if (fs.statSync(updatedId, { throwIfNoEntry: false })?.isDirectory()) {
-						return `${updatedId}/index.ts`;
-					}
-					return fs.existsSync(`${updatedId}.ts`) ? `${updatedId}.ts` : updatedId;
-				},
-			},
-			{
-				find: /^codeblock(\/.*)?$/,
-				replacement: path.resolve(import.meta.dirname, "src/codeblock$1"),
-				customResolver(updatedId: string) {
-					if (fs.statSync(updatedId, { throwIfNoEntry: false })?.isDirectory()) {
-						return `${updatedId}/index.ts`;
-					}
-					return fs.existsSync(`${updatedId}.ts`) ? `${updatedId}.ts` : updatedId;
-				},
-			},
-			{
-				find: /^footer(\/.*)?$/,
-				replacement: path.resolve(import.meta.dirname, "src/footer$1"),
-				customResolver(updatedId: string) {
-					if (fs.statSync(updatedId, { throwIfNoEntry: false })?.isDirectory()) {
-						return `${updatedId}/index.ts`;
-					}
-					return fs.existsSync(`${updatedId}.ts`) ? `${updatedId}.ts` : updatedId;
-				},
-			},
-		],
-	},
+	plugins: [orbitalModulePaths()],
 	test: {
 		globals: true,
 		environment: "jsdom",
