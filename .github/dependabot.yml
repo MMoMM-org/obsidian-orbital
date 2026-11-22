@@ -26,6 +26,13 @@ updates:
       # CodeMirror copy and type mismatches, so never auto-update these.
       - dependency-name: "@codemirror/state"
       - dependency-name: "@codemirror/view"
+      # conventionalcommits preset 10.x requires conventional-changelog-writer@9,
+      # but semantic-release still ships writer 8 (release-notes-generator pins
+      # ^8.0.0). A 10.x bump breaks every release at generateNotes (#47) — and
+      # silently, because runs with no release-worthy commit still pass. Revisit
+      # when release-notes-generator moves to writer 9.
+      - dependency-name: "conventional-changelog-conventionalcommits"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
