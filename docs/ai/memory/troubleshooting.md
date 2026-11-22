@@ -177,3 +177,44 @@ predicate. `eslint-plugin-obsidianmd` ≥0.6.0 catches this as
 
 Always verify such a test by reverting the fix — a realm test that accidentally
 stays in one realm passes either way.
+
+## A green Release run does not mean releasing works
+
+Learned 2026-11-22 (#47). semantic-release **exits 0 when there is nothing to
+release**, so a Release workflow run on a `chore`/`docs`/`ci`/`refactor`-only
+`main` is green without ever reaching `generateNotes`, the git push, or the
+GitHub release. Between 1.3.0 (2026-07-06) and 2026-11-22 every run was green
+and nothing was ever published — a broken preset sat there for four months.
+
+**Never read a green Release run as proof the release path works.** Check that a
+tag and release actually exist (`gh release list`, `git tag`), or that the log
+says `Created tag` / `Published release`.
+
+### The failure it hid
+
+`conventional-changelog-conventionalcommits` **10.x** requires
+`conventional-changelog-writer@9`, but `semantic-release@25.0.9` ships writer
+8.4.0 and `@semantic-release/release-notes-generator@14.1.1` declares `^8.0.0`.
+Preset 8.x/9.x have no `@conventional-changelog/template` dependency and render
+fine on writer 8 — so the repo is pinned to `^9.3.1`, with a dependabot `ignore`
+for majors.
+
+The error reads oddly: `Missing helper: "<a whole English sentence>"`. That is
+deliberate — `@conventional-changelog/template` sets `mainTemplate` to a
+handlebars segment literal whose *helper name* is the explanation, so an old
+writer surfaces it via handlebars' `helperMissing`. Don't go looking for a
+missing helper; read the sentence.
+
+### Verifying a release-notes change without cutting a release
+
+Call the plugin directly instead of running semantic-release (which needs a
+token and a clean CI context):
+
+```js
+import { generateNotes } from "@semantic-release/release-notes-generator";
+await generateNotes({ preset: "conventionalcommits" }, { cwd, commits, lastRelease, nextRelease, options, logger, env: {} });
+```
+
+Feed it one `fix`, one `feat!` with a `BREAKING CHANGE` body, and one `chore`,
+then assert the first two render and the `chore` does not. The script must live
+**inside the repo** — run from elsewhere, Node cannot resolve the packages.
