@@ -23,3 +23,21 @@ only validated by actually running the suite.
 
 **`npm run test:coverage` is broken** — `@vitest/coverage-v8` has never been in
 `package.json`, though CLAUDE.md lists the command. Tracked separately.
+
+## Coverage: reading the report
+
+`npm run test:coverage` needs `@vitest/coverage-v8`, whose version must track
+vitest's major (both 5.1.1 as of #44) — bump them together.
+
+The text reporter **hides fully-covered files**: 33 files are measured but only
+22 printed, because 11 sit at 100%. A directory row can therefore show a higher
+percentage than its one printed child (`src/shared` 96% vs `logger.ts` 67%).
+Nothing is missing from the totals — don't go hunting for excluded files.
+`--coverage.reporter=json-summary` then reading `coverage/coverage-summary.json`
+gives the per-file truth.
+
+`.d.ts` files are excluded by config, so 35 `src/**/*.ts` → 33 measured.
+
+Baseline at #44: statements 92.7%, branches 80.7%, functions 90.6%, lines 94%.
+Weakest by far is `src/footer/BacklinkFooterManager.ts` (53% stmts, 39% branches);
+everything else is ≥84% statements.
