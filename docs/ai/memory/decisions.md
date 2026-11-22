@@ -68,3 +68,25 @@ so it inherits the exact look of the core Backlinks pane and the user's theme.
 orbital-prefixed classes are kept alongside as stable test/style hooks. Groups
 render expanded by default (like the native pane). We omit the native
 "Show more context" hover buttons.
+
+## Coverage is a local tool, not a gate
+
+Decided 2026-11-22 (#44, PR #45). `@vitest/coverage-v8` is declared so
+`npm run test:coverage` works, but there are **deliberately no thresholds in
+`vitest.config.ts` and no coverage step in CI**.
+
+Rationale: coverage is useful when you go looking at a specific module, and
+misleading as a merge gate — a threshold rewards touching easy lines and makes
+unrelated PRs fail for lowering a percentage. This matches the existing stance
+that noisy metrics never gate a build.
+
+Baseline when the command was first made to run: statements 92.7%, branches
+80.7%, functions 90.6%, lines 94% over 33 files. The one real gap is
+`src/footer/BacklinkFooterManager.ts` (53% stmts, 39% branches) — the
+CodeMirror footer, which is also the trickiest file in the repo (see the
+StateField/block-decoration entry in troubleshooting.md). If that bothers us,
+the answer is tests for that file, not a global threshold.
+
+Considered and rejected: thresholds pinned just under current numbers. Do not
+re-raise without new input — e.g. an actual regression that tests missed and
+coverage would have caught.
