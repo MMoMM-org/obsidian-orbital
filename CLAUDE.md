@@ -26,5 +26,5 @@ npm run test:coverage # vitest with v8 coverage
 ```
 
 ## Rules
-- Use Plan Mode for any change touching more than 2 files
+- More than 2 files: short plan in chat; features via `/xdd`. No self-started Plan Mode (see `~/Kouzou/standards/general.md`)
 - Commit after every completed task
