@@ -90,3 +90,31 @@ the answer is tests for that file, not a global threshold.
 Considered and rejected: thresholds pinned just under current numbers. Do not
 re-raise without new input — e.g. an actual regression that tests missed and
 coverage would have caught.
+
+## npm audit: overrides for what is reachable, the vendored npm tree is accepted
+
+Decided 2026-11-22 (#40, PR #52). `package.json` carries `overrides` pinning
+handlebars, browserslist, brace-expansion (per major) and undici (per major) to
+fixed patch versions. Result: critical 1 → 0, high 3 → 2, total 48 → 45.
+
+**The remaining findings are structurally unfixable from here.** They live inside
+`node_modules/npm`, which `@semantic-release/npm` vendors; that package declares
+**65 `bundleDependencies`**, and bundled deps are extracted from the tarball
+rather than re-resolved, so `overrides` never touch them. This is also why
+`npm audit fix` is a no-op. Verified copy by copy — every affected package
+*outside* the npm bundle is on a fixed version. They clear when
+`@semantic-release/npm` bumps its vendored npm, not before.
+
+So: a non-zero `npm audit` is the expected steady state here. Do not chase it to
+zero, and do not reach for the forcing variant of `npm audit fix` — that means
+breaking majors of the semantic-release toolchain.
+
+Exposure is build/release tooling only: `package.json` has **no runtime
+`dependencies`**, so nothing in the audit output ships to a user's vault. Weigh
+any future finding against that before treating a "critical" label as urgent.
+
+When bumping an override, keep it inside the same major as the version the
+consumer was built against, and re-run the checks that actually exercise it:
+`npm run lint` covers browserslist (via the stylelint browser-features rule), and
+handlebars sits in the release-notes path — see the `generateNotes` recipe in
+troubleshooting.md.
