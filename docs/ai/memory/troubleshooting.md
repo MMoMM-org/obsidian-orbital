@@ -144,3 +144,36 @@ versions land on `main`. Precedent: PR #25 (`chore/dep-triage`), PR #36
 **Note:** `npm run lint` is `eslint src/ && stylelint styles.css` with no
 `--max-warnings`, so new plugin warnings never fail CI — read them, don't
 panic-fix them inside a dep bump.
+
+## `instanceof HTMLElement` is always false in Obsidian popout windows
+
+**Symptom (2026-11-22, issue #37):** the search-box focus restoration above
+worked in the sidebar but silently did nothing when the view was in a popout
+window — focus and caret were lost on every passive repaint.
+
+**Root cause:** a popout is a **separate realm** with its own `HTMLElement`,
+`Node`, … constructors. `active instanceof HTMLElement` compares against the
+*main* window's constructor, so it is false for any element belonging to the
+popout. Reading `activeElement` off `panelContainer.ownerDocument` (which the
+code already did) is not enough — the realm problem is in the narrowing, not the
+document lookup.
+
+**Fix:** use Obsidian's `Node.instanceOf()`, a cross-window-safe drop-in. Put
+the null check *before* it so TS still narrows through the `this is T`
+predicate. `eslint-plugin-obsidianmd` ≥0.6.0 catches this as
+`obsidianmd/prefer-instanceof` — but only as a warning.
+
+**Testing realms in jsdom — two traps:**
+1. `document.implementation.createHTMLDocument()` does **not** create a new
+   realm (same constructors), so it cannot reproduce this. Use an **iframe**:
+   `iframe.contentWindow` is a genuine second realm.
+2. After a foreign-realm node is adopted into the main document (any
+   `appendChild`/`replaceWith` does this), `ownerDocument.defaultView` reports
+   the **main** window again, while the prototype chain stays foreign. So a
+   realm check must walk the node's own prototype chain — never trust
+   `ownerDocument` for it. This is why `installObsidianInstanceOf(win)` in
+   `test/__mocks__/obsidian.ts` compares constructor *names* up the chain, and
+   why it takes a target window (real Obsidian augments every popout it opens).
+
+Always verify such a test by reverting the fix — a realm test that accidentally
+stays in one realm passes either way.
