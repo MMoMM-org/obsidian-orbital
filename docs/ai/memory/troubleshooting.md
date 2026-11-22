@@ -120,3 +120,27 @@ The unconditional `query !== ""` focus block in `renderSearchBox` was removed.
 Note: `renderPanel` empties the container before the panel's own `render` runs, so
 the focus check MUST live in `renderPanel` (pre-empty) — a panel can't observe its
 own pre-teardown focus.
+
+## Dependabot PR fails CI with `npm ci` EUSAGE: lock file out of sync
+
+**Symptom (2026-11-22, PR #33):** a grouped dependabot PR fails `build (24.x)`
+with `npm error code EUSAGE` — "`npm ci` can only install packages when your
+package.json and package-lock.json are in sync", listing entries like
+`Invalid: lock file's eslint@10.14.0 does not satisfy eslint@10.15.0`. The
+matrix's other Node version shows up as `CANCELLED` (fail-fast), so only one
+real failure is hiding behind two red checks.
+
+**Root cause:** the dependabot branch's lockfile was resolved against an older
+registry/base state than its own `package.json` ranges. Rebasing does not help
+once a grouped PR has drifted this far.
+
+**Fix:** do not try to repair the dependabot branch. Open one local bump branch,
+edit the ranges in `package.json`, run `npm install` to regenerate the lockfile
+from scratch, then verify with `npm ci` (must exit 0), `npm run build`,
+`npm test`, `npm run lint`. Dependabot auto-closes its superseded PRs once the
+versions land on `main`. Precedent: PR #25 (`chore/dep-triage`), PR #36
+(`chore/dep-triage-nov`).
+
+**Note:** `npm run lint` is `eslint src/ && stylelint styles.css` with no
+`--max-warnings`, so new plugin warnings never fail CI — read them, don't
+panic-fix them inside a dep bump.
