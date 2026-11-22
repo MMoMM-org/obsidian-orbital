@@ -1,3 +1,11 @@
+## [1.3.1](https://github.com/MMoMM-org/obsidian-orbital/compare/1.3.0...1.3.1) (2026-11-22)
+
+### Bug Fixes
+
+* **release:** pin conventionalcommits preset to 9.x for writer 8 ([ee7a4a7](https://github.com/MMoMM-org/obsidian-orbital/commit/ee7a4a706d535f844ccee7fcc4e557ba11301ddf)), closes [#25](https://github.com/MMoMM-org/obsidian-orbital/issues/25) [#36](https://github.com/MMoMM-org/obsidian-orbital/issues/36)
+* **test:** declare @vitest/coverage-v8 so test:coverage runs ([22da940](https://github.com/MMoMM-org/obsidian-orbital/commit/22da9408148e7475cee55d10c58d5dadf88d11a6)), closes [#39](https://github.com/MMoMM-org/obsidian-orbital/issues/39)
+* **view:** restore search-box focus in popout windows ([631d320](https://github.com/MMoMM-org/obsidian-orbital/commit/631d3202591e173270986c7390febeb55a9f304a))
+
 ## [1.3.0](https://github.com/MMoMM-org/obsidian-orbital/compare/1.2.0...1.3.0) (2026-07-06)
 
 ### Features
