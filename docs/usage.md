@@ -119,6 +119,11 @@ a `[[wikilink]]` at the drop point, remove a single entry with its **×**, or
 
 An `orbital-backlinks` code block renders the **containing note's** backlinks inline, in reading view and live preview. Drop it anywhere in a note to see which other notes link to it, without opening the Relations sidebar. The block updates automatically as links across the vault change.
 
+<!-- #54 — capture assets/orbital-innote-backlinks.png from the test vault, then
+     delete these two comment lines to publish the image.
+![An `orbital-backlinks` block rendered in a note](../assets/orbital-innote-backlinks.png)
+-->
+
 #### Creating the block
 
 An empty block works immediately with no configuration:
@@ -211,6 +216,11 @@ Rather than adding an `orbital-backlinks` block to each note by hand, enable
 backlinks view automatically at the end of **every** note — in both reading view
 and live preview, separated from the note body by a divider (like Obsidian's
 own "Backlinks in document").
+
+<!-- #54 — capture assets/orbital-backlinks-footer.png from the test vault, then
+     delete these two comment lines to publish the image.
+![The backlinks footer appended below the note body](../assets/orbital-backlinks-footer.png)
+-->
 
 - The footer always uses **context** mode and follows the **Context style**
   (dense/cards) and **Collapse context by default** settings.
